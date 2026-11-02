@@ -11,18 +11,19 @@ interface MatchProps {
   nameOf: (id: string) => string;
 }
 
-type RowStatus = 'plays' | 'reserve' | 'rest' | 'out';
+type RowStatus = 'plays' | 'reserve' | 'rest' | 'out' | 'waiting';
 const STATUS_LABEL: Record<RowStatus, string> = {
   plays: 'Plays',
   reserve: 'Reserve',
   rest: 'Resting',
   out: "Can't play",
+  waiting: 'No answer',
 };
 
 const ANSWERS: { value: Exclude<Availability, 'unknown'>; label: string }[] = [
-  { value: 'yes', label: 'Yes' },
+  { value: 'yes', label: 'I can' },
   { value: 'maybe', label: 'Maybe' },
-  { value: 'no', label: 'No' },
+  { value: 'no', label: "I can't" },
 ];
 
 export function PlannedMatch({ item, state, dispatch, nameOf, startOpen = true }: MatchProps & { startOpen?: boolean }) {
@@ -53,14 +54,20 @@ export function PlannedMatch({ item, state, dispatch, nameOf, startOpen = true }
 
       <p className="match-lineup">
         <span className="label">Lineup</span>
-        <span>{item.lineup.length > 0 ? item.lineup.map(nameOf).join(' · ') : 'Nobody available yet'}</span>
+        <span>
+          {item.lineup.length > 0
+            ? item.lineup.map(nameOf).join(' · ')
+            : item.unanswered.length > 0
+              ? 'Waiting for answers'
+              : 'Nobody can play'}
+        </span>
       </p>
 
-      <MatchNotices item={item} nameOf={nameOf} />
+      <MatchNotices item={item} nameOf={nameOf} activeCount={active.length} />
 
       {!open && (
         <button type="button" className="link-button match-toggle" aria-expanded={false} onClick={() => setOpen(true)}>
-          Answers and picks
+          Who can play?
         </button>
       )}
 
@@ -76,7 +83,9 @@ export function PlannedMatch({ item, state, dispatch, nameOf, startOpen = true }
                 ? 'rest'
                 : isReserve.has(p.id)
                   ? 'reserve'
-                  : 'out';
+                  : answer === 'unknown'
+                    ? 'waiting'
+                    : 'out';
             return (
               <li key={p.id} className="player-row">
                 <span className="player-name">{p.name}</span>
@@ -228,22 +237,36 @@ function MatchHeading({ fixture, editing, onEdit }: { fixture: Fixture; editing:
   );
 }
 
-function MatchNotices({ item, nameOf }: { item: FixturePlan; nameOf: (id: string) => string }) {
+function MatchNotices({
+  item,
+  nameOf,
+  activeCount,
+}: {
+  item: FixturePlan;
+  nameOf: (id: string) => string;
+  activeCount: number;
+}) {
   const notes: { tone: 'warn' | 'info'; text: string }[] = [];
-  if (item.missing > 0) {
+  const places = (n: number) => `${n} ${n === 1 ? 'place' : 'places'}`;
+  if (item.missing > 0 && item.unanswered.length > 0) {
     notes.push({
-      tone: 'warn',
-      text: `${item.missing} ${item.missing === 1 ? 'place is' : 'places are'} still open: nobody else is available.`,
+      tone: 'info',
+      text:
+        item.unanswered.length === activeCount
+          ? 'No answers yet. Ask the team who can play.'
+          : `${places(item.missing)} open. Still to answer: ${item.unanswered.map(nameOf).join(', ')}.`,
     });
+  } else if (item.missing > 0) {
+    notes.push({ tone: 'warn', text: `${places(item.missing)} open, and everyone has answered.` });
   }
   if (item.surplus > 0) {
     notes.push({ tone: 'warn', text: `${item.surplus} more ${item.surplus === 1 ? 'player is' : 'players are'} set to "Must play" than there are places.` });
   }
   if (item.conflicts.length > 0) {
-    notes.push({ tone: 'warn', text: `${item.conflicts.map(nameOf).join(', ')} set to "Must play" but answered No.` });
+    notes.push({ tone: 'warn', text: `${item.conflicts.map(nameOf).join(', ')} set to "Must play" but said "I can't".` });
   }
   if (isPast(item.fixture.date)) {
-    notes.push({ tone: 'info', text: 'This date has passed. Mark the match as played to keep the season count right.' });
+    notes.push({ tone: 'info', text: 'This date has passed. Mark the match as played to keep the count right.' });
   }
   if (notes.length === 0) return null;
   return (

@@ -28,10 +28,12 @@ It is built for any team. Vallensbæk BTK 3 is the first test team.
 - **Lineup planner.** It works for typical cases like 5 players with 3 per match.
   - Opening it from a team page fills in the roster, the fixtures and who played from the results, and keeps them up
     to date.
-  - Mark each player Yes, Maybe or No per match. The planner proposes a lineup for every match.
-  - Matches per player stay as even as possible over the season, counting matches already played. A player who will
-    miss later matches gets more of the earlier ones, and rests rotate.
-  - Players who said Yes go first; you can turn this off. Captain overrides: *Must play* or *Rest*.
+  - For each match, mark every player *I can*, *Maybe* or *I can't*. Nobody is planned on guesses: only players
+    who answered *I can* or *Maybe* are picked, and *I can* goes first. Until then the match shows who still has to
+    answer.
+  - Among the players who can play, whoever has played the fewest matches so far goes first. Matches already played
+    count, and so do upcoming matches a player is already picked for. Rests rotate.
+  - Captain overrides: *Must play* or *Rest*.
   - Share the plan as a link or as a short message for the team chat. Download a backup and restore it.
   - Plans are stored in the browser of whoever made them. There are no accounts and no server.
 

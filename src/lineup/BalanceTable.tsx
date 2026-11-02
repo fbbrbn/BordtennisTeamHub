@@ -14,7 +14,11 @@ export function BalanceTable({ state, plan }: { state: PlannerState; plan: Plan 
     <section className="card">
       <div className="section-head">
         <h2>Season balance</h2>
-        {fair !== null && <span className="muted">Even share: {formatShare(fair)} matches each</span>}
+        {fair !== null && (
+          <span className="muted">
+            {fair > 0 ? `Even share so far: ${formatShare(fair)} matches each` : 'No matches played yet'}
+          </span>
+        )}
       </div>
       <table className="balance">
         <thead>
@@ -48,7 +52,7 @@ export function BalanceTable({ state, plan }: { state: PlannerState; plan: Plan 
       <div className="legend" aria-hidden="true">
         <span><i className="swatch swatch-played" /> Played</span>
         <span><i className="swatch swatch-planned" /> Planned</span>
-        {fair !== null && <span><i className="swatch-tick" /> Even share</span>}
+        {fair !== null && fair > 0 && <span><i className="swatch-tick" /> Even share so far</span>}
       </div>
     </section>
   );
@@ -60,7 +64,7 @@ function ShareBar({ played, planned, fair, scale }: { played: number; planned: n
     <div className="share-bar" aria-hidden="true">
       {played > 0 && <span className="seg seg-played" style={{ width: pct(played) }} />}
       {planned > 0 && <span className="seg seg-planned" style={{ width: pct(planned) }} />}
-      {fair !== null && <span className="fair-tick" style={{ left: pct(fair) }} />}
+      {fair !== null && fair > 0 && <span className="fair-tick" style={{ left: pct(fair) }} />}
     </div>
   );
 }

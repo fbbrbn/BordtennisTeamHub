@@ -34,14 +34,21 @@ export function formatShare(value: number | null): string {
 export function lineupMessage(state: PlannerState, plan: Plan, maxMatches = 5): string {
   const name = (id: string) => state.players.find((p) => p.id === id)?.name ?? '?';
   const upcoming = plan.fixtures.filter((f) => f.status === 'planned').slice(0, maxMatches);
+  const activeCount = state.players.filter((p) => p.active).length;
   const lines = [`${state.teamName || 'Our team'}: lineup plan`];
 
   for (const f of upcoming) {
     const time = formatTime(f.fixture.date);
     const when = `${formatDay(f.fixture.date)}${time ? ` ${time}` : ''}`;
     const where = f.fixture.home ? 'home' : 'away';
-    const players = f.lineup.map(name).join(', ') || 'nobody yet';
-    const open = f.missing > 0 ? ` (+${f.missing} needed)` : '';
+    const nobodyAnswered = f.lineup.length === 0 && f.unanswered.length === activeCount;
+    const players = nobodyAnswered ? 'no answers yet' : f.lineup.map(name).join(', ') || 'no lineup yet';
+    let open = '';
+    if (f.missing > 0 && !nobodyAnswered) {
+      open = f.unanswered.length > 0
+        ? ` (${f.missing} more needed, waiting for ${f.unanswered.map(name).join(', ')})`
+        : ` (${f.missing} more needed)`;
+    }
     const reserve = f.reserves.length > 0 ? `, reserve: ${name(f.reserves[0])}` : '';
     lines.push(`• ${when} vs ${f.fixture.opponent || '?'} (${where}): ${players}${open}${reserve}`);
   }
@@ -52,6 +59,6 @@ export function lineupMessage(state: PlannerState, plan: Plan, maxMatches = 5): 
     .map((t) => `${name(t.playerId)} ${t.played}`)
     .join(' · ');
   if (played) lines.push(`Matches played so far: ${played}`);
-  lines.push('The plan updates as people answer. Tell the captain if you cannot play.');
+  lines.push("For every match, tell the captain: I can, Maybe or I can't.");
   return lines.join('\n');
 }

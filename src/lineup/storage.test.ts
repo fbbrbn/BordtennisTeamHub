@@ -54,6 +54,6 @@ describe('normalizeState', () => {
     expect(state.fixtures.map((f) => f.id)).toEqual(['f1', 'f2']);
     expect(state.availability).toEqual({ f1: { p1: 'yes' } });
     expect(state.overrides).toEqual({ f1: { p1: 'in' } });
-    expect(state.settings).toEqual({ playersPerMatch: 3, preferConfirmed: false });
+    expect(state.settings).toEqual({ playersPerMatch: 3 });
   });
 });

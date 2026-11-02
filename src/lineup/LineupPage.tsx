@@ -194,25 +194,17 @@ export function LineupPage({
             ))}
           </select>
         </label>
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={state.settings.preferConfirmed}
-            onChange={(e) => dispatch({ type: 'settings', patch: { preferConfirmed: e.target.checked } })}
-          />
-          Pick players who said Yes first
-        </label>
         <details className="explain">
           <summary>How the plan is made</summary>
           <p>
-            Every match gets the players who can play. Over the whole season, including matches already played,
-            the planner keeps the number of matches per player as even as possible, and it rotates who rests. A
-            player who will miss later matches gets more of the earlier ones.
+            Nobody is planned on guesses. For each match, mark who said <em>I can</em>, <em>Maybe</em> or{' '}
+            <em>I can't</em>. Only players who said <em>I can</em> or <em>Maybe</em> are picked, and <em>I can</em> goes
+            first.
           </p>
           <p>
-            With <em>Pick players who said Yes first</em> on, confirmed players always go before Maybe or
-            unanswered ones. Turn it off to put balance first. Use <em>Must play</em> or <em>Rest</em> to
-            overrule the planner for one match.
+            Among them, the planner picks whoever has played the fewest matches so far. Matches already played count,
+            and so do the upcoming matches a player is already picked for. Use <em>Must play</em> or <em>Rest</em> to
+            overrule it for one match.
           </p>
         </details>
       </section>

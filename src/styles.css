@@ -711,7 +711,8 @@ textarea {
 }
 
 .status-rest,
-.status-out {
+.status-out,
+.status-waiting {
   color: var(--text-2);
 }
 

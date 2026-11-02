@@ -8,7 +8,7 @@ export function emptyState(teamName = ''): PlannerState {
   return {
     version: 1,
     teamName,
-    settings: { playersPerMatch: 3, preferConfirmed: true },
+    settings: { playersPerMatch: 3 },
     players: [],
     fixtures: [],
     availability: {},
@@ -118,7 +118,6 @@ export function normalizeState(input: unknown): PlannerState | null {
   if (isRecord(input.settings)) {
     const perMatch = Number(input.settings.playersPerMatch);
     if (Number.isInteger(perMatch) && perMatch >= 1 && perMatch <= 12) state.settings.playersPerMatch = perMatch;
-    state.settings.preferConfirmed = input.settings.preferConfirmed !== false;
   }
 
   const playerIds = new Set<string>();
