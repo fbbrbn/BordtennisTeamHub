@@ -106,14 +106,14 @@ async function main() {
     const pick = (all: NamedId[], wanted?: 'all' | string[]) => (!wanted || wanted === 'all' ? all : all.filter((x) => wanted.includes(x.id)));
     const age = previousIndex?.discoveredAt ? (Date.now() - Date.parse(previousIndex.discoveredAt)) / 3_600_000 : Infinity;
     if (age >= (d.everyHours ?? 20) || previousIndex?.season?.id !== seasonId) {
-      let found = 0;
+      const found = new Set<string>();
       for (const region of pick(lists.regions, d.regions)) {
         for (const ageGroup of pick(lists.ageGroups, d.ageGroups)) {
           try {
             const html = await client.standing({ subPage: 1, seasonId, regionId: region.id, ageGroupId: ageGroup.id });
             for (const link of parseRegionPools(html)) {
               if (!targets.has(link.groupId)) targets.set(link.groupId, link);
-              found++;
+              found.add(link.groupId);
             }
           } catch (error) {
             discoveryComplete = false;
@@ -122,7 +122,7 @@ async function main() {
         }
       }
       discoveredAt = discoveryComplete ? now : previousIndex?.discoveredAt;
-      console.log(`Discovered ${found} pools for ${season.name}${discoveryComplete ? '' : ' (incomplete)'}.`);
+      console.log(`Discovered ${found.size} pools for ${season.name}${discoveryComplete ? '' : ' (incomplete)'}.`);
     } else {
       for (const p of previousIndex?.pools ?? []) {
         if (p.seasonId === seasonId && !targets.has(p.id)) {

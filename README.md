@@ -67,10 +67,18 @@ Two independent estimates are averaged:
 2. **Common opponents.** It compares how both teams did against the same teams, and against each other if they already
    met. Fewer comparisons pull the estimate towards even.
 
-Checked against the 20 matches already played in the first pool, using the actual lineups:
+Each pool's real match format is read from its results:
+- the number of players per side;
+- which positions meet in the singles;
+- the number of doubles;
+- whether matches stop at "first to N" (the national divisions);
+- whether a level score is settled by a deciding game.
 
-- The expected game score was off by 1.2 games out of 10 on average.
-- The probability score was 0.43, where pure guessing scores 0.67.
+Checked against all 1,307 played matches of the season so far, using the actual lineups:
+
+- The probability score was 0.35, where pure guessing scores 0.67.
+- The most likely outcome was right 75% of the time.
+- The expected score was off by 13% of the games on average.
 
 These checks are in-sample, so real accuracy is a bit lower. The site always labels the chances as estimates.
 

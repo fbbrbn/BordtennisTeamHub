@@ -20,7 +20,10 @@ export interface Odds {
   loss: number;
   /** Expected games won. */
   expectedGames: number;
+  /** Expected games played (fixed, except in first-to-N formats). */
   totalGames: number;
+  /** False when the format cannot end level (odd number of games, first to N, or a deciding game). */
+  drawPossible: boolean;
 }
 
 export interface RatingForecast {
@@ -104,7 +107,64 @@ export function oddsFromGames(chances: number[]): Odds {
     if (2 * k > n) win += q;
     else if (2 * k === n) draw += q;
   });
-  return { win, draw, loss: Math.max(0, 1 - win - draw), expectedGames: chances.reduce((a, b) => a + b, 0), totalGames: n };
+  return {
+    win,
+    draw,
+    loss: Math.max(0, 1 - win - draw),
+    expectedGames: chances.reduce((a, b) => a + b, 0),
+    totalGames: n,
+    drawPossible: n % 2 === 0,
+  };
+}
+
+/**
+ * Odds for a team match played in the pool's format. `chances` are our win chances for
+ * the games in playing order.
+ * - First to N: the match stops when a side reaches N games.
+ * - Deciding game: a level score is settled by one more game (chance `deciderChance`).
+ * - Otherwise every game is played and a level score is a draw.
+ */
+export function oddsForFormat(format: MatchFormat, chances: number[], deciderChance = 0.5): Odds {
+  if (format.raceTo) {
+    const n = format.raceTo;
+    const games = Array.from({ length: 2 * n - 1 }, (_, k) => chances[k] ?? deciderChance);
+    // probability of each running score (wins, losses) that has not finished yet
+    let live = new Map<string, number>([['0,0', 1]]);
+    let win = 0;
+    let expectedWon = 0;
+    let expectedPlayed = 0;
+    for (const p of games) {
+      const next = new Map<string, number>();
+      for (const [key, q] of live) {
+        const [w, l] = key.split(',').map(Number);
+        for (const [dw, dl, pq] of [[1, 0, p], [0, 1, 1 - p]] as const) {
+          const nw = w + dw;
+          const nl = l + dl;
+          const mass = q * pq;
+          if (nw === n || nl === n) {
+            if (nw === n) win += mass;
+            expectedWon += mass * nw;
+            expectedPlayed += mass * (nw + nl);
+          } else {
+            const k = `${nw},${nl}`;
+            next.set(k, (next.get(k) ?? 0) + mass);
+          }
+        }
+      }
+      live = next;
+    }
+    return { win, draw: 0, loss: 1 - win, expectedGames: expectedWon, totalGames: expectedPlayed, drawPossible: false };
+  }
+  const base = oddsFromGames(chances);
+  if (!format.decider || base.draw === 0) return base;
+  return {
+    win: base.win + base.draw * deciderChance,
+    draw: 0,
+    loss: base.loss + base.draw * (1 - deciderChance),
+    expectedGames: base.expectedGames + base.draw * deciderChance,
+    totalGames: base.totalGames + base.draw,
+    drawPossible: false,
+  };
 }
 
 /** Logistic scale that best explains the pool's singles results (max likelihood, weak prior around 300). */
@@ -180,8 +240,116 @@ export function teamRoster(pool: PoolData, teamId: string): string[] {
   return [...appearances].sort((a, b) => b[1] - a[1]).map(([id]) => id);
 }
 
-/** Players per side in this pool's matches (3 in most series). */
+/**
+ * How a team match is played in this pool, read from played matches:
+ * - the games in playing order: singles between positions ("A2/B1" or "A2-B1"; position 1
+ *   is the strongest player) and team games (doubles, golden sets), which use team averages;
+ * - `raceTo`: first to N games wins and the match stops (e.g. 8 in the national divisions);
+ * - `decider`: a level score is settled by one more game, so there are no draws.
+ * Most series are 3 v 3 with 1 doubles and nine singles; the Jyllandsserie is 4 v 4 with two
+ * doubles and twelve singles. Without readable labels: the usual numbers of singles and doubles.
+ */
+export type FormatGame = { kind: 'single'; pair: [number, number] } | { kind: 'team' };
+
+export interface MatchFormat {
+  size: number;
+  sequence: FormatGame[];
+  /** Singles position pairs (0-based), in playing order. */
+  singles: [number, number][];
+  /** Team games: doubles and golden sets. */
+  doubles: number;
+  raceTo: number | null;
+  decider: boolean;
+}
+
+const SINGLE_LABEL = /A\s*(\d+)\s*[/-]\s*B\s*(\d+)/i;
+const formats = new WeakMap<PoolData, MatchFormat>();
+
+export function matchFormat(pool: PoolData): MatchFormat {
+  const cached = formats.get(pool);
+  if (cached) return cached;
+  const players = playersPerSide(pool);
+  const played = pool.matches.filter((m) => m.score && m.games && m.games.length > 0 && !m.walkover);
+  const sums = played.map((m) => m.score![0] + m.score![1]);
+  const winners = new Map<number, number>();
+  for (const m of played) winners.set(Math.max(...m.score!), (winners.get(Math.max(...m.score!)) ?? 0) + 1);
+  const topWinner = mostCommon(winners);
+  const raceTo =
+    played.length >= 4 && topWinner !== undefined && (winners.get(topWinner) ?? 0) >= 0.8 * played.length && new Set(sums).size > 1
+      ? topWinner
+      : null;
+
+  const sequences = new Map<string, { sequence: FormatGame[]; count: number }>();
+  for (const match of played) {
+    const sequence: FormatGame[] = match.games!
+      .filter((g) => g.winner !== null)
+      .map((g) => {
+        const m = g.kind === 'single' ? SINGLE_LABEL.exec(g.label) : null;
+        return m ? { kind: 'single', pair: [Number(m[1]) - 1, Number(m[2]) - 1] } : { kind: 'team' };
+      });
+    const pairs = sequence.flatMap((g) => (g.kind === 'single' ? [g.pair] : []));
+    if (pairs.length === 0) continue;
+    const size = Math.max(...pairs.flat()) + 1;
+    const unique = new Set(pairs.map(([a, b]) => `${a}-${b}`)).size === pairs.length;
+    if (size !== players || !unique) continue;
+    const key = JSON.stringify(sequence);
+    sequences.set(key, { sequence, count: (sequences.get(key)?.count ?? 0) + 1 });
+  }
+  const options = [...sequences.values()];
+  // First-to-N matches stop early, so take the longest; otherwise the most common one.
+  const chosen = (
+    raceTo
+      ? options.sort((a, b) => b.sequence.length - a.sequence.length || b.count - a.count)[0]
+      : options.sort((a, b) => b.count - a.count || a.sequence.length - b.sequence.length)[0]
+  )?.sequence;
+  const sequence = chosen ?? fallbackSequence(pool, players);
+  const decider = !raceTo && sums.some((sum) => sum === sequence.length + 1);
+  const format: MatchFormat = {
+    size: players,
+    sequence,
+    singles: sequence.flatMap((g) => (g.kind === 'single' ? [g.pair] : [])),
+    doubles: sequence.filter((g) => g.kind === 'team').length,
+    raceTo,
+    decider,
+  };
+  formats.set(pool, format);
+  return format;
+}
+
+/** Without readable labels: the usual numbers of singles and team games, singles over all pairings. */
+function fallbackSequence(pool: PoolData, size: number): FormatGame[] {
+  const singlesCounts = new Map<number, number>();
+  const teamCounts = new Map<number, number>();
+  for (const match of pool.matches) {
+    const games = match.games?.filter((g) => g.winner !== null) ?? [];
+    if (games.length === 0) continue;
+    const singles = games.filter((g) => g.kind === 'single').length;
+    singlesCounts.set(singles, (singlesCounts.get(singles) ?? 0) + 1);
+    teamCounts.set(games.length - singles, (teamCounts.get(games.length - singles) ?? 0) + 1);
+  }
+  const pairs: [number, number][] = [];
+  for (let i = 0; i < size; i++) for (let j = 0; j < size; j++) pairs.push([i, j]);
+  const singles = mostCommon(singlesCounts) ?? pairs.length;
+  const team = mostCommon(teamCounts) ?? 1;
+  return [
+    ...Array.from({ length: team }, () => ({ kind: 'team' }) as FormatGame),
+    ...Array.from({ length: singles }, (_, k) => ({ kind: 'single', pair: pairs[k % pairs.length] }) as FormatGame),
+  ];
+}
+
+/** Players per side (3 in most series). */
 export function lineupSize(pool: PoolData): number {
+  return matchFormat(pool).size;
+}
+
+/** Games per team match (10 in most series: 9 singles and 1 doubles; the most a first-to-N match can take). */
+export function gamesPerMatch(pool: PoolData): number {
+  const format = matchFormat(pool);
+  return format.raceTo ? 2 * format.raceTo - 1 : format.sequence.length;
+}
+
+/** The most common number of distinct players per side in played singles. */
+function playersPerSide(pool: PoolData): number {
   const sizes = new Map<number, number>();
   for (const match of pool.matches) {
     const singles = match.games?.filter((g) => g.kind === 'single' && !g.walkover) ?? [];
@@ -189,17 +357,11 @@ export function lineupSize(pool: PoolData): number {
     const size = Math.max(new Set(singles.flatMap((g) => g.home)).size, new Set(singles.flatMap((g) => g.away)).size);
     sizes.set(size, (sizes.get(size) ?? 0) + 1);
   }
-  // The most common lineup size across played matches.
-  return [...sizes].sort((a, b) => b[1] - a[1] || b[0] - a[0])[0]?.[0] ?? 3;
+  return mostCommon(sizes) ?? 3;
 }
 
-/** Games per team match in this pool (10 in most series: 9 singles and 1 doubles). */
-export function gamesPerMatch(pool: PoolData): number {
-  const counts = pool.matches.filter((m) => m.score).map((m) => m.score![0] + m.score![1]);
-  if (counts.length === 0) return 10;
-  const freq = new Map<number, number>();
-  for (const c of counts) freq.set(c, (freq.get(c) ?? 0) + 1);
-  return [...freq].sort((a, b) => b[1] - a[1])[0][0];
+function mostCommon(counts: Map<number, number>): number | undefined {
+  return [...counts].sort((a, b) => b[1] - a[1] || b[0] - a[0])[0]?.[0];
 }
 
 /** Every lineup a team fielded this season (one per played match), with how often each was used. */
@@ -227,6 +389,7 @@ export function ratingSummary(
   opponentId: string,
   scale: number,
   lineups: { team?: string[]; opponent?: string[] } = {},
+  home = true,
 ): RatingSummary | null {
   const options = (id: string, given?: string[]) => {
     if (given) return [{ ids: given, weight: 1 }];
@@ -239,11 +402,11 @@ export function ratingSummary(
   const theirs = options(opponentId, lineups.opponent);
   const rating = ratingsOf(pool);
   let total = 0;
-  const sum = { win: 0, draw: 0, loss: 0, expectedGames: 0 };
-  let totalGames = 0;
+  const sum = { win: 0, draw: 0, loss: 0, expectedGames: 0, totalGames: 0 };
+  let drawPossible = true;
   for (const a of ours) {
     for (const b of theirs) {
-      const f = ratingForecast(pool, a.ids, b.ids, scale);
+      const f = ratingForecast(pool, a.ids, b.ids, scale, home);
       if (!f) continue;
       const w = a.weight * b.weight;
       total += w;
@@ -251,14 +414,22 @@ export function ratingSummary(
       sum.draw += w * f.odds.draw;
       sum.loss += w * f.odds.loss;
       sum.expectedGames += w * f.odds.expectedGames;
-      totalGames = f.odds.totalGames;
+      sum.totalGames += w * f.odds.totalGames;
+      drawPossible = f.odds.drawPossible;
     }
   }
   if (total === 0) return null;
   const weightedAverage = (list: { ids: string[]; weight: number }[]) =>
     list.reduce((acc, l) => acc + l.weight * average(l.ids.map(rating)), 0) / list.reduce((acc, l) => acc + l.weight, 0);
   return {
-    odds: { win: sum.win / total, draw: sum.draw / total, loss: sum.loss / total, expectedGames: sum.expectedGames / total, totalGames },
+    odds: {
+      win: sum.win / total,
+      draw: sum.draw / total,
+      loss: sum.loss / total,
+      expectedGames: sum.expectedGames / total,
+      totalGames: sum.totalGames / total,
+      drawPossible,
+    },
     teamAverage: weightedAverage(ours),
     opponentAverage: weightedAverage(theirs),
     teamLineups: ours.length,
@@ -267,14 +438,38 @@ export function ratingSummary(
   };
 }
 
-export function ratingForecast(pool: PoolData, team: string[], opponent: string[], scale: number): RatingForecast | null {
+/** `home`: whether our team is the home side, which matters when a format's pairings are not symmetric. */
+export function ratingForecast(
+  pool: PoolData,
+  team: string[],
+  opponent: string[],
+  scale: number,
+  home = true,
+): RatingForecast | null {
   if (team.length === 0 || opponent.length === 0) return null;
   const rating = ratingsOf(pool);
   const singles = team.map((a) => opponent.map((b) => winChance(rating(a), rating(b), scale)));
   const teamAverage = average(team.map(rating));
   const opponentAverage = average(opponent.map(rating));
   const doubles = winChance(teamAverage, opponentAverage, scale);
-  return { odds: oddsFromGames([...singles.flat(), doubles]), singles, doubles, team, opponent, teamAverage, opponentAverage };
+
+  // Play the pool's real format: players take positions by rating, strongest first. A missing
+  // player (a side fielding fewer players than the format) loses their games by walkover.
+  const format = matchFormat(pool);
+  const byRating = (ids: string[]) => [...ids].sort((a, b) => rating(b) - rating(a)).slice(0, format.size);
+  const ours = byRating(team);
+  const theirs = byRating(opponent);
+  const chances = format.sequence.map((g) => {
+    if (g.kind === 'team') return doubles;
+    // A label "A1/B2" means home position 1 against away position 2.
+    const a = ours[home ? g.pair[0] : g.pair[1]];
+    const b = theirs[home ? g.pair[1] : g.pair[0]];
+    if (a === undefined && b === undefined) return 0.5;
+    if (a === undefined) return 0;
+    if (b === undefined) return 1;
+    return winChance(rating(a), rating(b), scale);
+  });
+  return { odds: oddsForFormat(format, chances, doubles), singles, doubles, team, opponent, teamAverage, opponentAverage };
 }
 
 export function commonOpponentForecast(pool: PoolData, teamId: string, opponentId: string): CommonForecast {
@@ -303,11 +498,13 @@ export function commonOpponentForecast(pool: PoolData, teamId: string, opponentI
   if (estimates.length === 0) return { rows, direct, margin: null, odds: null };
 
   const expected = average(estimates);
-  const games = gamesPerMatch(pool);
+  const format = matchFormat(pool);
+  const playedGames = pool.matches.filter((m) => m.score && !m.walkover).map((m) => m.score![0] + m.score![1]);
+  const perMatch = playedGames.length > 0 ? average(playedGames) : gamesPerMatch(pool);
   // Margin m over n games means winning (n + m) / 2 of them; fewer comparisons pull it towards even.
-  const share = clamp(0.5 + expected / (2 * games), 0.05, 0.95);
+  const share = clamp(0.5 + expected / (2 * perMatch), 0.05, 0.95);
   const shrunk = 0.5 + (share - 0.5) * (estimates.length / (estimates.length + 1));
-  return { rows, direct, margin: expected, odds: oddsFromGames(new Array(games).fill(shrunk)) };
+  return { rows, direct, margin: expected, odds: oddsForFormat(format, new Array(gamesPerMatch(pool)).fill(shrunk), shrunk) };
 }
 
 export function combineOdds(list: (Odds | null)[]): Odds | null {
@@ -318,7 +515,8 @@ export function combineOdds(list: (Odds | null)[]): Odds | null {
     draw: average(present.map((o) => o.draw)),
     loss: average(present.map((o) => o.loss)),
     expectedGames: average(present.map((o) => o.expectedGames)),
-    totalGames: present[0].totalGames,
+    totalGames: average(present.map((o) => o.totalGames)),
+    drawPossible: present.every((o) => o.drawPossible),
   };
 }
 
@@ -330,7 +528,7 @@ export function forecastMatch(
   lineups: { team?: string[]; opponent?: string[] } = {},
 ): MatchForecast {
   const opponentId = isHome(match, teamId) ? match.awayTeamId : match.homeTeamId;
-  const rating = ratingSummary(pool, teamId, opponentId, scale, lineups);
+  const rating = ratingSummary(pool, teamId, opponentId, scale, lineups, isHome(match, teamId));
   const common = commonOpponentForecast(pool, teamId, opponentId);
   return { teamId, opponentId, rating, common, odds: combineOdds([rating?.odds ?? null, common.odds]) };
 }

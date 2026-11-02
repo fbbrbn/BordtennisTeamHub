@@ -66,7 +66,7 @@ export function MatchPreview({ pool, match }: { pool: PoolData; match: TeamMatch
   const teamId = perspective;
   const opponentId = teamId === match.homeTeamId ? match.awayTeamId : match.homeTeamId;
   const chosen = (id: string) => (lineups[id].ids.length === size ? lineups[id].ids : undefined);
-  const summary = ratingSummary(pool, teamId, opponentId, scale, { team: chosen(teamId), opponent: chosen(opponentId) });
+  const summary = ratingSummary(pool, teamId, opponentId, scale, { team: chosen(teamId), opponent: chosen(opponentId) }, teamId === match.homeTeamId);
   const common = commonOpponentForecast(pool, teamId, opponentId);
   const odds = combineOdds([summary?.odds ?? null, common.odds]);
 

@@ -103,6 +103,24 @@ Commands: `npm test`, `npm run typecheck`, `npm run build`, `npm run dev`.
     then triggers `site.yml`. Pushes made with the workflow token don't trigger workflows by themselves.
   - `site.yml` copies the branch into `public/data` before building.
   - Locally, run `npm run data:pull`.
-- Formats differ between pools: for example, Veteran 60 B on Bornholm is 2 players, 4 singles and 1 doubles. Use
-  `lineupSize` and `gamesPerMatch` from `forecast.ts`, never a fixed 3 or 10.
+- Formats differ between pools. `matchFormat(pool)` in `forecast.ts` reads each pool's format from its played matches;
+  never assume 3 players or 10 games. In 2026/27:
+  - 3 v 3 with 9 singles and 1 doubles: 89 pools.
+  - 2 v 2 with 4 singles and 1 doubles: 23.
+  - 4 v 4 with 12 singles and 2 doubles (Jyllandsserie): 15.
+  - National divisions: first to 8, with a golden set.
+  - Dame BordtennisLigaen: first to 6.
+  - Some leagues settle a level score with a deciding game.
+- How `matchFormat` reads them:
+  - The games in playing order come from labels like "A2/B1" or "A2-B1" (home position, away position; position 1 is
+    the strongest). Doubles and golden sets are team games.
+  - `raceTo`: one winning score in at least 80% of matches while totals vary.
+  - `decider`: some matches have exactly one game more than the format.
+- `ratingForecast` maps lineups to positions by rating and needs to know whether our team is home. A missing player
+  loses their games by walkover. `oddsForFormat` applies first-to-N and deciding games.
+- Model check over all 1,307 played matches (Nov 2026):
+  - Brier 0.35, where guessing scores 0.67.
+  - The most likely outcome was right 75% of the time.
+  - The expected score was off by 13% of the games.
+  - These checks are in-sample.
 - Node runs the scraper's TypeScript directly through type stripping. Keep its syntax erasable: no enums and no parameter properties. `scraper/tsconfig.json` enforces this.

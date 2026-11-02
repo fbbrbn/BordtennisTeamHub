@@ -9,7 +9,7 @@ const PARTS = [
 
 /** With an odd number of games a team match cannot end level. */
 export function drawsPossible(odds: Odds): boolean {
-  return odds.totalGames % 2 === 0;
+  return odds.drawPossible;
 }
 
 export function oddsSummary(odds: Odds): string {

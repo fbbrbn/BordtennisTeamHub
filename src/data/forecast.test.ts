@@ -6,6 +6,8 @@ import {
   fieldedLineups,
   fitScale,
   lineupSize,
+  matchFormat,
+  oddsForFormat,
   oddsFromGames,
   projectTable,
   ratingForecast,
@@ -169,5 +171,86 @@ describe('team forecasts', () => {
     expect(t.projected).toBeGreaterThan(t.points + 1);
     expect(t.projected + o.projected).toBeCloseTo(t.points + o.points + 2);
     expect(t.rank).toBe(1);
+  });
+});
+
+describe('match formats', () => {
+  const labelled = (label: string, kind: Game['kind'], home: string[], away: string[]): Game => ({
+    label, kind, home, away, sets: [3, 0], winner: 'home', walkover: false,
+  });
+  // A Jyllandsserie-style match: 4 v 4, two doubles and twelve singles pairings.
+  const pairs = ['A1-B2', 'A2-B1', 'A3-B4', 'A4-B3', 'A1-B1', 'A2-B2', 'A3-B3', 'A4-B4', 'A1-B3', 'A3-B1', 'A2-B4', 'A4-B2'];
+  const pool = emptyPool();
+  pool.players = ['h1', 'h2', 'h3', 'h4', 'a1', 'a2', 'a3', 'a4'].map((id, i) => ({ id, name: id, teamId: null, rating: 1400 - (i % 4) * 100 }));
+  pool.matches = [
+    match('1', 'H', 'A', [14, 0], [
+      labelled('Dbl.1', 'double', ['h1', 'h2'], ['a1', 'a2']),
+      labelled('Dbl.2', 'double', ['h3', 'h4'], ['a3', 'a4']),
+      ...pairs.map((label) => {
+        const [i, j] = label.match(/\d/g)!.map(Number);
+        return labelled(label, 'single', [`h${i}`], [`a${j}`]);
+      }),
+    ]),
+  ];
+
+  it('reads positions and doubles from the game labels', () => {
+    const format = matchFormat(pool);
+    expect(format.size).toBe(4);
+    expect(format.doubles).toBe(2);
+    expect(format.singles).toHaveLength(12);
+    expect(format.singles[0]).toEqual([0, 1]);
+  });
+
+  it('forecasts the real number of games', () => {
+    const forecast = ratingForecast(pool, ['h1', 'h2', 'h3', 'h4'], ['a1', 'a2', 'a3', 'a4'], 265)!;
+    expect(forecast.odds.totalGames).toBe(14);
+    // Equal lineups on positions: an even match.
+    expect(forecast.odds.expectedGames).toBeCloseTo(7, 5);
+  });
+});
+
+describe('formats without draws', () => {
+  const format = (raceTo: number | null, decider: boolean) => ({ size: 3, sequence: [], singles: [], doubles: 0, raceTo, decider });
+
+  it('plays first to N: an even match is 50-50 and never level', () => {
+    const odds = oddsForFormat(format(8, false), new Array(15).fill(0.5));
+    expect(odds.win).toBeCloseTo(0.5, 10);
+    expect(odds.draw).toBe(0);
+    expect(odds.drawPossible).toBe(false);
+    expect(odds.totalGames).toBeGreaterThan(8);
+    expect(odds.totalGames).toBeLessThan(15);
+    expect(oddsForFormat(format(8, false), new Array(15).fill(0.6)).win).toBeGreaterThan(0.7);
+  });
+
+  it('settles a level score with a deciding game', () => {
+    const odds = oddsForFormat(format(null, true), new Array(10).fill(0.5), 0.5);
+    expect(odds.win).toBeCloseTo(0.5, 10);
+    expect(odds.draw).toBe(0);
+    expect(odds.drawPossible).toBe(false);
+  });
+
+  it('detects first-to-N and deciding-game pools from their results', () => {
+    const single = (label: string, home: string, away: string, homeWins: boolean): Game => ({
+      label, kind: 'single', home: [home], away: [away], sets: homeWins ? [3, 0] : [0, 3], winner: homeWins ? 'home' : 'away', walkover: false,
+    });
+    const labels = ['A1/B1', 'A2/B2', 'A3/B3', 'A1/B2', 'A2/B3', 'A3/B1', 'A1/B3', 'A2/B1', 'A3/B2'];
+    const play = (id: string, homeWins: number, awayWins: number): TeamMatch => {
+      const games = labels.slice(0, homeWins + awayWins).map((label, k) => {
+        const [i, j] = label.match(/\d/g)!.map(Number);
+        return single(label, `h${i}`, `a${j}`, k < homeWins);
+      });
+      return match(id, 'H', 'A', [homeWins, awayWins], games);
+    };
+    // First to 5: the winner always has 5, totals vary.
+    const race = emptyPool();
+    race.matches = [play('1', 5, 0), play('2', 5, 2), play('3', 3, 5), play('4', 5, 4)];
+    expect(matchFormat(race).raceTo).toBe(5);
+    // Every game played, sometimes one more at a level score.
+    const decider = emptyPool();
+    decider.matches = [play('1', 5, 3), play('2', 2, 6), play('3', 6, 2), play('4', 5, 4)];
+    const f = matchFormat(decider);
+    expect(f.raceTo).toBeNull();
+    expect(f.sequence).toHaveLength(8);
+    expect(f.decider).toBe(true);
   });
 });

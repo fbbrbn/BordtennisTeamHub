@@ -45,7 +45,7 @@ export function teamInsights(pool: PoolData, teamId: string, scale: number): Ins
     const singles = match.games.filter((g) => g.kind === 'single');
     const ours = [...new Set(singles.flatMap((g) => (home ? g.home : g.away)))];
     const theirs = [...new Set(singles.flatMap((g) => (home ? g.away : g.home)))];
-    const forecast = ratingForecast(pool, ours, theirs, scale);
+    const forecast = ratingForecast(pool, ours, theirs, scale, home);
     if (!forecast) continue;
     expected += forecast.odds.expectedGames;
     actual += score[0];
