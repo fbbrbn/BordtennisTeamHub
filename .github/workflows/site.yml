@@ -22,6 +22,14 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Fetch match data
+        run: |
+          mkdir -p public/data
+          if git fetch --depth 1 origin data; then
+            git archive FETCH_HEAD | tar -x -C public/data
+          else
+            echo "No data branch yet: building without match data."
+          fi
       - run: npm run typecheck
       - run: npm test
       - run: npm run build

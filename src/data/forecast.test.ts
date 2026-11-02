@@ -5,6 +5,7 @@ import {
   DEFAULT_SCALE,
   fieldedLineups,
   fitScale,
+  lineupSize,
   oddsFromGames,
   projectTable,
   ratingForecast,
@@ -111,6 +112,11 @@ describe('team forecasts', () => {
     { position: 2, teamId: 'C', played: 3, won: 1, drawn: 1, lost: 1, gamesFor: 14, gamesAgainst: 16, points: 3 },
     { position: 3, teamId: 'O', played: 1, won: 0, drawn: 0, lost: 1, gamesFor: 4, gamesAgainst: 6, points: 0 },
   ];
+
+  it('reads the lineup size from the players on each side', () => {
+    expect(lineupSize(pool)).toBe(3);
+    expect(lineupSize(emptyPool())).toBe(3);
+  });
 
   it('picks the most-used players as the usual lineup', () => {
     expect(usualLineup(pool, 'T', 3)).toEqual(['t1', 't2', 't4']);

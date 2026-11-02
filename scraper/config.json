@@ -1,8 +1,8 @@
 {
-  "$comment": "What to import from bordtennisportalen.dk. Ids come from the portal's URL hash: #subPage,season,pool,ageGroup,region,... 'regions' imports every pool of a region and age group.",
+  "$comment": "What to import from bordtennisportalen.dk. 'discover' covers every pool of the current season in all regions and age groups. 'pools' and 'regions' add single pools or whole regions (ids from the portal's URL hash: #subPage,season,pool,ageGroup,region,...).",
   "delayMs": 800,
-  "pools": [
-    { "season": "42026", "region": "4004", "ageGroup": "4006", "pool": "15592" }
-  ],
+  "maxMinutes": 300,
+  "discover": { "season": "current", "regions": "all", "ageGroups": "all", "everyHours": 20 },
+  "pools": [],
   "regions": []
 }

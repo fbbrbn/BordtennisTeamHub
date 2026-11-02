@@ -30,8 +30,10 @@ names, ids or pools in code.
 - `src/pages/MatchPreview.tsx`: the upcoming-match page.
   - Chances from either side, a lineup picker and a matchup heat table.
   - It starts from the planner lineup when the captain has answers (`src/lineup/planned.ts`).
-- `src/pages/`: the start page (team picker), plus team, player, pool and match dashboards. Routes look like
-  `#/team/<poolId>/<teamId>`.
+- `src/pages/`: the start page, plus club, team, player, pool and match dashboards.
+  - The start page searches clubs and teams across every pool, with region and age-group filters.
+  - Routes look like `#/team/<poolId>/<teamId>` and `#/club/<slug>`.
+  - `src/data/clubs.ts` maps team names to clubs and makes club slugs.
 - `src/charts/`: hand-written SVG charts. `PointsRace` is a line chart in emphasis form; `RatingStrip` is a strip plot.
   Both have hover, keyboard and touch tooltips and a table twin.
 - `src/lineup/sync.ts`: a planner stored under the key `team-<poolId>-<teamId>` syncs its roster, fixtures and
@@ -80,11 +82,27 @@ Commands: `npm test`, `npm run typecheck`, `npm run build`, `npm run dev`.
 
 ## Data pipeline
 
-- `scraper/config.json` lists what to import: single `pools`, and/or `regions` for every pool of a region and age group.
-- `npm run import` writes `public/data/index.json` and `public/data/pools/<poolId>.json`.
-  - Played-match details are cached: they are fetched again only when the result changes.
+- `scraper/config.json` says what to import:
+  - `discover`: every pool of a season (`"current"` or an id), for all or some regions and age groups. Pools are
+    rediscovered every `everyHours`; otherwise the previous index's list is reused.
+  - `pools` / `regions`: extra single pools or whole regions.
+- In 2026/2027 there are 154 pools: 200 region and age-group combinations, most of them empty.
+- `npm run import` writes `public/data/index.json` and `public/data/pools/<poolId>.json` as compact JSON.
+  - The index has the season, regions, age groups, clubs, pools, and each team's club and place.
+  - A pool whose match list (subPage 4) is unchanged costs one request: its file is reused.
+  - Played-match details are fetched again only when a result changes.
   - Files are rewritten only when their content changes.
-  - Requests are spaced 800 ms apart.
+  - Requests are spaced 800 ms apart. After `maxMinutes` no new pools are started.
+  - Pools no longer in scope are deleted, but only after a complete discovery.
   - Locally behind the cloud proxy, run it with `NODE_USE_ENV_PROXY=1`.
-- `.github/workflows/data.yml` runs the import at 05:23 and 12:23 UTC. When data changed it commits, then triggers `site.yml` to redeploy, because pushes made with the workflow token don't trigger workflows by themselves.
+- Clubs come from the portal's club-search script (`clublistclientscript.aspx`, `SportsResultsTeamList`).
+  - Each team is matched to the longest club name that prefixes its name.
+  - When nothing matches, the trailing team number is dropped instead.
+- Data lives on the `data` branch, never on `main` (`public/data/` is gitignored):
+  - `data.yml` (05:23 and 12:23 UTC) restores it, imports, force-pushes a single new commit when anything changed, and
+    then triggers `site.yml`. Pushes made with the workflow token don't trigger workflows by themselves.
+  - `site.yml` copies the branch into `public/data` before building.
+  - Locally, run `npm run data:pull`.
+- Formats differ between pools: for example, Veteran 60 B on Bornholm is 2 players, 4 singles and 1 doubles. Use
+  `lineupSize` and `gamesPerMatch` from `forecast.ts`, never a fixed 3 or 10.
 - Node runs the scraper's TypeScript directly through type stripping. Keep its syntax erasable: no enums and no parameter properties. `scraper/tsconfig.json` enforces this.

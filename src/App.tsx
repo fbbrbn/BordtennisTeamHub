@@ -1,4 +1,5 @@
 import { LineupPage } from './lineup/LineupPage';
+import { ClubPage } from './pages/ClubPage';
 import { MatchPage } from './pages/MatchPage';
 import { PlayerPage } from './pages/PlayerPage';
 import { PoolPage } from './pages/PoolPage';
@@ -19,6 +20,7 @@ function Page() {
     const link = linked ? { poolId: linked[1], teamId: linked[2] } : null;
     return <LineupPage key={storageKey} storageKey={storageKey} sharedToken={route.query.get('plan')} link={link} />;
   }
+  if (section === 'club' && /^[a-z0-9-]{1,80}$/.test(a)) return <ClubPage key={a} slug={a} />;
   if (section === 'pool' && ID_PATTERN.test(a)) return <PoolPage key={a} poolId={a} />;
   if (section === 'team' && ID_PATTERN.test(a) && ID_PATTERN.test(b)) return <TeamPage key={`${a}-${b}`} poolId={a} teamId={b} />;
   if (section === 'player' && ID_PATTERN.test(a) && ID_PATTERN.test(b)) return <PlayerPage key={`${a}-${b}`} poolId={a} playerId={b} />;

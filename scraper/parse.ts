@@ -53,7 +53,18 @@ export function showArgs(el: HTMLElement | null | undefined): ShowArgs | null {
 
 export function parseHeadings(html: string): { league: string; name: string } {
   const root = parse(html);
-  return { league: textOf(root.querySelector('h2')), name: textOf(root.querySelector('h3')) };
+  return { league: textOf(root.querySelector('h2')), name: tidyPoolName(textOf(root.querySelector('h3'))) };
+}
+
+/** The portal joins division and pool, which repeats when they are named alike: "Serie 1 Serie 1" -> "Serie 1". */
+export function tidyPoolName(name: string): string {
+  const words = name.split(' ');
+  if (words.length % 2 === 0) {
+    const half = words.length / 2;
+    const first = words.slice(0, half).join(' ');
+    if (first.toLocaleLowerCase('da') === words.slice(half).join(' ').toLocaleLowerCase('da')) return first;
+  }
+  return name;
 }
 
 export function parseStandings(html: string): { standings: Standing[]; teams: TeamRef[] } {
@@ -164,6 +175,39 @@ export function parseMatchDetails(html: string): { games: Game[]; names: Map<str
     });
   }
   return { games, names };
+}
+
+export interface Option {
+  id: string;
+  name: string;
+}
+
+/** Season, region and age-group choices from the standings page's dropdowns. */
+export function parseDropdowns(html: string): { seasons: Option[]; currentSeason: string | null; regions: Option[]; ageGroups: Option[] } {
+  const root = parse(html);
+  const options = (idSuffix: string) =>
+    root
+      .querySelectorAll(`select[id$="${idSuffix}"] option`)
+      .map((o) => ({ id: o.getAttribute('value') ?? '', name: textOf(o), selected: o.hasAttribute('selected') }))
+      .filter((o) => /^\d+$/.test(o.id));
+  const seasons = options('DropDownListSeason');
+  return {
+    seasons: seasons.map(({ id, name }) => ({ id, name })),
+    currentSeason: seasons.find((s) => s.selected)?.id ?? seasons[seasons.length - 1]?.id ?? null,
+    regions: options('DropDownListRegion').map(({ id, name }) => ({ id, name })),
+    ageGroups: options('DropDownListAgeGroup').map(({ id, name }) => ({ id, name })),
+  };
+}
+
+/** Clubs from the portal's club-search script: `SportsResultsTeamList = [['Name', 'id'], ...]`. Positive ids are clubs. */
+export function parseClubList(script: string): Option[] {
+  const body = /SportsResultsTeamList\s*=\s*\[([\s\S]*?)\];/.exec(script)?.[1] ?? '';
+  const clubs: Option[] = [];
+  for (const m of body.matchAll(/\[\s*'((?:[^'\\]|\\.)*)'\s*,\s*'(-?\d+)'\s*\]/g)) {
+    const name = m[1].replace(/\\'/g, "'").trim();
+    if (Number(m[2]) > 0 && name) clubs.push({ id: m[2], name });
+  }
+  return clubs;
 }
 
 /** All pools linked from a region overview, with their division heading. */

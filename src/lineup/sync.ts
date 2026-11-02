@@ -1,4 +1,5 @@
 import type { PoolData } from '../data/model';
+import { lineupSize } from '../data/forecast';
 import { isHome, opponentOf, teamMatches } from '../data/stats';
 import { newId } from './storage';
 import type { PlannerState, RosterPlayer } from './types';
@@ -18,6 +19,8 @@ export function syncWithPool(state: PlannerState, pool: PoolData, teamId: string
   const matches = teamMatches(pool, teamId);
 
   if (!next.teamName) next.teamName = team.name;
+  // First link: take the number of players per match from the pool's format.
+  if (!next.fixtures.some((f) => f.portalId)) next.settings.playersPerMatch = lineupSize(pool);
 
   // Players: anyone who played for the team (most matches first), then players the portal lists on it.
   const appearances = new Map<string, number>();

@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { PointsRace } from '../charts/PointsRace';
-import { OddsBar, ThinOdds } from '../components/Odds';
+import { OddsBar, oddsSentence, ThinOdds } from '../components/Odds';
+import { clubSlug } from '../data/clubs';
 import { fitScale, forecastMatch, lineupSize } from '../data/forecast';
 import { teamInsights } from '../data/insights';
 import { loadPool, useLoaded } from '../data/load';
@@ -66,6 +67,11 @@ function TeamView({ pool, team }: { pool: PoolData; team: TeamRef }) {
     <div className="dash">
       <header className="dash-head">
         <p className="eyebrow">
+          {team.club && (
+            <>
+              <a href={href('club', clubSlug(team.club))}>{team.club}</a> ·{' '}
+            </>
+          )}
           <a href={href('pool', pool.pool.id)}>{pool.pool.name}</a> · {pool.pool.league}
         </p>
         <h1>{team.name}</h1>
@@ -100,8 +106,7 @@ function TeamView({ pool, team }: { pool: PoolData; team: TeamRef }) {
             <span className="tag">{isHome(next, team.id) ? 'Home' : 'Away'}</span>
           </p>
           <p className="odds-headline">
-            <strong>{percent(nextForecast.forecast.odds.win)}</strong> chance to win, {percent(nextForecast.forecast.odds.draw)} to
-            draw.
+            <strong>{percent(nextForecast.forecast.odds.win)}</strong> {oddsSentence(nextForecast.forecast.odds)}
           </p>
           <OddsBar odds={nextForecast.forecast.odds} />
           <ul className="reasons">

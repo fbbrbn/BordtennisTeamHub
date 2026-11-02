@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { OddsBar } from '../components/Odds';
+import { OddsBar, oddsSentence } from '../components/Odds';
 import {
   combineOdds,
   commonOpponentForecast,
@@ -112,8 +112,8 @@ export function MatchPreview({ pool, match }: { pool: PoolData; match: TeamMatch
         {odds ? (
           <>
             <p className="odds-headline">
-              {teamName(teamId)}: <strong>{percent(odds.win)}</strong> chance to win, {percent(odds.draw)} to draw. Expected
-              score {oneDecimal(odds.expectedGames)}–{oneDecimal(odds.totalGames - odds.expectedGames)}.
+              {teamName(teamId)}: <strong>{percent(odds.win)}</strong> {oddsSentence(odds)} Expected score{' '}
+              {oneDecimal(odds.expectedGames)}–{oneDecimal(odds.totalGames - odds.expectedGames)}.
             </p>
             <OddsBar odds={odds} />
           </>

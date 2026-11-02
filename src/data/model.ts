@@ -9,7 +9,26 @@
 export interface DataIndex {
   version: 1;
   updatedAt: string;
+  /** When the list of pools was last discovered from the portal. */
+  discoveredAt?: string;
+  season?: NamedId;
+  regions?: NamedId[];
+  ageGroups?: NamedId[];
+  clubs?: ClubRef[];
   pools: PoolRef[];
+}
+
+export interface NamedId {
+  id: string;
+  name: string;
+}
+
+export interface ClubRef {
+  /** URL key, from `clubSlug(name)`. */
+  slug: string;
+  name: string;
+  /** Club id on bordtennisportalen.dk, when the name matched its club list. */
+  id: string | null;
 }
 
 export interface PoolInfo {
@@ -24,17 +43,28 @@ export interface PoolInfo {
   league: string;
   /** e.g. "Serie 4 Pulje 4" */
   name: string;
+  regionName?: string;
+  ageGroupName?: string;
   updatedAt: string;
 }
 
 export interface PoolRef extends PoolInfo {
-  teams: TeamRef[];
+  teams: IndexTeam[];
 }
 
 export interface TeamRef {
   /** leagueGroupTeamID on bordtennisportalen.dk */
   id: string;
   name: string;
+  /** Club name, e.g. "Vallensbæk BTK" for "Vallensbæk BTK 3". */
+  club?: string;
+}
+
+/** A team in the index, with its current place in the table. */
+export interface IndexTeam extends TeamRef {
+  position: number | null;
+  points: number | null;
+  played: number | null;
 }
 
 export interface PoolData {

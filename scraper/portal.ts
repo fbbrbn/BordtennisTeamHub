@@ -23,6 +23,8 @@ export class PortalClient {
   private lastRequest = 0;
   private readonly options: { delayMs: number; userAgent: string };
   requests = 0;
+  /** HTML of the standings page, kept from `init()` for its dropdowns and scripts. */
+  page = '';
 
   // No parameter properties: Node runs this file with type stripping only.
   constructor(options: { delayMs: number; userAgent: string }) {
@@ -33,9 +35,17 @@ export class PortalClient {
   async init(): Promise<void> {
     const response = await this.request(PAGE, { method: 'GET' });
     if (!response.ok) throw new Error(`Standings page answered HTTP ${response.status}`);
-    const match = /SR_CallbackContext\s*=\s*'([^']+)'/.exec(await response.text());
+    this.page = await response.text();
+    const match = /SR_CallbackContext\s*=\s*'([^']+)'/.exec(this.page);
     if (!match) throw new Error('Could not find SR_CallbackContext on the standings page');
     this.context = match[1];
+  }
+
+  /** Any other file on the portal, e.g. a script referenced by the standings page (path relative to it). */
+  async text(path: string): Promise<string> {
+    const response = await this.request(new URL(path, PAGE).toString(), { method: 'GET' });
+    if (!response.ok) throw new Error(`HTTP ${response.status} for ${path}`);
+    return response.text();
   }
 
   /** Returns the HTML fragment for one page of the team tournament. */

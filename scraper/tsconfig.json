@@ -14,5 +14,5 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["*.ts", "../src/data/model.ts"]
+  "include": ["*.ts", "../src/data/model.ts", "../src/data/clubs.ts"]
 }

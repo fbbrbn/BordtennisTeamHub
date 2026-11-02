@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  parseClubList,
   parseDate,
+  parseDropdowns,
   parseHeadings,
   parseMatchDetails,
   parseMatchList,
@@ -8,6 +10,7 @@ import {
   parseRegionPools,
   parseStandings,
   seasonName,
+  tidyPoolName,
 } from './parse.ts';
 
 // Synthetic fragments with the same structure as the portal's HTML (made-up names and ids).
@@ -106,5 +109,35 @@ describe('portal parsers', () => {
     expect(parseDate('3-1-2027')).toBe('2027-01-03');
     expect(parseDate('-')).toBeNull();
     expect(seasonName('42026')).toBe('2026/2027');
+  });
+});
+
+describe('page lists', () => {
+  it('reads seasons, regions and age groups from the dropdowns', () => {
+    const html = `<select id="ctl00_x_DropDownListSeason"><option value="42025">2025/2026</option><option selected="selected" value="42026">2026/2027</option></select>
+<select id="ctl00_x_DropDownListRegion"><option value="4004">&Oslash;ST</option></select>
+<select id="ctl00_x_DropDownListAgeGroup"><option value="">Alle</option><option value="4006">Senior</option></select>`;
+    expect(parseDropdowns(html)).toEqual({
+      seasons: [{ id: '42025', name: '2025/2026' }, { id: '42026', name: '2026/2027' }],
+      currentSeason: '42026',
+      regions: [{ id: '4004', name: 'ØST' }],
+      ageGroups: [{ id: '4006', name: 'Senior' }],
+    });
+  });
+
+  it('reads clubs from the club-search script, skipping combined teams', () => {
+    const script = "function x(v){return v[1] > 0;}\nvar SportsResultsTeamList = [['Alpha BTK', '11'],['O\\'Brien IF', '12'],['Alpha/Beta', '-3']];";
+    expect(parseClubList(script)).toEqual([
+      { id: '11', name: 'Alpha BTK' },
+      { id: '12', name: "O'Brien IF" },
+    ]);
+  });
+});
+
+describe('pool names', () => {
+  it('collapses a division repeated as the pool name', () => {
+    expect(tidyPoolName('Serie 1 Serie 1')).toBe('Serie 1');
+    expect(tidyPoolName('Serie 4 Pulje 4')).toBe('Serie 4 Pulje 4');
+    expect(tidyPoolName('60+ 60 A')).toBe('60+ 60 A');
   });
 });

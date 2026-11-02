@@ -7,8 +7,20 @@ const PARTS = [
   { key: 'loss', label: 'Loss' },
 ] as const;
 
+/** With an odd number of games a team match cannot end level. */
+export function drawsPossible(odds: Odds): boolean {
+  return odds.totalGames % 2 === 0;
+}
+
 export function oddsSummary(odds: Odds): string {
-  return `Win ${percent(odds.win)}, draw ${percent(odds.draw)}, loss ${percent(odds.loss)}`;
+  return drawsPossible(odds)
+    ? `Win ${percent(odds.win)}, draw ${percent(odds.draw)}, loss ${percent(odds.loss)}`
+    : `Win ${percent(odds.win)}, loss ${percent(odds.loss)}`;
+}
+
+/** "45% chance to win, 22% to draw." (no draw part when a draw is impossible) */
+export function oddsSentence(odds: Odds): string {
+  return drawsPossible(odds) ? `chance to win, ${percent(odds.draw)} to draw.` : 'chance to win.';
 }
 
 /** Tall segmented bar: one whole (100%) split into win, draw and loss, shares printed where they fit. */
@@ -26,7 +38,7 @@ export function OddsBar({ odds }: { odds: Odds }) {
         )}
       </div>
       <figcaption className="legend">
-        {PARTS.map(({ key, label }) => (
+        {PARTS.filter(({ key }) => key !== 'draw' || drawsPossible(odds)).map(({ key, label }) => (
           <span key={key}>
             <i className={`swatch odds-swatch-${key}`} /> {label}
             {!fits(odds[key]) && ` ${percent(odds[key])}`}

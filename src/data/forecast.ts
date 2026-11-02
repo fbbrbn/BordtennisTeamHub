@@ -182,11 +182,15 @@ export function teamRoster(pool: PoolData, teamId: string): string[] {
 
 /** Players per side in this pool's matches (3 in most series). */
 export function lineupSize(pool: PoolData): number {
+  const sizes = new Map<number, number>();
   for (const match of pool.matches) {
-    const singles = match.games?.filter((g) => g.kind === 'single') ?? [];
-    if (singles.length > 0) return Math.max(1, Math.round(Math.sqrt(singles.length)));
+    const singles = match.games?.filter((g) => g.kind === 'single' && !g.walkover) ?? [];
+    if (singles.length === 0) continue;
+    const size = Math.max(new Set(singles.flatMap((g) => g.home)).size, new Set(singles.flatMap((g) => g.away)).size);
+    sizes.set(size, (sizes.get(size) ?? 0) + 1);
   }
-  return 3;
+  // The most common lineup size across played matches.
+  return [...sizes].sort((a, b) => b[1] - a[1] || b[0] - a[0])[0]?.[0] ?? 3;
 }
 
 /** Games per team match in this pool (10 in most series: 9 singles and 1 doubles). */
