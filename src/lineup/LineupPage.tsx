@@ -1,0 +1,277 @@
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { copyText } from '../lib/clipboard';
+import { href, replaceHash } from '../lib/router';
+import { BalanceTable } from './BalanceTable';
+import { lineupMessage } from './format';
+import { FixtureForm, PlannedMatch, PlayedMatch } from './Matches';
+import { buildPlan } from './planner';
+import { RosterEditor } from './RosterEditor';
+import { reducer } from './state';
+import { decodeState, emptyState, encodeState, loadState, normalizeState, saveState } from './storage';
+import type { PlannerState } from './types';
+
+const isBlank = (s: PlannerState) => !s.teamName && s.players.length === 0 && s.fixtures.length === 0;
+
+export function LineupPage({ storageKey, sharedToken }: { storageKey: string; sharedToken: string | null }) {
+  const [state, dispatch] = useReducer(reducer, storageKey, (key) => loadState(key) ?? emptyState());
+  const [incoming, setIncoming] = useState<PlannerState | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [manualCopy, setManualCopy] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [formKey, setFormKey] = useState(0);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const plan = useMemo(() => buildPlan(state), [state]);
+
+  // Save on every change, but don't create a stored plan just by opening an empty page.
+  useEffect(() => {
+    if (isBlank(state) && !loadState(storageKey)) return;
+    if (!saveState(storageKey, state)) setNotice('This browser blocks saving. Download a backup to keep your plan.');
+  }, [storageKey, state]);
+
+  // A shared link carries a whole plan in the address: offer it, never silently overwrite.
+  useEffect(() => {
+    if (!sharedToken) return;
+    let cancelled = false;
+    void decodeState(sharedToken).then((decoded) => {
+      if (cancelled) return;
+      replaceHash(href('lineup', storageKey));
+      if (!decoded) {
+        setNotice('That share link is incomplete or broken.');
+        return;
+      }
+      const current = loadState(storageKey);
+      if (!current || isBlank(current)) dispatch({ type: 'replace', state: decoded });
+      else if (JSON.stringify(current) !== JSON.stringify(decoded)) setIncoming(decoded);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [sharedToken, storageKey]);
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(null), 3500);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
+  const names = useMemo(() => new Map(state.players.map((p) => [p.id, p.name])), [state.players]);
+  const nameOf = (id: string) => names.get(id) ?? 'Former player';
+  const planned = plan.fixtures.filter((f) => f.status === 'planned');
+  const played = plan.fixtures.filter((f) => f.status === 'played').reverse();
+
+  async function share(kind: 'link' | 'message') {
+    let text: string;
+    if (kind === 'link') {
+      const token = await encodeState(state);
+      text = `${window.location.origin}${window.location.pathname}${href('lineup', storageKey)}?plan=${token}`;
+    } else {
+      text = lineupMessage(state, plan);
+    }
+    if (await copyText(text)) {
+      setManualCopy(null);
+      setNotice(kind === 'link' ? 'Share link copied' : 'Message copied');
+    } else {
+      setManualCopy(text);
+    }
+  }
+
+  function download() {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const slug = state.teamName.toLowerCase().replace(/[^a-z0-9æøå]+/g, '-').replace(/^-|-$/g, '');
+    link.href = url;
+    link.download = `lineup-${slug || storageKey}.json`;
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  async function restore(file: File) {
+    try {
+      const restored = normalizeState(JSON.parse(await file.text()));
+      if (!restored) {
+        setNotice('That file is not a lineup backup.');
+        return;
+      }
+      if (isBlank(state) || window.confirm('Replace the current plan with this backup?')) {
+        dispatch({ type: 'replace', state: restored });
+        setNotice('Backup restored');
+      }
+    } catch {
+      setNotice('That file could not be read.');
+    }
+  }
+
+  return (
+    <div className="planner">
+      <div className="page-head">
+        <h1>Lineup planner</h1>
+        <label className="field team-field">
+          <span>Team</span>
+          <input
+            value={state.teamName}
+            placeholder="Team name, e.g. Vallensbæk BTK 3"
+            onChange={(e) => dispatch({ type: 'teamName', name: e.target.value })}
+          />
+        </label>
+      </div>
+
+      {incoming && (
+        <div className="banner" role="status">
+          <p>
+            This link holds a plan for <strong>{incoming.teamName || 'a team'}</strong> that differs from the one
+            saved on this device.
+          </p>
+          <div className="button-row">
+            <button
+              type="button"
+              className="button primary"
+              onClick={() => {
+                dispatch({ type: 'replace', state: incoming });
+                setIncoming(null);
+              }}
+            >
+              Use the shared plan
+            </button>
+            <button type="button" className="button" onClick={() => setIncoming(null)}>
+              Keep mine
+            </button>
+          </div>
+        </div>
+      )}
+
+      <section className="card settings">
+        <label className="field inline">
+          <span>Players per match</span>
+          <select
+            value={state.settings.playersPerMatch}
+            onChange={(e) => dispatch({ type: 'settings', patch: { playersPerMatch: Number(e.target.value) } })}
+          >
+            {[1, 2, 3, 4, 5, 6].map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={state.settings.preferConfirmed}
+            onChange={(e) => dispatch({ type: 'settings', patch: { preferConfirmed: e.target.checked } })}
+          />
+          Pick players who said Yes first
+        </label>
+        <details className="explain">
+          <summary>How the plan is made</summary>
+          <p>
+            Every match gets the players who can play. Over the whole season, including matches already played,
+            the planner keeps the number of matches per player as even as possible, and it rotates who rests. A
+            player who will miss later matches gets more of the earlier ones.
+          </p>
+          <p>
+            With <em>Pick players who said Yes first</em> on, confirmed players always go before Maybe or
+            unanswered ones. Turn it off to put balance first. Use <em>Must play</em> or <em>Rest</em> to
+            overrule the planner for one match.
+          </p>
+        </details>
+      </section>
+
+      {state.players.length === 0 && <RosterEditor state={state} dispatch={dispatch} />}
+
+      {state.players.length > 0 && state.fixtures.length > 0 && <BalanceTable state={state} plan={plan} />}
+
+      <section className="stack">
+        <div className="section-head">
+          <h2>Upcoming matches</h2>
+          {!adding && (
+            <button type="button" className="button" onClick={() => setAdding(true)}>
+              Add match
+            </button>
+          )}
+        </div>
+        {adding && (
+          <div className="card">
+            <FixtureForm
+              key={formKey}
+              cancelLabel="Done"
+              onSubmit={(value) => {
+                dispatch({ type: 'addFixture', ...value });
+                setFormKey((k) => k + 1);
+                setNotice('Match added');
+              }}
+              onCancel={() => setAdding(false)}
+            />
+          </div>
+        )}
+        {planned.length === 0 && !adding && (
+          <p className="empty">No upcoming matches yet. Add them from your team's schedule.</p>
+        )}
+        {planned.map((item) => (
+          <PlannedMatch key={item.fixture.id} item={item} state={state} dispatch={dispatch} nameOf={nameOf} />
+        ))}
+      </section>
+
+      {played.length > 0 && (
+        <section className="card">
+          <div className="section-head">
+            <h2>Played</h2>
+            <span className="muted">
+              {played.length} {played.length === 1 ? 'match' : 'matches'}
+            </span>
+          </div>
+          <ul className="played-list">
+            {played.map((item) => (
+              <PlayedMatch key={item.fixture.id} item={item} state={state} dispatch={dispatch} nameOf={nameOf} />
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {state.players.length > 0 && <RosterEditor state={state} dispatch={dispatch} />}
+
+      <section className="card">
+        <h2>Share and back up</h2>
+        <p className="muted">
+          The plan is saved in this browser only. Send the link in your team chat: whoever opens it gets their own
+          copy.
+        </p>
+        <div className="button-row">
+          <button type="button" className="button primary" onClick={() => void share('link')}>
+            Copy share link
+          </button>
+          <button type="button" className="button" onClick={() => void share('message')}>
+            Copy message for the team chat
+          </button>
+          <button type="button" className="button" onClick={download}>
+            Download backup
+          </button>
+          <button type="button" className="button" onClick={() => fileInput.current?.click()}>
+            Restore backup
+          </button>
+          <input
+            ref={fileInput}
+            type="file"
+            accept="application/json,.json"
+            hidden
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void restore(file);
+              e.target.value = '';
+            }}
+          />
+        </div>
+        {manualCopy && (
+          <label className="field manual-copy">
+            <span>Copying is blocked here. Select the text and copy it yourself:</span>
+            <textarea readOnly rows={4} value={manualCopy} onFocus={(e) => e.target.select()} />
+          </label>
+        )}
+      </section>
+
+      <div className="toast" role="status" aria-live="polite">
+        {notice}
+      </div>
+    </div>
+  );
+}
