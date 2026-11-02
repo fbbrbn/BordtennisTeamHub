@@ -1,0 +1,8 @@
+{
+  "$comment": "What to import from bordtennisportalen.dk. Ids come from the portal's URL hash: #subPage,season,pool,ageGroup,region,... 'regions' imports every pool of a region and age group.",
+  "delayMs": 800,
+  "pools": [
+    { "season": "42026", "region": "4004", "ageGroup": "4006", "pool": "15592" }
+  ],
+  "regions": []
+}

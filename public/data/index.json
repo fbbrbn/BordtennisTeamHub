@@ -1,0 +1,58 @@
+{
+ "version": 1,
+ "updatedAt": "2026-11-02T16:03:29.189Z",
+ "pools": [
+  {
+   "id": "15592",
+   "seasonId": "42026",
+   "season": "2026/2027",
+   "regionId": "4004",
+   "ageGroupId": "4006",
+   "league": "ØST Senior 2026/2027",
+   "name": "Serie 4 Pulje 4",
+   "updatedAt": "2026-11-02T16:03:29.189Z",
+   "teams": [
+    {
+     "id": "104646",
+     "name": "Politiets IF, København 1"
+    },
+    {
+     "id": "104653",
+     "name": "Frederiksberg BTK 10"
+    },
+    {
+     "id": "104648",
+     "name": "Smørum BTK 2"
+    },
+    {
+     "id": "104652",
+     "name": "BTK Posten, København 4"
+    },
+    {
+     "id": "104644",
+     "name": "B 77 5"
+    },
+    {
+     "id": "104647",
+     "name": "Cito 1"
+    },
+    {
+     "id": "104651",
+     "name": "Allerød Bordtennisklub 9"
+    },
+    {
+     "id": "104649",
+     "name": "Ballerup BTK 7"
+    },
+    {
+     "id": "104650",
+     "name": "Vallensbæk BTK 3"
+    },
+    {
+     "id": "104645",
+     "name": "Hvidovre Bordtennis 7"
+    }
+   ]
+  }
+ ]
+}

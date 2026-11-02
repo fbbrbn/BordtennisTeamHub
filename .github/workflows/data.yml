@@ -1,0 +1,48 @@
+name: Data
+
+# Refreshes match data from bordtennisportalen.dk, commits it when something changed,
+# then redeploys the site. Matches are mostly played in the evening, so one run in the
+# morning and one at midday (UTC) pick up results soon after they are entered.
+on:
+  schedule:
+    - cron: '23 5,12 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: data
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run import
+      - name: Commit changed data
+        id: commit
+        run: |
+          if [ -n "$(git status --porcelain public/data)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add public/data
+            git commit -m "Update match data"
+            git push
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No data changes."
+          fi
+      # Pushes made with the workflow token do not trigger other workflows, so start the deploy explicitly.
+      - name: Redeploy the site
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run site.yml --ref main

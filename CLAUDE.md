@@ -35,23 +35,40 @@ Commands: `npm test`, `npm run typecheck`, `npm run build`, `npm run dev`.
   - Separate light and dark values.
 - Never ship invented match data. Test fixtures stay in tests.
 
-## Data source: not analyzed yet
+## Data source (verified)
 
-The match data comes from bordtennisportalen.dk. Example page, the owner's pool standings:
-`https://bordtennisportalen.dk/DBTU/HoldTurnering/Stilling/#4,42026,15592,4006,4004,,,4289,`
+`scraper/` imports data from bordtennisportalen.dk. Everything below was checked against the live site.
 
-- In the first session the domain was blocked by the cloud environment's network policy. Nothing about the site's
-  internals has been verified.
-- To work on the import, `bordtennisportalen.dk` must be in the environment's allowed domains.
-- Lead to verify, not a fact: the URL scheme (`/<org>/HoldTurnering/Stilling/#a,b,c,...`) matches badmintonplayer.dk.
-  The two sites may share a platform that loads data with AJAX calls returning HTML fragments.
-- Read the page's JavaScript to confirm the endpoints and what each of the 9 hash fields means before writing the
-  scraper.
+- The team-tournament pages call one ASP.NET AJAX method:
+  - `POST https://www.bordtennisportalen.dk/SportsResults/Components/WebService1.asmx/GetLeagueStanding`
+  - JSON body: `callbackcontextkey, subPage, seasonID, leagueGroupID, ageGroupID, regionID, leagueGroupTeamID, leagueMatchID, clubID, playerID`
+  - Response: `{ d: { html } }`, an HTML fragment.
+- The context key is `SR_CallbackContext` in the HTML of `/DBTU/HoldTurnering/Stilling/`. Fetch that page first and keep its cookies.
+- The URL hash has the same order: `#subPage,season,pool,ageGroup,region,team,match,club,player`.
+- `subPage` values:
+  - 1: region overview listing all pools
+  - 2: pool standings
+  - 3: a team's matches
+  - 4: pool match list
+  - 5: match details with games
+  - 6: club
+  - 7: pool player stats with ratings
+  - 8: one player's games in a pool
+- Ids:
+  - Seasons: `4YYYY`, e.g. 42026 = 2026/2027, back to 42011.
+  - Regions: 4000 DT (national), 4001 Bornholm, 4002 MIDT, 4003 VEST, 4004 ØST, 4005 to 4010 DGI.
+  - Age groups: e.g. 4006 Senior, 4004 Junior, 4008 to 4014 Veteran.
+- Team match format in senior series: 1 doubles plus 9 singles (A1/B1 ...). Results are games won ("3-7"). Points are 2 for a win and 1 for a draw.
+- Player ids come from links `.../DBTU/Spiller/VisSpiller/#<id>`.
+- Privacy: the pages also show player numbers like `ddmmyy-XXXX`, which encode birth dates, and team contact names, emails and phone numbers. Never store either. `scraper/parse.test.ts` checks this.
 
-## Planned import (not built yet)
+## Data pipeline
 
-- The scraper runs in a scheduled GitHub Action (Node + TypeScript, polite rate limit, cache finished matches).
-- It writes normalized JSON (seasons, pools, teams, fixtures, individual games with sets, players, ratings) to a data
-  folder the site loads.
-- The planner should then prefill its roster and fixtures from that data. `RosterPlayer.portalId` and
-  `Fixture.portalId` already exist for that link.
+- `scraper/config.json` lists what to import: single `pools`, and/or `regions` for every pool of a region and age group.
+- `npm run import` writes `public/data/index.json` and `public/data/pools/<poolId>.json`.
+  - Played-match details are cached: they are fetched again only when the result changes.
+  - Files are rewritten only when their content changes.
+  - Requests are spaced 800 ms apart.
+  - Locally behind the cloud proxy, run it with `NODE_USE_ENV_PROXY=1`.
+- `.github/workflows/data.yml` runs the import at 05:23 and 12:23 UTC. When data changed it commits, then triggers `site.yml` to redeploy, because pushes made with the workflow token don't trigger workflows by themselves.
+- Node runs the scraper's TypeScript directly through type stripping. Keep its syntax erasable: no enums and no parameter properties. `scraper/tsconfig.json` enforces this.
