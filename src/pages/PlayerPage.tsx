@@ -1,4 +1,7 @@
+import { useMemo } from 'react';
 import { RatingStrip, type StripPoint } from '../charts/RatingStrip';
+import { fitScale } from '../data/forecast';
+import { playerInsights } from '../data/insights';
 import { loadPool, useLoaded } from '../data/load';
 import type { Player, PoolData } from '../data/model';
 import { playerGames, playersById, summarize, teamsById, winRate } from '../data/stats';
@@ -39,6 +42,7 @@ function PlayerView({ pool, player }: { pool: PoolData; player: Player }) {
     ];
   });
   const unrated = singles.length - strip.length;
+  const insights = useMemo(() => playerInsights(pool, player.id, fitScale(pool)), [pool, player.id]);
 
   return (
     <div className="dash">
@@ -56,6 +60,20 @@ function PlayerView({ pool, player }: { pool: PoolData; player: Player }) {
         <StatTile label="Doubles won and lost" value={`${summary.doubles.won}–${summary.doubles.lost}`} />
         <StatTile label="Sets won and lost" value={`${summary.sets.won}–${summary.sets.lost}`} detail={`in ${summary.matches} ${summary.matches === 1 ? 'match' : 'matches'}`} />
       </div>
+
+      {insights.length > 0 && (
+        <section className="card">
+          <h2>Insights</h2>
+          <ul className="insights">
+            {insights.map((insight) => (
+              <li key={insight.topic}>
+                <span className="insight-topic">{insight.topic}</span>
+                <span>{insight.text}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {strip.length > 0 && (
         <section className="card">

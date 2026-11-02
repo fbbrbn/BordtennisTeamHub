@@ -20,6 +20,16 @@ names, ids or pools in code.
   - `storage.ts`: localStorage, share-link encoding (deflate + base64url) and validation of untrusted input.
   - `state.ts`: reducer. The UI lives in `LineupPage.tsx`, `Matches.tsx`, `BalanceTable.tsx` and `RosterEditor.tsx`.
 - `src/data/`: `model.ts` (shared JSON types), `load.ts` (fetch + cache) and `stats.ts` (pure, tested statistics).
+  - `forecast.ts`: match odds.
+    - Logistic rating model with a scale calibrated per pool by `fitScale`.
+    - Exact distribution of games won, and common-opponent margins.
+    - Averaging over the lineups each team has fielded (`ratingSummary`).
+    - `projectTable` for projected final points.
+  - `insights.ts`: plain-language team and player insights built on the above.
+  - Unrated players get the pool median inside the model, but the UI must show them as "unrated".
+- `src/pages/MatchPreview.tsx`: the upcoming-match page.
+  - Chances from either side, a lineup picker and a matchup heat table.
+  - It starts from the planner lineup when the captain has answers (`src/lineup/planned.ts`).
 - `src/pages/`: the start page (team picker), plus team, player, pool and match dashboards. Routes look like
   `#/team/<poolId>/<teamId>`.
 - `src/charts/`: hand-written SVG charts. `PointsRace` is a line chart in emphasis form; `RatingStrip` is a strip plot.

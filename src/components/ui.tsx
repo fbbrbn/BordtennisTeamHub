@@ -11,14 +11,8 @@ export const matchDay = (date: string) => dayFormat.format(parseLocal(date));
 export const matchDayLong = (date: string) => longFormat.format(parseLocal(date));
 export const matchTime = (date: string) => date.split('T')[1] ?? '';
 
-export function percent(rate: number | null): string {
-  return rate === null ? '–' : `${Math.round(rate * 100)}%`;
-}
-
-export function ordinal(n: number): string {
-  const tail = n % 100 >= 11 && n % 100 <= 13 ? 'th' : (['th', 'st', 'nd', 'rd'][n % 10] ?? 'th');
-  return `${n}${tail}`;
-}
+import { percent } from '../lib/text';
+export { ordinal, percent } from '../lib/text';
 
 /** Link to the same page on bordtennisportalen.dk (its URL hash: subPage,season,pool,age,region,team,match,club,player). */
 export function portalUrl(pool: PoolInfo, subPage: number, ids: { teamId?: string; matchId?: string } = {}): string {

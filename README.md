@@ -16,14 +16,45 @@ It is built for any team. Vallensbæk BTK 3 is the first test team.
   is ØST Senior 2026/2027, Serie 4 Pulje 4.
 - **Team page.**
   - Position, points, record and games won.
+  - **Next match:** the chance to win, draw or lose, with the two reasons behind it.
+  - **Insights** in plain sentences:
+    - the gap to the teams around you;
+    - results compared with what the ratings predicted;
+    - fifth-set and doubles records, and the standout player;
+    - the projected finish;
+    - what the strongest lineup would change.
   - A points race against the rest of the pool, with a table view.
-  - All results and upcoming matches with venues.
+  - All results, plus every upcoming match with its chance to win.
   - Every player who played for the team: rating, matches, singles with win rate, doubles and sets.
+- **Match preview** (for upcoming matches).
+  - Chances from either team's side.
+  - A lineup picker for both teams that updates the chances immediately.
+  - Every one of your players against their regular lineup.
+  - Results against common opponents.
 - **Player page.**
   - Rating and singles, doubles and sets records.
+  - Insights: wins compared with the ratings, fifth sets, best win, upset losses and doubles partners.
   - Singles results placed by opponent rating.
   - The full game list.
-- **Pool page.** Standings, results, next matches and a player table.
+- **Pool page.** Standings with projected final points, results, next matches and a player table.
+
+### How the chances are estimated
+
+Two independent estimates are averaged:
+
+1. **Player ratings.** Every game of a team match (9 singles and 1 doubles in most series) gets a win chance from the
+   rating gap. The curve is calibrated on the pool's own singles results: in the first pool, the higher-rated player won
+   78% of singles. The exact distribution of games won then gives the chances of a win, a draw and a loss.
+   - Without a chosen or planned lineup, it averages over every lineup each team has fielded this season.
+2. **Common opponents.** It compares how both teams did against the same teams, and against each other if they already
+   met. Fewer comparisons pull the estimate towards even.
+
+Checked against the 20 matches already played, using the actual lineups:
+
+- The expected game score was off by 1.2 games out of 10 on average.
+- The probability score was 0.43, where pure guessing scores 0.67.
+
+These checks are in-sample, so real accuracy is a bit lower. The site always labels the chances as estimates.
 - **Match page.** All games of a team match with players and sets.
 - **Lineup planner.** It works for typical cases like 5 players with 3 per match.
   - Opening it from a team page fills in the roster, the fixtures and who played from the results, and keeps them up

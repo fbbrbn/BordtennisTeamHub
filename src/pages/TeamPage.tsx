@@ -1,5 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { PointsRace } from '../charts/PointsRace';
+import { OddsBar, ThinOdds } from '../components/Odds';
+import { fitScale, forecastMatch, lineupSize } from '../data/forecast';
+import { teamInsights } from '../data/insights';
 import { loadPool, useLoaded } from '../data/load';
 import type { PoolData, TeamRef } from '../data/model';
 import {
@@ -14,10 +17,11 @@ import {
   opponentOf,
   winRate,
 } from '../data/stats';
+import { rememberTeam } from '../lib/lastTeam';
 import { href } from '../lib/router';
 import { matchDay, matchTime, NotFound, ordinal, OutcomeBadge, PageState, percent, portalUrl, StatTile, WinMeter } from '../components/ui';
-
-export const LAST_TEAM_KEY = 'teamhub:last-team';
+import { plannedLineup } from '../lineup/planned';
+import { commonReason, ratingReason } from './MatchPreview';
 
 export function TeamPage({ poolId, teamId }: { poolId: string; teamId: string }) {
   const loaded = useLoaded(() => loadPool(poolId), poolId);
@@ -29,11 +33,7 @@ export function TeamPage({ poolId, teamId }: { poolId: string; teamId: string })
 
 function TeamView({ pool, team }: { pool: PoolData; team: TeamRef }) {
   useEffect(() => {
-    try {
-      localStorage.setItem(LAST_TEAM_KEY, JSON.stringify({ poolId: pool.pool.id, teamId: team.id, name: team.name }));
-    } catch {
-      /* storage unavailable */
-    }
+    rememberTeam({ poolId: pool.pool.id, teamId: team.id, name: team.name });
   }, [pool.pool.id, team.id, team.name]);
 
   const teams = teamsById(pool);
@@ -45,6 +45,22 @@ function TeamView({ pool, team }: { pool: PoolData; team: TeamRef }) {
   const race = pointsRace(pool).map((r) => ({ id: r.teamId, name: teams.get(r.teamId)?.name ?? r.teamId, points: r.points }));
   const lines = teamPlayerLines(pool, team.id);
   const teamName = (id: string) => teams.get(id)?.name ?? 'Unknown team';
+  const scale = useMemo(() => fitScale(pool), [pool]);
+  const size = lineupSize(pool);
+  const insights = useMemo(() => teamInsights(pool, team.id, scale), [pool, team.id, scale]);
+  const forecasts = useMemo(
+    () =>
+      new Map(
+        upcoming.map((m) => {
+          const planned = plannedLineup(pool.pool.id, team.id, m.id, size);
+          return [m.id, { planned: planned !== null, forecast: forecastMatch(pool, m, team.id, scale, planned ? { team: planned } : {}) }];
+        }),
+      ),
+    // `upcoming` is derived from pool and team, which are already dependencies.
+    [pool, team.id, scale, size],
+  );
+  const next = upcoming[0];
+  const nextForecast = next ? forecasts.get(next.id) : undefined;
 
   return (
     <div className="dash">
@@ -70,6 +86,54 @@ function TeamView({ pool, team }: { pool: PoolData; team: TeamRef }) {
           <StatTile label="Won, drawn, lost" value={`${standing.won}–${standing.drawn}–${standing.lost}`} />
           <StatTile label="Games won and lost" value={`${standing.gamesFor}–${standing.gamesAgainst}`} />
         </div>
+      )}
+
+      {next && nextForecast?.forecast.odds && (
+        <section className="card next-match">
+          <div className="section-head">
+            <h2>Next match</h2>
+            <a href={href('match', pool.pool.id, next.id)}>Full preview</a>
+          </div>
+          <p className="next-when">
+            {matchDay(next.date)} · {matchTime(next.date)} · vs{' '}
+            <a href={href('team', pool.pool.id, opponentOf(next, team.id))}>{teamName(opponentOf(next, team.id))}</a>{' '}
+            <span className="tag">{isHome(next, team.id) ? 'Home' : 'Away'}</span>
+          </p>
+          <p className="odds-headline">
+            <strong>{percent(nextForecast.forecast.odds.win)}</strong> chance to win, {percent(nextForecast.forecast.odds.draw)} to
+            draw.
+          </p>
+          <OddsBar odds={nextForecast.forecast.odds} />
+          <ul className="reasons">
+            <li>
+              <strong>Player ratings.</strong>{' '}
+              {ratingReason(nextForecast.forecast.rating, team.name, teamName(opponentOf(next, team.id)))}
+            </li>
+            <li>
+              <strong>Common opponents.</strong> {commonReason(nextForecast.forecast.common, team.name)}
+            </li>
+          </ul>
+          <p className="muted small">
+            {nextForecast.planned
+              ? `Using the lineup from your planner: ${(nextForecast.forecast.rating?.team ?? []).map((id) => players.get(id)?.name ?? '?').join(', ')}. `
+              : 'Based on the lineups both teams have used this season. Set answers in the planner to use your real lineup. '}
+            <a href={href('match', pool.pool.id, next.id)}>Try another lineup</a>
+          </p>
+        </section>
+      )}
+
+      {insights.length > 0 && (
+        <section className="card">
+          <h2>Insights</h2>
+          <ul className="insights">
+            {insights.map((insight) => (
+              <li key={insight.topic}>
+                <span className="insight-topic">{insight.topic}</span>
+                <span>{insight.text}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {played.length > 0 && (
@@ -174,21 +238,31 @@ function TeamView({ pool, team }: { pool: PoolData; team: TeamRef }) {
             <h2>Upcoming matches</h2>
             <span className="muted">{upcoming.length} left</span>
           </div>
+          <p className="muted">Chance to win each match, assuming both teams field lineups they have used this season.</p>
           <ul className="result-list">
-            {upcoming.map((m) => (
-              <li key={m.id} className="result-row">
-                <div className="result-main">
-                  <span className="result-when">
-                    {matchDay(m.date)} · {matchTime(m.date)}
-                  </span>
-                  <span className="result-vs">
-                    vs <a href={href('team', pool.pool.id, opponentOf(m, team.id))}>{teamName(opponentOf(m, team.id))}</a>{' '}
-                    <span className="tag">{isHome(m, team.id) ? 'Home' : 'Away'}</span>
-                  </span>
-                  <span className="result-venue">{m.venue}</span>
-                </div>
-              </li>
-            ))}
+            {upcoming.map((m) => {
+              const odds = forecasts.get(m.id)?.forecast.odds;
+              return (
+                <li key={m.id} className="result-row">
+                  <div className="result-main">
+                    <span className="result-when">
+                      {matchDay(m.date)} · {matchTime(m.date)}
+                    </span>
+                    <span className="result-vs">
+                      vs <a href={href('team', pool.pool.id, opponentOf(m, team.id))}>{teamName(opponentOf(m, team.id))}</a>{' '}
+                      <span className="tag">{isHome(m, team.id) ? 'Home' : 'Away'}</span>
+                    </span>
+                    <span className="result-venue">{m.venue}</span>
+                  </div>
+                  {odds && (
+                    <a className="result-odds" href={href('match', pool.pool.id, m.id)} aria-label={`Preview: ${percent(odds.win)} chance to win`}>
+                      <span className="result-odds-text">{percent(odds.win)} win</span>
+                      <ThinOdds odds={odds} />
+                    </a>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}

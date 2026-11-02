@@ -3,6 +3,7 @@ import type { PoolData, TeamMatch } from '../data/model';
 import { playersById, teamsById } from '../data/stats';
 import { href } from '../lib/router';
 import { matchDayLong, matchTime, NotFound, PageState, portalUrl } from '../components/ui';
+import { MatchPreview } from './MatchPreview';
 
 export function MatchPage({ poolId, matchId }: { poolId: string; matchId: string }) {
   const loaded = useLoaded(() => loadPool(poolId), poolId);
@@ -51,9 +52,11 @@ function MatchView({ pool, match }: { pool: PoolData; match: TeamMatch }) {
         </div>
       </header>
 
+      {!match.score && <MatchPreview pool={pool} match={match} />}
+
+      {match.score && (
       <section className="card">
         <h2>Games</h2>
-        {!match.score && <p className="muted">Not played yet.</p>}
         {match.score && !match.games && <p className="muted">The games of this match are not available yet.</p>}
         {match.games && (
           <div className="table-scroll">
@@ -91,6 +94,7 @@ function MatchView({ pool, match }: { pool: PoolData; match: TeamMatch }) {
           </div>
         )}
       </section>
+      )}
     </div>
   );
 }

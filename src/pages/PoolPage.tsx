@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { fitScale, projectTable } from '../data/forecast';
 import { loadPool, useLoaded } from '../data/load';
 import type { PoolData, TeamMatch } from '../data/model';
 import { playerGames, summarize, teamsById, winRate } from '../data/stats';
@@ -18,6 +19,8 @@ function PoolView({ pool }: { pool: PoolData }) {
   const played = pool.matches.filter((m) => m.score).reverse();
   const upcoming = pool.matches.filter((m) => !m.score);
   const shownPlayed = showAll ? played : played.slice(0, 10);
+  const projection = useMemo(() => new Map(projectTable(pool, fitScale(pool)).map((p) => [p.teamId, p])), [pool]);
+  const hasRemaining = upcoming.length > 0;
 
   const playerRows = pool.players
     .map((p) => ({ player: p, line: summarize(playerGames(pool, p.id)) }))
@@ -78,6 +81,11 @@ function PoolView({ pool }: { pool: PoolData }) {
                 <th scope="col" className="num" title="Lost">L</th>
                 <th scope="col" className="num">Games</th>
                 <th scope="col" className="num">Points</th>
+                {hasRemaining && (
+                  <th scope="col" className="num" title="Expected final points">
+                    Projected
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -95,11 +103,23 @@ function PoolView({ pool }: { pool: PoolData }) {
                     {s.gamesFor}–{s.gamesAgainst}
                   </td>
                   <td className="num strong">{s.points}</td>
+                  {hasRemaining && (
+                    <td className="num">
+                      {Math.round(projection.get(s.teamId)?.projected ?? s.points)}
+                      <span className="muted small"> ({projection.get(s.teamId)?.rank ?? '–'})</span>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        {hasRemaining && (
+          <p className="muted small">
+            Projected: expected final points, with the projected position in brackets. It adds up the win and draw chances of
+            every remaining match, assuming each team fields lineups it has used this season.
+          </p>
+        )}
       </section>
 
       <section className="card">

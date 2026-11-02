@@ -2,25 +2,14 @@ import { useMemo, useState } from 'react';
 import { loadIndex, useLoaded } from '../data/load';
 import { href } from '../lib/router';
 import { listSavedPlanners, newId } from '../lineup/storage';
-import { LAST_TEAM_KEY } from './TeamPage';
+import { readLastTeam } from '../lib/lastTeam';
 
-function lastTeam(): { poolId: string; teamId: string; name: string } | null {
-  try {
-    const value = JSON.parse(localStorage.getItem(LAST_TEAM_KEY) ?? 'null');
-    return value && typeof value.poolId === 'string' && typeof value.teamId === 'string' && typeof value.name === 'string'
-      ? value
-      : null;
-  } catch {
-    return null;
-  }
-}
-
-const fold = (s: string) => s.toLocaleLowerCase('da').normalize('NFKD').replace(/[̀-ͯ]/g, '');
+const fold = (s: string) => s.toLocaleLowerCase('da').normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
 
 export function StartPage() {
   const index = useLoaded(loadIndex, 'index');
   const [query, setQuery] = useState('');
-  const recent = useMemo(lastTeam, []);
+  const recent = useMemo(readLastTeam, []);
   const saved = useMemo(() => listSavedPlanners().filter((s) => !s.key.startsWith('team-')), []);
   const newKey = saved.length === 0 ? 'my-team' : newId(saved.map((s) => s.key));
 
