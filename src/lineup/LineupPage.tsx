@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { loadPool } from '../data/load';
 import { copyText } from '../lib/clipboard';
 import { href, replaceHash } from '../lib/router';
 import { BalanceTable } from './BalanceTable';
@@ -12,13 +13,27 @@ import type { PlannerState } from './types';
 
 const isBlank = (s: PlannerState) => !s.teamName && s.players.length === 0 && s.fixtures.length === 0;
 
-export function LineupPage({ storageKey, sharedToken }: { storageKey: string; sharedToken: string | null }) {
+export interface TeamLink {
+  poolId: string;
+  teamId: string;
+}
+
+export function LineupPage({
+  storageKey,
+  sharedToken,
+  link,
+}: {
+  storageKey: string;
+  sharedToken: string | null;
+  link: TeamLink | null;
+}) {
   const [state, dispatch] = useReducer(reducer, storageKey, (key) => loadState(key) ?? emptyState());
   const [incoming, setIncoming] = useState<PlannerState | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [manualCopy, setManualCopy] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [formKey, setFormKey] = useState(0);
+  const [linked, setLinked] = useState<'no' | 'loading' | 'ok' | 'failed'>(link ? 'loading' : 'no');
   const fileInput = useRef<HTMLInputElement>(null);
   const plan = useMemo(() => buildPlan(state), [state]);
 
@@ -47,6 +62,23 @@ export function LineupPage({ storageKey, sharedToken }: { storageKey: string; sh
       cancelled = true;
     };
   }, [sharedToken, storageKey]);
+
+  // Linked to a team on bordtennisportalen.dk: refresh roster, fixtures and who played from the imported data.
+  useEffect(() => {
+    if (!link) return;
+    let cancelled = false;
+    loadPool(link.poolId).then(
+      (pool) => {
+        if (cancelled) return;
+        dispatch({ type: 'sync', pool, teamId: link.teamId });
+        setLinked('ok');
+      },
+      () => !cancelled && setLinked('failed'),
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [link?.poolId, link?.teamId]);
 
   useEffect(() => {
     if (!notice) return;
@@ -115,6 +147,14 @@ export function LineupPage({ storageKey, sharedToken }: { storageKey: string; sh
           />
         </label>
       </div>
+
+      {link && (
+        <p className={linked === 'failed' ? 'linked-note is-failed' : 'linked-note'}>
+          {linked === 'failed'
+            ? 'Could not load the latest results. The plan below is the last saved version.'
+            : <>Linked to <a href={href('team', link.poolId, link.teamId)}>{state.teamName || 'your team'}</a> on bordtennisportalen.dk: players, matches and who played fill in from the results. Untick <em>Active</em> for anyone who should not be planned.</>}
+        </p>
+      )}
 
       {incoming && (
         <div className="banner" role="status">
@@ -207,8 +247,15 @@ export function LineupPage({ storageKey, sharedToken }: { storageKey: string; sh
         {planned.length === 0 && !adding && (
           <p className="empty">No upcoming matches yet. Add them from your team's schedule.</p>
         )}
-        {planned.map((item) => (
-          <PlannedMatch key={item.fixture.id} item={item} state={state} dispatch={dispatch} nameOf={nameOf} />
+        {planned.map((item, i) => (
+          <PlannedMatch
+            key={item.fixture.id}
+            item={item}
+            state={state}
+            dispatch={dispatch}
+            nameOf={nameOf}
+            startOpen={i < 3}
+          />
         ))}
       </section>
 

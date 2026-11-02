@@ -25,15 +25,16 @@ const ANSWERS: { value: Exclude<Availability, 'unknown'>; label: string }[] = [
   { value: 'no', label: 'No' },
 ];
 
-export function PlannedMatch({ item, state, dispatch, nameOf }: MatchProps) {
+export function PlannedMatch({ item, state, dispatch, nameOf, startOpen = true }: MatchProps & { startOpen?: boolean }) {
   const f = item.fixture;
   const [editing, setEditing] = useState(false);
+  const [open, setOpen] = useState(startOpen);
   const active = state.players.filter((p) => p.active);
   const inLineup = new Set(item.lineup);
   const isReserve = new Set(item.reserves);
 
   return (
-    <article className="card match">
+    <article className={open ? 'card match' : 'card match is-collapsed'}>
       <MatchHeading fixture={f} editing={editing} onEdit={() => setEditing((v) => !v)} />
 
       {editing && (
@@ -57,9 +58,14 @@ export function PlannedMatch({ item, state, dispatch, nameOf }: MatchProps) {
 
       <MatchNotices item={item} nameOf={nameOf} />
 
-      {active.length === 0 ? (
-        <p className="muted">Add players to the roster to plan this match.</p>
-      ) : (
+      {!open && (
+        <button type="button" className="link-button match-toggle" aria-expanded={false} onClick={() => setOpen(true)}>
+          Answers and picks
+        </button>
+      )}
+
+      {open && active.length === 0 && <p className="muted">Add players to the roster to plan this match.</p>}
+      {open && active.length > 0 && (
         <ul className="player-rows">
           {active.map((p) => {
             const answer = availabilityOf(state, f.id, p.id);
@@ -106,6 +112,7 @@ export function PlannedMatch({ item, state, dispatch, nameOf }: MatchProps) {
         </ul>
       )}
 
+      {open && (
       <div className="match-foot">
         <button
           type="button"
@@ -116,6 +123,7 @@ export function PlannedMatch({ item, state, dispatch, nameOf }: MatchProps) {
           Mark as played
         </button>
       </div>
+      )}
     </article>
   );
 }

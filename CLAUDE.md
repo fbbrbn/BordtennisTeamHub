@@ -19,7 +19,13 @@ names, ids or pools in code.
   - `planner.ts`: pure season planner (min-cost flow in `mcmf.ts`), unit-tested.
   - `storage.ts`: localStorage, share-link encoding (deflate + base64url) and validation of untrusted input.
   - `state.ts`: reducer. The UI lives in `LineupPage.tsx`, `Matches.tsx`, `BalanceTable.tsx` and `RosterEditor.tsx`.
-- `src/pages/StartPage.tsx`: the landing page.
+- `src/data/`: `model.ts` (shared JSON types), `load.ts` (fetch + cache) and `stats.ts` (pure, tested statistics).
+- `src/pages/`: the start page (team picker), plus team, player, pool and match dashboards. Routes look like
+  `#/team/<poolId>/<teamId>`.
+- `src/charts/`: hand-written SVG charts. `PointsRace` is a line chart in emphasis form; `RatingStrip` is a strip plot.
+  Both have hover, keyboard and touch tooltips and a table twin.
+- `src/lineup/sync.ts`: a planner stored under the key `team-<poolId>-<teamId>` syncs its roster, fixtures and
+  `playedBy` from the pool data.
 - `.github/workflows/site.yml`: typecheck, test and build on every push and PR; deploy to GitHub Pages from `main`.
 
 Commands: `npm test`, `npm run typecheck`, `npm run build`, `npm run dev`.

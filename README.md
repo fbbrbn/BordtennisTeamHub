@@ -1,53 +1,49 @@
 # Team Hub for Danish table tennis teams
 
-An unofficial companion for teams in the DBTU team tournament (Holdturnering). It helps a captain decide who plays
-each match. Next it will show team and player statistics built from the public results on
-[bordtennisportalen.dk](https://bordtennisportalen.dk).
+An unofficial companion for teams in the DBTU team tournament (Holdturnering). It shows team and player statistics
+built from the public results on [bordtennisportalen.dk](https://bordtennisportalen.dk), and it helps a captain decide
+who plays each match.
 
 It is built for any team. Vallensbæk BTK 3 is the first test team.
 
 > Not affiliated with DBTU or bordtennisportalen.dk.
 
-## What works today: the lineup planner
+## What works today
 
-Typical case: 5 players on the team, 3 play each match.
+**Live site:** https://fbbrbn.github.io/BordtennisPortalen/
 
-- **Roster and schedule.** Add your players and your matches (date, opponent, home or away).
-- **Availability.** Mark each player Yes, Maybe or No for each match.
-- **A fair plan for the whole season.** The planner proposes a lineup for every upcoming match:
-  - It keeps the number of matches per player as even as possible over the season, counting matches already played.
-  - A player who will miss later matches gets more of the earlier ones.
-  - It rotates rests, so nobody sits out twice in a row when it can be avoided.
-  - Players who said Yes go before Maybe or unanswered ones. You can turn this off.
-- **Captain overrides.** Set any player to *Must play* or *Rest* for a single match.
-- **Warnings.** The planner flags open places, too many must-plays, and must-plays who answered No.
-- **Season balance.** A table shows played, planned and total matches per player against an even share.
-- **Sharing.**
-  - Copy a link with the whole plan, or a short text summary for the team chat.
-  - Download a backup and restore it later.
+- **Find your team** on the start page. For now only the pools listed in `scraper/config.json` are imported; the first
+  is ØST Senior 2026/2027, Serie 4 Pulje 4.
+- **Team page.**
+  - Position, points, record and games won.
+  - A points race against the rest of the pool, with a table view.
+  - All results and upcoming matches with venues.
+  - Every player who played for the team: rating, matches, singles with win rate, doubles and sets.
+- **Player page.**
+  - Rating and singles, doubles and sets records.
+  - Singles results placed by opponent rating.
+  - The full game list.
+- **Pool page.** Standings, results, next matches and a player table.
+- **Match page.** All games of a team match with players and sets.
+- **Lineup planner.** It works for typical cases like 5 players with 3 per match.
+  - Opening it from a team page fills in the roster, the fixtures and who played from the results, and keeps them up
+    to date.
+  - Mark each player Yes, Maybe or No per match. The planner proposes a lineup for every match.
+  - Matches per player stay as even as possible over the season, counting matches already played. A player who will
+    miss later matches gets more of the earlier ones, and rests rotate.
+  - Players who said Yes go first; you can turn this off. Captain overrides: *Must play* or *Rest*.
+  - Share the plan as a link or as a short message for the team chat. Download a backup and restore it.
+  - Plans are stored in the browser of whoever made them. There are no accounts and no server.
 
-Plans are stored in the browser of whoever made them. There are no accounts and no server. A share link carries a copy
-of the plan, so changes made after opening a link stay on that device.
+Results are refreshed twice a day by a GitHub Action (`.github/workflows/data.yml`).
 
 ## What's next
 
-1. **Match data import.** A scheduled GitHub Action reads the public standings, matches and individual results from
-   bordtennisportalen.dk and saves them as JSON files in this repository. The site reads those files, so it stays a
-   static site on GitHub Pages.
-2. **Team dashboard.**
-   - Standings and the results timeline.
-   - Points over the season compared with the rest of the pool.
-   - Each player's contribution.
-3. **Player dashboard.**
-   - Matches, games and sets won.
-   - Results against opponents' ratings.
-   - Rating trend and head-to-head records.
-4. **Start page team picker.** Choose season, region, pool and team, and get the same dashboards and planner for any
-   team.
-5. **Planner linked to data.**
-   - Roster and fixtures fill in automatically.
-   - Played matches record who actually played.
-6. **Shared availability (optional).** Let each player answer in the app instead of through the captain. This needs a
+1. **More pools.** Add whole regions to `scraper/config.json`, e.g. all of ØST Senior, then other regions and age
+   groups.
+2. **Rating history.** Use the portal's ranking-list service to show each player's rating over time.
+3. **Danish interface.** Optional.
+4. **Shared availability (optional).** Let each player answer in the app instead of through the captain. This needs a
    small shared backend, so it is a later decision.
 
 ## Development
@@ -71,12 +67,17 @@ The planner's logic is in `src/lineup/planner.ts`. It is a pure function with un
 
 ## Deployment
 
-`.github/workflows/site.yml` runs on every push and pull request: it typechecks, tests and builds the site. Pushes to
-`main` also publish the site to GitHub Pages. To turn that on, open the repository's **Settings → Pages** and set
-**Source** to **GitHub Actions**.
+- `.github/workflows/site.yml` runs on every push and pull request: it typechecks, tests and builds the site. Pushes
+  and manual runs on `main` also publish it to GitHub Pages.
+- `.github/workflows/data.yml` imports fresh results twice a day. When something changed, it commits the data and
+  redeploys the site.
+
+To import by hand, run `npm run import`. It needs network access to bordtennisportalen.dk.
 
 ## Data and privacy
 
 - **Lineup plans.** They stay in your browser unless you share a link or a backup file yourself.
-- **Match data.** It will come from the public pages of bordtennisportalen.dk. The import will run at most once a day
-  and only re-download matches that have changed.
+- **Match data.** It comes from the public pages of bordtennisportalen.dk. The import runs twice a day, spaces its
+  requests out, and only re-downloads matches whose result changed.
+  - It stores names, internal ids, ratings and results.
+  - It never stores player numbers (they contain birth dates) or team contact details.

@@ -1,8 +1,11 @@
+import type { PoolData } from '../data/model';
 import { newId } from './storage';
+import { syncWithPool } from './sync';
 import type { Availability, Fixture, Override, PlannerSettings, PlannerState, RosterPlayer } from './types';
 
 export type Action =
   | { type: 'replace'; state: PlannerState }
+  | { type: 'sync'; pool: PoolData; teamId: string }
   | { type: 'teamName'; name: string }
   | { type: 'settings'; patch: Partial<PlannerSettings> }
   | { type: 'addPlayer'; name: string; rating?: number }
@@ -20,6 +23,8 @@ export function reducer(state: PlannerState, action: Action): PlannerState {
   switch (action.type) {
     case 'replace':
       return action.state;
+    case 'sync':
+      return syncWithPool(state, action.pool, action.teamId);
     case 'teamName':
       return { ...state, teamName: action.name };
     case 'settings':
