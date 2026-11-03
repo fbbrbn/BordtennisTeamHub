@@ -1,14 +1,22 @@
 import { useMemo, useState } from 'react';
+import { FollowButton } from '../components/FollowButton';
+import { ThinOdds } from '../components/Odds';
+import { matchDay, matchTime } from '../components/ui';
 import { clubSlug, fallbackClubName } from '../data/clubs';
-import { loadIndex, useLoaded } from '../data/load';
-import type { DataIndex, IndexTeam, PoolRef } from '../data/model';
+import { fitScale, forecastMatch, lineupSize } from '../data/forecast';
+import { loadIndex, loadPool, useLoaded } from '../data/load';
+import type { DataIndex, IndexTeam, PoolData, PoolRef } from '../data/model';
+import { isHome, opponentOf, teamMatches, teamsById } from '../data/stats';
+import { useFollowing, type FollowedTeam } from '../lib/follow';
 import { readLastTeam } from '../lib/lastTeam';
 import { href } from '../lib/router';
-import { count, ordinal } from '../lib/text';
+import { count, ordinal, percent } from '../lib/text';
+import { plannedLineup } from '../lineup/planned';
 import { listSavedPlanners, newId } from '../lineup/storage';
 
 const fold = (s: string) => s.toLocaleLowerCase('da').normalize('NFKD').replace(/[̀-ͯ]/g, '');
-const PAGE = 30;
+const RESULTS_PAGE = 20;
+const BROWSE_PAGE = 12;
 
 export interface ClubGroup {
   slug: string;
@@ -36,42 +44,69 @@ export function groupByClub(pools: PoolRef[]): ClubGroup[] {
 
 export function StartPage() {
   const index = useLoaded(loadIndex, 'index');
-  const recent = useMemo(readLastTeam, []);
+  const { following } = useFollowing();
+  const last = useMemo(readLastTeam, []);
+  const lastNotFollowed = last && !following.some((t) => t.poolId === last.poolId && t.teamId === last.teamId) ? last : null;
   const saved = useMemo(() => listSavedPlanners().filter((s) => !s.key.startsWith('team-')), []);
   const newKey = saved.length === 0 ? 'my-team' : newId(saved.map((s) => s.key));
 
   return (
     <>
       <section className="hero">
-        <h1>Run your table tennis team</h1>
-        <p>
-          Results, standings, odds and player statistics for every club in the Danish team tournament, plus a planner
-          for who plays each match.
-        </p>
+        <h1>{following.length > 0 ? 'Welcome back' : 'Find your team'}</h1>
+        <p>Results, chances and lineup planning for every team in the Danish table tennis team tournament.</p>
       </section>
 
-      {recent && (
-        <a className="card recent" href={href('team', recent.poolId, recent.teamId)}>
-          <span className="muted small">Your last team</span>
-          <strong>{recent.name}</strong>
-        </a>
+      {following.length > 0 && (
+        <section className="stack" aria-labelledby="my-teams">
+          <h2 id="my-teams">My teams</h2>
+          {following.map((team) => (
+            <MyTeamCard key={`${team.poolId}-${team.teamId}`} team={team} />
+          ))}
+        </section>
+      )}
+
+      {following.length === 0 && lastNotFollowed && (
+        <section className="card suggestion">
+          <p>
+            Continue with <a href={href('team', lastNotFollowed.poolId, lastNotFollowed.teamId)}>{lastNotFollowed.name}</a>
+          </p>
+          <p className="muted small">Follow it to keep it at the top of this page, with its next match.</p>
+          <div className="button-row">
+            <FollowButton team={lastNotFollowed} />
+          </div>
+        </section>
+      )}
+
+      {following.length === 0 && !last && (
+        <section className="card how-it-works">
+          <h2>How it works</h2>
+          <ol className="steps">
+            <li>
+              <strong>Find your team</strong> by club name below.
+            </li>
+            <li>
+              <strong>Follow it</strong> with ☆ so it is always here, with its next match and your chances.
+            </li>
+            <li>
+              <strong>Plan your lineup</strong>: mark who can play, and the planner keeps the matches fair for everyone.
+            </li>
+          </ol>
+        </section>
       )}
 
       {index.status === 'ready' ? (
         <ClubSearch index={index.data} />
       ) : (
         <section className="card">
-          <h2>Find your club or team</h2>
+          <h2>Find a club or team</h2>
           <p className="muted">{index.status === 'loading' ? 'Loading clubs…' : 'Club data is not available right now.'}</p>
         </section>
       )}
 
-      <section className="card">
-        <h2>Lineup planner</h2>
-        <p className="muted">
-          Open your team and choose <em>Plan lineups</em>: players and matches fill in from the results. Or plan by hand
-          for any team:
-        </p>
+      <section className="card compact">
+        <h2>Planning for a team that is not listed?</h2>
+        <p className="muted small">The lineup planner also works by hand: add your players and matches yourself.</p>
         {saved.length > 0 && (
           <ul className="saved-list">
             {saved.map((s) => (
@@ -89,36 +124,111 @@ export function StartPage() {
   );
 }
 
+function MyTeamCard({ team }: { team: FollowedTeam }) {
+  const loaded = useLoaded(() => loadPool(team.poolId), team.poolId);
+  const base = href('team', team.poolId, team.teamId);
+  if (loaded.status !== 'ready') {
+    return (
+      <a className="card my-team" href={base}>
+        <strong>{team.name}</strong>
+        <span className="muted small">{loaded.status === 'loading' ? 'Loading…' : 'Not available right now'}</span>
+      </a>
+    );
+  }
+  return <MyTeamSummary pool={loaded.data} team={team} />;
+}
+
+function MyTeamSummary({ pool, team }: { pool: PoolData; team: FollowedTeam }) {
+  const scale = useMemo(() => fitScale(pool), [pool]);
+  const teams = teamsById(pool);
+  const standing = pool.standings.find((s) => s.teamId === team.teamId);
+  const next = teamMatches(pool, team.teamId).find((m) => !m.score);
+  const forecast = useMemo(() => {
+    if (!next) return null;
+    const planned = plannedLineup(pool.pool.id, team.teamId, next.id, lineupSize(pool));
+    return forecastMatch(pool, next, team.teamId, scale, planned ? { team: planned } : {});
+  }, [pool, next, team.teamId, scale]);
+  const base = href('team', pool.pool.id, team.teamId);
+
+  return (
+    <article className="card my-team">
+      <div className="my-team-head">
+        <a className="my-team-name" href={base}>
+          {team.name}
+        </a>
+        <span className="muted small">
+          {pool.pool.name}
+          {standing && standing.played > 0 && ` · ${ordinal(standing.position)} of ${pool.standings.length}, ${count(standing.points, 'point')}`}
+        </span>
+      </div>
+      {next ? (
+        <a className="my-team-next" href={href('match', pool.pool.id, next.id)}>
+          <span className="my-team-when muted small">
+            Next: {matchDay(next.date)} · {matchTime(next.date)}
+          </span>
+          <span className="my-team-vs">
+            vs {teams.get(opponentOf(next, team.teamId))?.name ?? 'opponent'}{' '}
+            <span className="tag">{isHome(next, team.teamId) ? 'Home' : 'Away'}</span>
+          </span>
+          {forecast?.odds && (
+            <span className="my-team-odds">
+              <span>
+                <strong>{percent(forecast.odds.win)}</strong> chance to win
+              </span>
+              <ThinOdds odds={forecast.odds} />
+            </span>
+          )}
+        </a>
+      ) : (
+        <p className="muted small">No more matches this season.</p>
+      )}
+      <div className="button-row">
+        <a className="button" href={base}>
+          Team page
+        </a>
+        <a className="button primary" href={href('lineup', `team-${pool.pool.id}-${team.teamId}`)}>
+          Plan lineup
+        </a>
+      </div>
+    </article>
+  );
+}
+
 function ClubSearch({ index }: { index: DataIndex }) {
   const [query, setQuery] = useState('');
   const [region, setRegion] = useState('');
   const [ageGroup, setAgeGroup] = useState('');
-  const [shown, setShown] = useState(PAGE);
+  const [shown, setShown] = useState(RESULTS_PAGE);
+  const [browseAll, setBrowseAll] = useState(false);
 
   const pools = index.pools.filter((p) => (!region || p.regionId === region) && (!ageGroup || p.ageGroupId === ageGroup));
+  const allClubs = groupByClub(pools);
   const q = fold(query.trim());
-  const clubs = groupByClub(pools)
-    .map((club) => {
-      if (!q || fold(club.name).includes(q)) return club;
-      const teams = club.teams.filter(({ team, pool }) => fold(`${team.name} ${pool.name} ${pool.league}`).includes(q));
-      return { ...club, teams };
-    })
-    .filter((club) => club.teams.length > 0);
-  const teamCount = clubs.reduce((sum, c) => sum + c.teams.length, 0);
-  const visible = clubs.slice(0, shown);
+  const searching = q.length > 0;
+  const results = searching
+    ? allClubs
+        .map((club) => {
+          if (fold(club.name).includes(q)) return club;
+          const teams = club.teams.filter(({ team, pool }) => fold(`${team.name} ${pool.name} ${pool.league}`).includes(q));
+          return { ...club, teams };
+        })
+        .filter((club) => club.teams.length > 0)
+    : [];
+  const browse = browseAll ? allClubs : allClubs.slice(0, BROWSE_PAGE);
+  const reset = () => setShown(RESULTS_PAGE);
 
   return (
     <section className="card picker">
-      <h2>Find your club or team</h2>
-      <label className="field">
-        <span>Club or team</span>
+      <h2>Find a club or team</h2>
+      <label className="field search-field">
+        <span className="sr-only">Club or team</span>
         <input
           type="search"
-          placeholder="e.g. Vallensbæk"
+          placeholder="Search a club or team, e.g. Vallensbæk"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
-            setShown(PAGE);
+            reset();
           }}
         />
       </label>
@@ -129,7 +239,7 @@ function ClubSearch({ index }: { index: DataIndex }) {
             value={region}
             onChange={(e) => {
               setRegion(e.target.value);
-              setShown(PAGE);
+              reset();
             }}
           >
             <option value="">All regions</option>
@@ -146,7 +256,7 @@ function ClubSearch({ index }: { index: DataIndex }) {
             value={ageGroup}
             onChange={(e) => {
               setAgeGroup(e.target.value);
-              setShown(PAGE);
+              reset();
             }}
           >
             <option value="">All age groups</option>
@@ -158,38 +268,64 @@ function ClubSearch({ index }: { index: DataIndex }) {
           </select>
         </label>
       </div>
-      <p className="muted small" role="status">
-        {count(clubs.length, 'club')} · {count(teamCount, 'team')} · {count(pools.length, 'pool')}
-        {index.season ? ` · season ${index.season.name}` : ''}
-      </p>
 
-      {clubs.length === 0 && <p className="muted">Nothing matches “{query}”. Try part of the club name.</p>}
-      <ul className="club-list">
-        {visible.map((club) => (
-          <li key={club.slug} className="club-item">
-            <a className="club-name" href={href('club', club.slug)}>
-              {club.name}
-            </a>
-            <ul className="club-teams">
-              {club.teams.map(({ team, pool }) => (
-                <li key={`${pool.id}-${team.id}`}>
-                  <a href={href('team', pool.id, team.id)}>{team.name}</a>
-                  <span className="muted small">
-                    {' '}
-                    {pool.ageGroupName ? `${pool.ageGroupName} · ` : ''}
-                    {pool.name}
-                    {team.position ? ` · ${ordinal(team.position)}` : ''}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </li>
-        ))}
-      </ul>
-      {clubs.length > shown && (
-        <button type="button" className="button" onClick={() => setShown((n) => n + PAGE)}>
-          Show more clubs ({clubs.length - shown} left)
-        </button>
+      {searching ? (
+        <>
+          <p className="muted small" role="status">
+            {results.length === 0
+              ? `Nothing matches “${query.trim()}”. Try part of the club name.`
+              : `${count(results.length, 'club')}, ${count(results.reduce((sum, c) => sum + c.teams.length, 0), 'team')}`}
+          </p>
+          <ul className="club-list">
+            {results.slice(0, shown).map((club) => (
+              <li key={club.slug} className="club-item">
+                <a className="club-name" href={href('club', club.slug)}>
+                  {club.name}
+                </a>
+                <ul className="club-teams">
+                  {club.teams.map(({ team, pool }) => (
+                    <li key={`${pool.id}-${team.id}`}>
+                      <a href={href('team', pool.id, team.id)}>{team.name}</a>
+                      <span className="muted small">
+                        {' '}
+                        {pool.ageGroupName ? `${pool.ageGroupName} · ` : ''}
+                        {pool.name}
+                        {team.position ? ` · ${ordinal(team.position)}` : ''}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+          {results.length > shown && (
+            <button type="button" className="button" onClick={() => setShown((n) => n + RESULTS_PAGE)}>
+              Show more ({results.length - shown} left)
+            </button>
+          )}
+        </>
+      ) : (
+        <>
+          <p className="muted small" role="status">
+            {count(allClubs.length, 'club')} · {count(pools.length, 'pool')}
+            {index.season ? ` · season ${index.season.name}` : ''}
+          </p>
+          <ul className="browse-list">
+            {browse.map((club) => (
+              <li key={club.slug}>
+                <a href={href('club', club.slug)}>
+                  <span className="browse-name">{club.name}</span>
+                  <span className="muted small">{count(club.teams.length, 'team')}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+          {allClubs.length > BROWSE_PAGE && (
+            <button type="button" className="button" onClick={() => setBrowseAll((v) => !v)}>
+              {browseAll ? 'Show fewer clubs' : `Show all ${allClubs.length} clubs`}
+            </button>
+          )}
+        </>
       )}
     </section>
   );

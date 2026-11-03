@@ -2,16 +2,18 @@ import { useState, type Dispatch } from 'react';
 import type { Action } from './state';
 import type { PlannerState } from './types';
 
-export function RosterEditor({ state, dispatch }: { state: PlannerState; dispatch: Dispatch<Action> }) {
+export function RosterEditor({ state, dispatch, bare = false }: { state: PlannerState; dispatch: Dispatch<Action>; bare?: boolean }) {
   const [name, setName] = useState('');
   const empty = state.players.length === 0;
 
   return (
-    <section className="card">
-      <div className="section-head">
-        <h2>Players</h2>
-        {!empty && <span className="muted">{state.players.filter((p) => p.active).length} active</span>}
-      </div>
+    <section className={bare ? 'roster-editor' : 'card roster-editor'}>
+      {!bare && (
+        <div className="section-head">
+          <h2>Players</h2>
+          {!empty && <span className="muted">{state.players.filter((p) => p.active).length} active</span>}
+        </div>
+      )}
       {empty && (
         <p className="muted">
           Start with your team's players. Ratings are optional: they only decide the order of names in a lineup.

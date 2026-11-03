@@ -192,10 +192,6 @@ textarea {
   box-shadow: 9px -6px 0 -3px var(--text-2);
 }
 
-.topbar-note {
-  font-size: 0.8rem;
-  color: var(--text-2);
-}
 
 .content {
   flex: 1;
@@ -1773,4 +1769,285 @@ textarea {
 
 .club-teams a {
   font-weight: 550;
+}
+
+/* ---------- Navigation ---------- */
+
+.topbar-start {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.back-button {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-left: -8px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.back-button:hover {
+  background: var(--surface-2);
+}
+
+.nav-top {
+  display: none;
+  gap: 4px;
+}
+
+.nav-top .nav-link {
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: var(--text-2);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.nav-top .nav-link:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.nav-top .nav-link[aria-current='page'] {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.nav-bottom {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.nav-bottom .nav-link {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 4px 0;
+  border-radius: 10px;
+  color: var(--text-2);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.nav-bottom .nav-link[aria-current='page'] {
+  color: var(--accent-strong);
+}
+
+.app {
+  padding-bottom: calc(68px + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 720px) {
+  .nav-top {
+    display: flex;
+  }
+  .nav-bottom {
+    display: none;
+  }
+  .app {
+    padding-bottom: 0;
+  }
+}
+
+/* ---------- Team page ---------- */
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.tabs a {
+  flex: 1;
+  padding: 8px 6px;
+  border-radius: 9px;
+  color: var(--text-2);
+  font-weight: 650;
+  text-align: center;
+  text-decoration: none;
+}
+
+.tabs a[aria-current='page'] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgba(11, 11, 11, 0.08);
+}
+
+.follow {
+  gap: 6px;
+}
+
+.follow.is-on {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+}
+
+.why summary,
+.more summary {
+  cursor: pointer;
+  color: var(--link);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.why[open] summary,
+.more[open] summary {
+  margin-bottom: 8px;
+}
+
+.next-match .button {
+  justify-self: start;
+}
+
+.page-source {
+  text-align: center;
+}
+
+/* ---------- Start page ---------- */
+
+.my-team {
+  gap: 10px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.my-team-head {
+  display: grid;
+  gap: 2px;
+}
+
+.my-team-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.my-team-next {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.my-team-vs {
+  font-weight: 600;
+}
+
+.my-team-odds {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.my-team-odds strong {
+  font-size: 1.1rem;
+}
+
+.suggestion p a {
+  font-weight: 650;
+}
+
+.how-it-works .steps {
+  margin: 0;
+  padding-left: 22px;
+  display: grid;
+  gap: 8px;
+}
+
+.search-field input {
+  min-height: 48px;
+  font-size: 1.05rem;
+}
+
+.browse-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+}
+
+.browse-list a {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 2px;
+  border-top: 1px solid var(--line);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.browse-list li:first-child a {
+  border-top: 0;
+}
+
+.browse-name {
+  font-weight: 600;
+}
+
+.card.compact {
+  gap: 8px;
+}
+
+.card.compact h2 {
+  font-size: 1rem;
+}
+
+/* ---------- Planner ---------- */
+
+.fold:not([open]) {
+  gap: 0;
+}
+
+.fold > summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.fold > summary::-webkit-details-marker {
+  display: none;
+}
+
+.fold > summary h2::before {
+  content: '▸';
+  display: inline-block;
+  width: 1.1em;
+  color: var(--text-2);
+}
+
+.fold[open] > summary h2::before {
+  content: '▾';
+}
+
+.roster-editor {
+  display: grid;
+  gap: 12px;
 }

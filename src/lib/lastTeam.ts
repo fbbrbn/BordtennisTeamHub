@@ -24,4 +24,6 @@ export function rememberTeam(team: LastTeam): void {
   } catch {
     /* storage unavailable */
   }
+  // Lets the navigation update its "My team" link (see useFollowing).
+  window.dispatchEvent(new Event('teamhub:following-changed'));
 }

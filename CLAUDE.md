@@ -31,7 +31,12 @@ names, ids or pools in code.
   - Chances from either side, a lineup picker and a matchup heat table.
   - It starts from the planner lineup when the captain has answers (`src/lineup/planned.ts`).
 - `src/pages/`: the start page, plus club, team, player, pool and match dashboards.
-  - The start page searches clubs and teams across every pool, with region and age-group filters.
+  - The start page shows followed teams first (`src/lib/follow.ts`, localStorage), then a search across every club
+    and team with region and age-group filters. Without a query it shows a short club list.
+  - Team pages have tabs via `?tab=overview|matches|players`; the router scrolls to the top only when the path changes.
+  - `src/components/Nav.tsx`: Home · My team · Lineup, a bottom bar on phones and top links on desktop. "My team" is
+    the first followed team, otherwise the last team opened.
+  - Keep pages short on phones: put explanations behind `<details>`, and show the most useful items first.
   - Routes look like `#/team/<poolId>/<teamId>` and `#/club/<slug>`.
   - `src/data/clubs.ts` maps team names to clubs and makes club slugs.
 - `src/charts/`: hand-written SVG charts. `PointsRace` is a line chart in emphasis form; `RatingStrip` is a strip plot.
@@ -96,8 +101,9 @@ Commands: `npm test`, `npm run typecheck`, `npm run build`, `npm run dev`.
   - Pools no longer in scope are deleted, but only after a complete discovery.
   - Locally behind the cloud proxy, run it with `NODE_USE_ENV_PROXY=1`.
 - Clubs come from the portal's club-search script (`clublistclientscript.aspx`, `SportsResultsTeamList`).
-  - Each team is matched to the longest club name that prefixes its name.
-  - When nothing matches, the trailing team number is dropped instead.
+  - Each team is matched to the longest club name that prefixes its name, followed by a team number and/or a
+    national-league tag such as "(N)", "(O)" or "(I.O)".
+  - When nothing matches, the tag and the trailing team number are dropped instead.
 - Data lives on the `data` branch, never on `main` (`public/data/` is gitignored):
   - `data.yml` (05:23 and 12:23 UTC) restores it, imports, force-pushes a single new commit when anything changed, and
     then triggers `site.yml`. Pushes made with the workflow token don't trigger workflows by themselves.

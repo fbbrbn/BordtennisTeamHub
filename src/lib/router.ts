@@ -25,14 +25,25 @@ export function parseHash(hash: string): Route {
 export function useRoute(): Route {
   const [route, setRoute] = useState(() => parseHash(window.location.hash));
   useEffect(() => {
+    let lastPath = parseHash(window.location.hash).path.join('/');
     const onChange = () => {
-      setRoute(parseHash(window.location.hash));
-      window.scrollTo(0, 0);
+      const next = parseHash(window.location.hash);
+      setRoute(next);
+      // A new page starts at the top; switching a tab on the same page keeps the position.
+      const path = next.path.join('/');
+      if (path !== lastPath) window.scrollTo(0, 0);
+      lastPath = path;
     };
     window.addEventListener('hashchange', onChange);
     return () => window.removeEventListener('hashchange', onChange);
   }, []);
   return route;
+}
+
+/** Back to the previous page, or home when this page was opened directly. */
+export function goBack(): void {
+  if (window.history.length > 1) window.history.back();
+  else window.location.hash = '#/';
 }
 
 export function href(...segments: string[]): string {

@@ -1,12 +1,15 @@
 import { useEffect, useMemo } from 'react';
 import { PointsRace } from '../charts/PointsRace';
+import { FollowButton } from '../components/FollowButton';
 import { OddsBar, oddsSentence, ThinOdds } from '../components/Odds';
 import { clubSlug } from '../data/clubs';
-import { fitScale, forecastMatch, lineupSize } from '../data/forecast';
-import { teamInsights } from '../data/insights';
+import { fitScale, forecastMatch, lineupSize, type MatchForecast } from '../data/forecast';
+import { teamInsights, type Insight } from '../data/insights';
 import { loadPool, useLoaded } from '../data/load';
-import type { PoolData, TeamRef } from '../data/model';
+import type { PoolData, TeamMatch, TeamRef } from '../data/model';
 import {
+  isHome,
+  opponentOf,
   outcomeFor,
   playersById,
   pointsRace,
@@ -14,8 +17,6 @@ import {
   teamMatches,
   teamPlayerLines,
   teamsById,
-  isHome,
-  opponentOf,
   winRate,
 } from '../data/stats';
 import { rememberTeam } from '../lib/lastTeam';
@@ -24,31 +25,38 @@ import { matchDay, matchTime, NotFound, ordinal, OutcomeBadge, PageState, percen
 import { plannedLineup } from '../lineup/planned';
 import { commonReason, ratingReason } from './MatchPreview';
 
-export function TeamPage({ poolId, teamId }: { poolId: string; teamId: string }) {
+type Tab = 'overview' | 'matches' | 'players';
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'matches', label: 'Matches' },
+  { id: 'players', label: 'Players' },
+];
+/** Insights a captain acts on come first; the rest sit behind "More insights". */
+const INSIGHT_ORDER = ['Table', 'Outlook', 'Best lineup', 'Standout', 'Form', 'Close games', 'Doubles'];
+const INSIGHTS_SHOWN = 4;
+
+export function TeamPage({ poolId, teamId, tab }: { poolId: string; teamId: string; tab: string | null }) {
   const loaded = useLoaded(() => loadPool(poolId), poolId);
   if (loaded.status !== 'ready') return <PageState state={loaded} what="this team" />;
   const team = loaded.data.teams.find((t) => t.id === teamId);
   if (!team) return <NotFound what="this team" />;
-  return <TeamView pool={loaded.data} team={team} />;
+  const active = TABS.find((t) => t.id === tab)?.id ?? 'overview';
+  return <TeamView pool={loaded.data} team={team} tab={active} />;
 }
 
-function TeamView({ pool, team }: { pool: PoolData; team: TeamRef }) {
+interface Forecasts {
+  get(matchId: string): { planned: boolean; forecast: MatchForecast } | undefined;
+}
+
+function TeamView({ pool, team, tab }: { pool: PoolData; team: TeamRef; tab: Tab }) {
   useEffect(() => {
     rememberTeam({ poolId: pool.pool.id, teamId: team.id, name: team.name });
   }, [pool.pool.id, team.id, team.name]);
 
-  const teams = teamsById(pool);
-  const players = playersById(pool);
-  const standing = pool.standings.find((s) => s.teamId === team.id);
   const matches = teamMatches(pool, team.id);
-  const played = matches.filter((m) => m.score).reverse();
   const upcoming = matches.filter((m) => !m.score);
-  const race = pointsRace(pool).map((r) => ({ id: r.teamId, name: teams.get(r.teamId)?.name ?? r.teamId, points: r.points }));
-  const lines = teamPlayerLines(pool, team.id);
-  const teamName = (id: string) => teams.get(id)?.name ?? 'Unknown team';
   const scale = useMemo(() => fitScale(pool), [pool]);
   const size = lineupSize(pool);
-  const insights = useMemo(() => teamInsights(pool, team.id, scale), [pool, team.id, scale]);
   const forecasts = useMemo(
     () =>
       new Map(
@@ -60,8 +68,7 @@ function TeamView({ pool, team }: { pool: PoolData; team: TeamRef }) {
     // `upcoming` is derived from pool and team, which are already dependencies.
     [pool, team.id, scale, size],
   );
-  const next = upcoming[0];
-  const nextForecast = next ? forecasts.get(next.id) : undefined;
+  const base = href('team', pool.pool.id, team.id);
 
   return (
     <div className="dash">
@@ -76,15 +83,60 @@ function TeamView({ pool, team }: { pool: PoolData; team: TeamRef }) {
         </p>
         <h1>{team.name}</h1>
         <div className="button-row">
+          <FollowButton team={{ poolId: pool.pool.id, teamId: team.id, name: team.name }} />
           <a className="button primary" href={href('lineup', `team-${pool.pool.id}-${team.id}`)}>
-            Plan lineups
-          </a>
-          <a className="button" href={portalUrl(pool.pool, 3, { teamId: team.id })} target="_blank" rel="noreferrer">
-            Open on bordtennisportalen.dk
+            Plan lineup
           </a>
         </div>
       </header>
 
+      <nav className="tabs" aria-label="Team pages">
+        {TABS.map((t) => (
+          <a key={t.id} href={t.id === 'overview' ? base : `${base}?tab=${t.id}`} aria-current={tab === t.id ? 'page' : undefined}>
+            {t.label}
+          </a>
+        ))}
+      </nav>
+
+      {tab === 'overview' && <Overview pool={pool} team={team} upcoming={upcoming} forecasts={forecasts} scale={scale} />}
+      {tab === 'matches' && <Matches pool={pool} team={team} matches={matches} forecasts={forecasts} />}
+      {tab === 'players' && <Players pool={pool} team={team} />}
+
+      <p className="page-source muted small">
+        <a href={portalUrl(pool.pool, 3, { teamId: team.id })} target="_blank" rel="noreferrer">
+          See this team on bordtennisportalen.dk
+        </a>
+      </p>
+    </div>
+  );
+}
+
+function Overview({
+  pool,
+  team,
+  upcoming,
+  forecasts,
+  scale,
+}: {
+  pool: PoolData;
+  team: TeamRef;
+  upcoming: TeamMatch[];
+  forecasts: Forecasts;
+  scale: number;
+}) {
+  const teams = teamsById(pool);
+  const players = playersById(pool);
+  const standing = pool.standings.find((s) => s.teamId === team.id);
+  const insights = useMemo(() => sortInsights(teamInsights(pool, team.id, scale)), [pool, team.id, scale]);
+  const race = pointsRace(pool).map((r) => ({ id: r.teamId, name: teams.get(r.teamId)?.name ?? r.teamId, points: r.points }));
+  const anyPlayed = race.some((r) => r.points.length > 1);
+  const next = upcoming[0];
+  const nextForecast = next ? forecasts.get(next.id) : undefined;
+  const odds = nextForecast?.forecast.odds;
+  const opponent = next ? (teams.get(opponentOf(next, team.id))?.name ?? 'the opponent') : '';
+
+  return (
+    <>
       {standing && (
         <div className="tiles">
           <StatTile label="Position" value={ordinal(standing.position)} detail={`of ${pool.standings.length} teams`} />
@@ -94,58 +146,118 @@ function TeamView({ pool, team }: { pool: PoolData; team: TeamRef }) {
         </div>
       )}
 
-      {next && nextForecast?.forecast.odds && (
+      {next && (
         <section className="card next-match">
           <div className="section-head">
             <h2>Next match</h2>
-            <a href={href('match', pool.pool.id, next.id)}>Full preview</a>
+            <span className="muted small">
+              {matchDay(next.date)} · {matchTime(next.date)}
+            </span>
           </div>
           <p className="next-when">
-            {matchDay(next.date)} · {matchTime(next.date)} · vs{' '}
-            <a href={href('team', pool.pool.id, opponentOf(next, team.id))}>{teamName(opponentOf(next, team.id))}</a>{' '}
+            vs <a href={href('team', pool.pool.id, opponentOf(next, team.id))}>{opponent}</a>{' '}
             <span className="tag">{isHome(next, team.id) ? 'Home' : 'Away'}</span>
+            <span className="muted small"> · {next.venue}</span>
           </p>
-          <p className="odds-headline">
-            <strong>{percent(nextForecast.forecast.odds.win)}</strong> {oddsSentence(nextForecast.forecast.odds)}
-          </p>
-          <OddsBar odds={nextForecast.forecast.odds} />
-          <ul className="reasons">
-            <li>
-              <strong>Player ratings.</strong>{' '}
-              {ratingReason(nextForecast.forecast.rating, team.name, teamName(opponentOf(next, team.id)))}
-            </li>
-            <li>
-              <strong>Common opponents.</strong> {commonReason(nextForecast.forecast.common, team.name)}
-            </li>
-          </ul>
-          <p className="muted small">
-            {nextForecast.planned
-              ? `Using the lineup from your planner: ${(nextForecast.forecast.rating?.team ?? []).map((id) => players.get(id)?.name ?? '?').join(', ')}. `
-              : 'Based on the lineups both teams have used this season. Set answers in the planner to use your real lineup. '}
-            <a href={href('match', pool.pool.id, next.id)}>Try another lineup</a>
-          </p>
+          {odds && nextForecast && (
+            <>
+              <p className="odds-headline">
+                <strong>{percent(odds.win)}</strong> {oddsSentence(odds)}
+              </p>
+              <OddsBar odds={odds} />
+              <details className="why">
+                <summary>Why these chances?</summary>
+                <ul className="reasons">
+                  <li>
+                    <strong>Player ratings.</strong> {ratingReason(nextForecast.forecast.rating, team.name, opponent)}
+                  </li>
+                  <li>
+                    <strong>Common opponents.</strong> {commonReason(nextForecast.forecast.common, team.name)}
+                  </li>
+                </ul>
+                <p className="muted small">
+                  {nextForecast.planned
+                    ? `Using the lineup from your planner: ${(nextForecast.forecast.rating?.team ?? []).map((id) => players.get(id)?.name ?? '?').join(', ')}.`
+                    : 'Based on the lineups both teams have used this season. Mark who can play in the planner to use your real lineup.'}
+                </p>
+              </details>
+            </>
+          )}
+          <a className="button" href={href('match', pool.pool.id, next.id)}>
+            Preview and try lineups
+          </a>
         </section>
       )}
 
       {insights.length > 0 && (
         <section className="card">
           <h2>Insights</h2>
-          <ul className="insights">
-            {insights.map((insight) => (
-              <li key={insight.topic}>
-                <span className="insight-topic">{insight.topic}</span>
-                <span>{insight.text}</span>
-              </li>
-            ))}
-          </ul>
+          <InsightList insights={insights.slice(0, INSIGHTS_SHOWN)} />
+          {insights.length > INSIGHTS_SHOWN && (
+            <details className="more">
+              <summary>
+                {insights.length - INSIGHTS_SHOWN} more insight{insights.length - INSIGHTS_SHOWN === 1 ? '' : 's'}
+              </summary>
+              <InsightList insights={insights.slice(INSIGHTS_SHOWN)} />
+            </details>
+          )}
         </section>
       )}
 
-      {played.length > 0 && (
+      {anyPlayed && (
         <section className="card">
-          <h2>Points race</h2>
+          <h2>Points over the season</h2>
           <p className="muted">League points after each match, compared with the rest of the pool.</p>
           <PointsRace series={race} highlightId={team.id} />
+        </section>
+      )}
+    </>
+  );
+}
+
+function Matches({ pool, team, matches, forecasts }: { pool: PoolData; team: TeamRef; matches: TeamMatch[]; forecasts: Forecasts }) {
+  const teams = teamsById(pool);
+  const teamName = (id: string) => teams.get(id)?.name ?? 'Unknown team';
+  const upcoming = matches.filter((m) => !m.score);
+  const played = matches.filter((m) => m.score).reverse();
+  const opponentLink = (m: TeamMatch) => (
+    <span className="result-vs">
+      vs <a href={href('team', pool.pool.id, opponentOf(m, team.id))}>{teamName(opponentOf(m, team.id))}</a>{' '}
+      <span className="tag">{isHome(m, team.id) ? 'Home' : 'Away'}</span>
+    </span>
+  );
+
+  return (
+    <>
+      {upcoming.length > 0 && (
+        <section className="card">
+          <div className="section-head">
+            <h2>Coming up</h2>
+            <span className="muted">{upcoming.length} left</span>
+          </div>
+          <p className="muted small">Chance to win each match. Tap a match for the preview and to try lineups.</p>
+          <ul className="result-list">
+            {upcoming.map((m) => {
+              const odds = forecasts.get(m.id)?.forecast.odds;
+              return (
+                <li key={m.id} className="result-row">
+                  <div className="result-main">
+                    <span className="result-when">
+                      {matchDay(m.date)} · {matchTime(m.date)}
+                    </span>
+                    {opponentLink(m)}
+                    <span className="result-venue">{m.venue}</span>
+                  </div>
+                  {odds && (
+                    <a className="result-odds" href={href('match', pool.pool.id, m.id)} aria-label={`Preview: ${percent(odds.win)} chance to win`}>
+                      <span className="result-odds-text">{percent(odds.win)} win</span>
+                      <ThinOdds odds={odds} />
+                    </a>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         </section>
       )}
 
@@ -165,10 +277,7 @@ function TeamView({ pool, team }: { pool: PoolData; team: TeamRef }) {
                 <li key={m.id} className="result-row">
                   <div className="result-main">
                     <span className="result-when">{matchDay(m.date)}</span>
-                    <span className="result-vs">
-                      vs <a href={href('team', pool.pool.id, opponentOf(m, team.id))}>{teamName(opponentOf(m, team.id))}</a>{' '}
-                      <span className="tag">{isHome(m, team.id) ? 'Home' : 'Away'}</span>
-                    </span>
+                    {opponentLink(m)}
                   </div>
                   <div className="result-side">
                     <a className="result-score" href={href('match', pool.pool.id, m.id)} aria-label={`Games of the match, ${score?.join(' to ')}`}>
@@ -182,95 +291,87 @@ function TeamView({ pool, team }: { pool: PoolData; team: TeamRef }) {
           </ul>
         )}
       </section>
-
-      <section className="card">
-        <div className="section-head">
-          <h2>Players</h2>
-          <span className="muted">Everyone who played for {team.name} in this pool</span>
-        </div>
-        {lines.length === 0 ? (
-          <p className="muted">No games recorded yet.</p>
-        ) : (
-          <div className="table-scroll">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th scope="col">Player</th>
-                  <th scope="col" className="num">Rating</th>
-                  <th scope="col" className="num">Matches</th>
-                  <th scope="col">Singles</th>
-                  <th scope="col" className="num">Doubles</th>
-                  <th scope="col" className="num">Sets</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lines.map((line) => {
-                  const player = players.get(line.playerId);
-                  const rate = winRate(line.singles);
-                  return (
-                    <tr key={line.playerId}>
-                      <th scope="row">
-                        <a href={href('player', pool.pool.id, line.playerId)}>{player?.name ?? 'Unknown player'}</a>
-                      </th>
-                      <td className="num">{player?.rating ?? '–'}</td>
-                      <td className="num">{line.matches}</td>
-                      <td>
-                        <span className="wl">
-                          <span className="wl-text">
-                            {line.singles.won}–{line.singles.lost} <span className="muted">{percent(rate)}</span>
-                          </span>
-                          <WinMeter rate={rate} label={`Singles for ${player?.name ?? 'player'}`} />
-                        </span>
-                      </td>
-                      <td className="num">
-                        {line.doubles.won}–{line.doubles.lost}
-                      </td>
-                      <td className="num">
-                        {line.sets.won}–{line.sets.lost}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      {upcoming.length > 0 && (
-        <section className="card">
-          <div className="section-head">
-            <h2>Upcoming matches</h2>
-            <span className="muted">{upcoming.length} left</span>
-          </div>
-          <p className="muted">Chance to win each match, assuming both teams field lineups they have used this season.</p>
-          <ul className="result-list">
-            {upcoming.map((m) => {
-              const odds = forecasts.get(m.id)?.forecast.odds;
-              return (
-                <li key={m.id} className="result-row">
-                  <div className="result-main">
-                    <span className="result-when">
-                      {matchDay(m.date)} · {matchTime(m.date)}
-                    </span>
-                    <span className="result-vs">
-                      vs <a href={href('team', pool.pool.id, opponentOf(m, team.id))}>{teamName(opponentOf(m, team.id))}</a>{' '}
-                      <span className="tag">{isHome(m, team.id) ? 'Home' : 'Away'}</span>
-                    </span>
-                    <span className="result-venue">{m.venue}</span>
-                  </div>
-                  {odds && (
-                    <a className="result-odds" href={href('match', pool.pool.id, m.id)} aria-label={`Preview: ${percent(odds.win)} chance to win`}>
-                      <span className="result-odds-text">{percent(odds.win)} win</span>
-                      <ThinOdds odds={odds} />
-                    </a>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      )}
-    </div>
+    </>
   );
+}
+
+function Players({ pool, team }: { pool: PoolData; team: TeamRef }) {
+  const players = playersById(pool);
+  const lines = teamPlayerLines(pool, team.id);
+  return (
+    <section className="card">
+      <div className="section-head">
+        <h2>Players</h2>
+        <span className="muted small">Tap a name for their games and insights</span>
+      </div>
+      {lines.length === 0 ? (
+        <p className="muted">No games recorded yet.</p>
+      ) : (
+        <div className="table-scroll">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th scope="col">Player</th>
+                <th scope="col" className="num">Rating</th>
+                <th scope="col" className="num">Matches</th>
+                <th scope="col">Singles</th>
+                <th scope="col" className="num">Doubles</th>
+                <th scope="col" className="num">Sets</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lines.map((line) => {
+                const player = players.get(line.playerId);
+                const rate = winRate(line.singles);
+                return (
+                  <tr key={line.playerId}>
+                    <th scope="row">
+                      <a href={href('player', pool.pool.id, line.playerId)}>{player?.name ?? 'Unknown player'}</a>
+                    </th>
+                    <td className="num">{player?.rating ?? 'unrated'}</td>
+                    <td className="num">{line.matches}</td>
+                    <td>
+                      <span className="wl">
+                        <span className="wl-text">
+                          {line.singles.won}–{line.singles.lost} <span className="muted">{percent(rate)}</span>
+                        </span>
+                        <WinMeter rate={rate} label={`Singles for ${player?.name ?? 'player'}`} />
+                      </span>
+                    </td>
+                    <td className="num">
+                      {line.doubles.won}–{line.doubles.lost}
+                    </td>
+                    <td className="num">
+                      {line.sets.won}–{line.sets.lost}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function InsightList({ insights }: { insights: Insight[] }) {
+  return (
+    <ul className="insights">
+      {insights.map((insight) => (
+        <li key={insight.topic}>
+          <span className="insight-topic">{insight.topic}</span>
+          <span>{insight.text}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function sortInsights(insights: Insight[]): Insight[] {
+  const rank = (topic: string) => {
+    const i = INSIGHT_ORDER.indexOf(topic);
+    return i === -1 ? INSIGHT_ORDER.length : i;
+  };
+  return [...insights].sort((a, b) => rank(a.topic) - rank(b.topic));
 }

@@ -91,6 +91,22 @@ export function LineupPage({
   const planned = plan.fixtures.filter((f) => f.status === 'planned');
   const played = plan.fixtures.filter((f) => f.status === 'played').reverse();
 
+  const playersPerMatchField = (
+    <label className="field inline">
+      <span>Players per match</span>
+      <select
+        value={state.settings.playersPerMatch}
+        onChange={(e) => dispatch({ type: 'settings', patch: { playersPerMatch: Number(e.target.value) } })}
+      >
+        {[1, 2, 3, 4, 5, 6].map((n) => (
+          <option key={n} value={n}>
+            {n}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+
   async function share(kind: 'link' | 'message') {
     let text: string;
     if (kind === 'link') {
@@ -152,7 +168,7 @@ export function LineupPage({
         <p className={linked === 'failed' ? 'linked-note is-failed' : 'linked-note'}>
           {linked === 'failed'
             ? 'Could not load the latest results. The plan below is the last saved version.'
-            : <>Linked to <a href={href('team', link.poolId, link.teamId)}>{state.teamName || 'your team'}</a> on bordtennisportalen.dk: players, matches and who played fill in from the results. Untick <em>Active</em> for anyone who should not be planned.</>}
+            : <>Linked to <a href={href('team', link.poolId, link.teamId)}>{state.teamName || 'your team'}</a>: players, matches and results update by themselves. Just mark who can play.</>}
         </p>
       )}
 
@@ -181,19 +197,7 @@ export function LineupPage({
       )}
 
       <section className="card settings">
-        <label className="field inline">
-          <span>Players per match</span>
-          <select
-            value={state.settings.playersPerMatch}
-            onChange={(e) => dispatch({ type: 'settings', patch: { playersPerMatch: Number(e.target.value) } })}
-          >
-            {[1, 2, 3, 4, 5, 6].map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
-        </label>
+        {!link && playersPerMatchField}
         <details className="explain">
           <summary>How the plan is made</summary>
           <p>
@@ -206,6 +210,7 @@ export function LineupPage({
             and so do the upcoming matches a player is already picked for. Use <em>Must play</em> or <em>Rest</em> to
             overrule it for one match.
           </p>
+          {link && playersPerMatchField}
         </details>
       </section>
 
@@ -246,28 +251,38 @@ export function LineupPage({
             state={state}
             dispatch={dispatch}
             nameOf={nameOf}
-            startOpen={i < 3}
+            startOpen={i === 0}
           />
         ))}
       </section>
 
       {played.length > 0 && (
-        <section className="card">
-          <div className="section-head">
-            <h2>Played</h2>
-            <span className="muted">
-              {played.length} {played.length === 1 ? 'match' : 'matches'}
-            </span>
-          </div>
+        <details className="card fold">
+          <summary>
+            <h2>Played matches</h2>
+            <span className="muted small">{played.length}</span>
+          </summary>
           <ul className="played-list">
             {played.map((item) => (
               <PlayedMatch key={item.fixture.id} item={item} state={state} dispatch={dispatch} nameOf={nameOf} />
             ))}
           </ul>
-        </section>
+        </details>
       )}
 
-      {state.players.length > 0 && <RosterEditor state={state} dispatch={dispatch} />}
+      {state.players.length > 0 &&
+        (link ? (
+          <details className="card fold">
+            <summary>
+              <h2>Players</h2>
+              <span className="muted small">{state.players.filter((p) => p.active).length} active · edit</span>
+            </summary>
+            <p className="muted small">Untick Active for anyone who should not be planned, for example a reserve.</p>
+            <RosterEditor state={state} dispatch={dispatch} bare />
+          </details>
+        ) : (
+          <RosterEditor state={state} dispatch={dispatch} />
+        ))}
 
       <section className="card">
         <h2>Share and back up</h2>

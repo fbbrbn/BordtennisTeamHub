@@ -16,6 +16,12 @@ describe('clubs', () => {
     expect(clubOf('Politiets IF, København 1', clubs)).toEqual({ name: 'Politiets IF, København', id: '3' });
   });
 
+  it('accepts the bracketed tags of national-league teams', () => {
+    expect(clubOf('Vallensbæk BTK 2 (N)', clubs)).toEqual({ name: 'Vallensbæk BTK', id: '2' });
+    expect(clubOf('B 77 2 (I.O)', clubs)).toEqual({ name: 'B 77', id: '1' });
+    expect(fallbackClubName('CPH - Hvidovre 2 (I.O)')).toBe('CPH - Hvidovre');
+  });
+
   it('needs a team number or nothing after the club name', () => {
     expect(clubOf('BTK Posten, København 4', clubs)).toEqual({ name: 'BTK Posten, København', id: null });
   });

@@ -8,12 +8,15 @@ export interface Club {
   name: string;
 }
 
+/** A team number, optionally followed by a bracketed tag such as "(N)" or "(I.O)" used in the national leagues. */
+const TEAM_SUFFIX = /^(?: \d{1,3})?(?: \([^)]*\))?$/;
+
 export function fallbackClubName(teamName: string): string {
-  const name = teamName.trim().replace(/\s+/g, ' ');
+  const name = teamName.trim().replace(/\s+/g, ' ').replace(/\s*\([^)]*\)$/, '');
   return /^(.*\S)\s+\d{1,3}$/.exec(name)?.[1] ?? name;
 }
 
-/** The official club whose name is the longest prefix of the team name, followed by a team number or nothing. */
+/** The official club whose name is the longest prefix of the team name, followed by a team number, a tag or nothing. */
 export function clubOf(teamName: string, clubs: readonly Club[]): { name: string; id: string | null } {
   const name = teamName.trim().replace(/\s+/g, ' ');
   const lower = name.toLocaleLowerCase('da');
@@ -21,7 +24,7 @@ export function clubOf(teamName: string, clubs: readonly Club[]): { name: string
   for (const club of clubs) {
     const prefix = club.name.toLocaleLowerCase('da');
     const rest = lower.slice(prefix.length);
-    if (lower.startsWith(prefix) && (rest === '' || /^ \d{1,3}$/.test(rest)) && (!best || club.name.length > best.name.length)) {
+    if (lower.startsWith(prefix) && TEAM_SUFFIX.test(rest) && (!best || club.name.length > best.name.length)) {
       best = club;
     }
   }

@@ -12,10 +12,19 @@ It is built for any team. Vallensbæk BTK 3 is the first test team.
 
 **Live site:** https://fbbrbn.github.io/BordtennisPortalen/
 
+- **Follow your team.** Tap ☆ Follow on a team page. Followed teams come first on the start page, with their next
+  match, your chance to win and a button to plan the lineup.
+- **Navigation.**
+  - Three places, one tap away: Home, My team and Lineup. On phones they are in a bar at the bottom.
+  - Inner pages have a Back button.
 - **Find any club or team.** The start page searches every pool of the season: all regions (DT, ØST, VEST, MIDT,
   Bornholm and the DGI regions) and all age groups.
   - Filter by region and age group.
-  - Results are grouped by club.
+  - Results are grouped by club. Without a search, a short club list.
+- **Team pages have three tabs:**
+  - **Overview:** key numbers, the next match and insights.
+  - **Matches:** upcoming matches with chances, then results.
+  - **Players:** the player table.
 - **Club page.** All of a club's teams across pools, with their place in the table.
 - **Team page.**
   - Position, points, record and games won.
