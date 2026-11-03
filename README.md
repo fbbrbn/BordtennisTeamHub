@@ -62,7 +62,7 @@ It is built for any team. Vallensbæk BTK 3 is the first test team.
   - Share the plan as a link or as a short message for the team chat. Download a backup and restore it.
   - Plans are stored in the browser of whoever made them. There are no accounts and no server.
 
-Results are refreshed twice a day by a GitHub Action (see [Data](#data)).
+Results are refreshed by a GitHub Action every morning, at midday and every hour on match evenings (see [Data](#data)).
 
 ### How the chances are estimated
 
@@ -126,7 +126,8 @@ functions with unit tests.
 
 - `scraper/config.json` says what to import. By default that is every pool of the current season, in all regions and
   age groups; single pools or regions can be added.
-- `.github/workflows/data.yml` runs the import twice a day (05:23 and 12:23 UTC):
+- `.github/workflows/data.yml` runs the import at 05:23 and 12:23 UTC, and every hour from 16:23 to 22:23 UTC on match
+  evenings (17:23 to 23:23 Danish time in winter):
   - The list of pools is rediscovered about once a day.
   - A pool whose match list has not changed costs one request.
   - Match details are fetched only for newly played matches.

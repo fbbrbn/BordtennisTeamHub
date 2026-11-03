@@ -56,7 +56,7 @@ export default function App() {
       </main>
       <footer className="footer">
         Unofficial tool, not affiliated with DBTU or bordtennisportalen.dk. Results come from bordtennisportalen.dk and are
-        refreshed twice a day. Lineup plans and followed teams are saved in your browser.
+        refreshed several times a day, hourly on match evenings. Lineup plans and followed teams are saved in your browser.
       </footer>
       <Nav route={route} variant="bottom" />
     </div>

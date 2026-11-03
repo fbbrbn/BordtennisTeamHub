@@ -105,7 +105,7 @@ Commands: `npm test`, `npm run typecheck`, `npm run build`, `npm run dev`.
     national-league tag such as "(N)", "(O)" or "(I.O)".
   - When nothing matches, the tag and the trailing team number are dropped instead.
 - Data lives on the `data` branch, never on `main` (`public/data/` is gitignored):
-  - `data.yml` (05:23 and 12:23 UTC) restores it, imports, force-pushes a single new commit when anything changed, and
+  - `data.yml` (05:23, 12:23 and hourly 16:23 to 22:23 UTC) restores it, imports, force-pushes a single new commit when anything changed, and
     then triggers `site.yml`. Pushes made with the workflow token don't trigger workflows by themselves.
   - `site.yml` copies the branch into `public/data` before building.
   - Locally, run `npm run data:pull`.
