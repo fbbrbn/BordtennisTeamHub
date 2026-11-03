@@ -10,7 +10,7 @@ It is built for any team. Vallensbæk BTK 3 is the first test team.
 
 ## What works today
 
-**Live site:** https://fbbrbn.github.io/BordtennisPortalen/
+**Live site:** https://fbbrbn.github.io/BordtennisTeamHub/
 
 - **Follow your team.** Tap ☆ Follow on a team page. Followed teams come first on the start page, with their next
   match, your chance to win and a button to plan the lineup.

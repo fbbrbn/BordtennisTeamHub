@@ -56,7 +56,9 @@ interface Context {
   ageGroupName: Map<string, string>;
 }
 
-const USER_AGENT = 'BordtennisTeamHub/0.1 (+https://github.com/fbbrbn/BordtennisPortalen)';
+// Contact URL for the portal's logs; in GitHub Actions it follows the repository, even after a rename.
+const REPO_URL = `https://github.com/${process.env.GITHUB_REPOSITORY ?? 'fbbrbn/BordtennisTeamHub'}`;
+const USER_AGENT = `BordtennisTeamHub/0.1 (+${REPO_URL})`;
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const cli = process.argv.slice(2);
 const option = (name: string, fallback: string) => {
