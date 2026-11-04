@@ -63,7 +63,7 @@ function MatchView({ pool, match }: { pool: PoolData; match: TeamMatch }) {
         {match.score && !match.games && <p className="muted">The games of this match are not available yet.</p>}
         {match.games && (
           <div className="table-scroll">
-            <table className="data-table games-table">
+            <table className="data-table games-table wrap-head">
               <thead>
                 <tr>
                   <th scope="col">Game</th>

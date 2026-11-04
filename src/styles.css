@@ -1145,6 +1145,17 @@ textarea {
   white-space: nowrap;
 }
 
+/* Secondary columns: hidden on phones, where the table must fit the screen. */
+.data-table .wide-only {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .data-table .wide-only {
+    display: table-cell;
+  }
+}
+
 .data-table tr.is-highlight th,
 .data-table tr.is-highlight td {
   background: var(--accent-soft);

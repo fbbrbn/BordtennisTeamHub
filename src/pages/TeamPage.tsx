@@ -21,6 +21,7 @@ import {
   winRate,
 } from '../data/stats';
 import { rememberTeam } from '../lib/lastTeam';
+import { count } from '../lib/text';
 import { href } from '../lib/router';
 import { matchDay, matchTime, NotFound, ordinal, OutcomeBadge, PageState, percent, portalUrl, signed, StatTile, WinMeter } from '../components/ui';
 import { plannedLineup } from '../lineup/planned';
@@ -316,15 +317,13 @@ function Players({ pool, team }: { pool: PoolData; team: TeamRef }) {
               <tr>
                 <th scope="col">Player</th>
                 <th scope="col" className="num">Rating</th>
-                {forecasts && (
-                  <th scope="col" className="num">
-                    Forecast
-                  </th>
-                )}
-                <th scope="col" className="num">Matches</th>
                 <th scope="col">Singles</th>
-                <th scope="col" className="num">Doubles</th>
-                <th scope="col" className="num">Sets</th>
+                <th scope="col" className="num wide-only">
+                  Doubles
+                </th>
+                <th scope="col" className="num wide-only">
+                  Sets
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -335,22 +334,16 @@ function Players({ pool, team }: { pool: PoolData; team: TeamRef }) {
                   <tr key={line.playerId}>
                     <th scope="row">
                       <a href={href('player', pool.pool.id, line.playerId)}>{player?.name ?? 'Unknown player'}</a>
+                      <div className="muted small">{count(line.matches, 'match', 'matches')}</div>
                     </th>
-                    <td className="num">{player?.rating ?? 'unrated'}</td>
-                    {forecasts && (
-                      <td className="num">
-                        {player?.forecast && player.rating !== null ? (
-                          <>
-                            {player.forecast.rating} <span className="muted small">{signed(player.forecast.rating - player.rating)}</span>
-                          </>
-                        ) : (
-                          <span className="muted" title="No singles since the official list">
-                            –
-                          </span>
-                        )}
-                      </td>
-                    )}
-                    <td className="num">{line.matches}</td>
+                    <td className="num">
+                      {player?.rating ?? 'unrated'}
+                      {player?.forecast && player.rating !== null && (
+                        <div className="muted small" title="Forecast">
+                          → {player.forecast.rating} ({signed(player.forecast.rating - player.rating)})
+                        </div>
+                      )}
+                    </td>
                     <td>
                       <span className="wl">
                         <span className="wl-text">
@@ -359,10 +352,10 @@ function Players({ pool, team }: { pool: PoolData; team: TeamRef }) {
                         <WinMeter rate={rate} label={`Singles for ${player?.name ?? 'player'}`} />
                       </span>
                     </td>
-                    <td className="num">
+                    <td className="num wide-only">
                       {line.doubles.won}–{line.doubles.lost}
                     </td>
-                    <td className="num">
+                    <td className="num wide-only">
                       {line.sets.won}–{line.sets.lost}
                     </td>
                   </tr>
@@ -374,7 +367,7 @@ function Players({ pool, team }: { pool: PoolData; team: TeamRef }) {
       )}
       {forecasts && status && (
         <p className="muted small">
-          Forecast: the rating once the singles played since the official {listNote(status)} are rated.
+          → Forecast: the rating once the singles played since the official {listNote(status)} are rated.
         </p>
       )}
     </section>

@@ -7,7 +7,7 @@ import type { Player, PoolData } from '../data/model';
 import { playerGames, playersById, summarize, teamsById, winRate } from '../data/stats';
 import { href } from '../lib/router';
 import { RatingForecastCard } from '../components/RatingForecast';
-import { matchDay, NotFound, OutcomeBadge, PageState, percent, signed, StatTile } from '../components/ui';
+import { matchDay, NotFound, OutcomeBadge, PageState, percent, shortDay, signed, StatTile } from '../components/ui';
 
 export function PlayerPage({ poolId, playerId }: { poolId: string; playerId: string }) {
   const loaded = useLoaded(() => loadPool(poolId), poolId);
@@ -122,8 +122,7 @@ function PlayerView({ pool, player }: { pool: PoolData; player: Player }) {
                 {[...records].reverse().map((r) => (
                   <tr key={`${r.match.id}-${r.game.label}`}>
                     <td>
-                      <a href={href('match', pool.pool.id, r.match.id)}>{matchDay(r.match.date)}</a>
-                      <div className="muted small">{teams.get(r.opponentTeamId)?.name}</div>
+                      <a href={href('match', pool.pool.id, r.match.id)}>{shortDay(r.match.date)}</a>
                     </td>
                     <td>
                       {r.opponents.map((id, i) => (
@@ -132,6 +131,7 @@ function PlayerView({ pool, player }: { pool: PoolData; player: Player }) {
                           <a href={href('player', pool.pool.id, id)}>{nameOf(id)}</a>
                         </span>
                       ))}
+                      <div className="muted small">{teams.get(r.opponentTeamId)?.name}</div>
                       {r.game.kind === 'double' && (
                         <div className="muted small">
                           Doubles{r.partners.length > 0 && <> with {r.partners.map(nameOf).join(' & ')}</>}
@@ -139,10 +139,9 @@ function PlayerView({ pool, player }: { pool: PoolData; player: Player }) {
                       )}
                     </td>
                     <td className="num">
-                      {r.opponents
-                        .map((id) => players.get(id)?.rating)
-                        .map((v) => v ?? '–')
-                        .join(' / ')}
+                      {r.opponents.map((id) => (
+                        <div key={id}>{players.get(id)?.rating ?? '–'}</div>
+                      ))}
                     </td>
                     <td className="num">
                       {r.setsFor}–{r.setsAgainst}

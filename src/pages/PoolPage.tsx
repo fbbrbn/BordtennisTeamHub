@@ -4,7 +4,7 @@ import { loadPool, useLoaded } from '../data/load';
 import type { PoolData, TeamMatch } from '../data/model';
 import { playerGames, summarize, teamsById, winRate } from '../data/stats';
 import { href } from '../lib/router';
-import { matchDay, matchTime, PageState, percent, portalUrl } from '../components/ui';
+import { matchDay, matchTime, ordinal, PageState, percent, portalUrl } from '../components/ui';
 
 export function PoolPage({ poolId }: { poolId: string }) {
   const loaded = useLoaded(() => loadPool(poolId), poolId);
@@ -20,6 +20,10 @@ function PoolView({ pool }: { pool: PoolData }) {
   const upcoming = pool.matches.filter((m) => !m.score);
   const shownPlayed = showAll ? played : played.slice(0, 10);
   const projection = useMemo(() => new Map(projectTable(pool, fitScale(pool)).map((p) => [p.teamId, p])), [pool]);
+  const rankOf = (teamId: string) => {
+    const rank = projection.get(teamId)?.rank;
+    return rank ? ordinal(rank) : '–';
+  };
   const hasRemaining = upcoming.length > 0;
 
   const playerRows = pool.players
@@ -76,14 +80,20 @@ function PoolView({ pool }: { pool: PoolData }) {
                 <th scope="col" className="num">#</th>
                 <th scope="col">Team</th>
                 <th scope="col" className="num" title="Matches">M</th>
-                <th scope="col" className="num" title="Won">W</th>
-                <th scope="col" className="num" title="Drawn">D</th>
-                <th scope="col" className="num" title="Lost">L</th>
+                <th scope="col" className="num wide-only" title="Won">
+                  W
+                </th>
+                <th scope="col" className="num wide-only" title="Drawn">
+                  D
+                </th>
+                <th scope="col" className="num wide-only" title="Lost">
+                  L
+                </th>
                 <th scope="col" className="num">Games</th>
                 <th scope="col" className="num">Points</th>
                 {hasRemaining && (
-                  <th scope="col" className="num" title="Expected final points">
-                    Projected
+                  <th scope="col" className="num" title="Projected final points">
+                    Proj.
                   </th>
                 )}
               </tr>
@@ -96,9 +106,9 @@ function PoolView({ pool }: { pool: PoolData }) {
                     <a href={href('team', pool.pool.id, s.teamId)}>{teamName(s.teamId)}</a>
                   </th>
                   <td className="num">{s.played}</td>
-                  <td className="num">{s.won}</td>
-                  <td className="num">{s.drawn}</td>
-                  <td className="num">{s.lost}</td>
+                  <td className="num wide-only">{s.won}</td>
+                  <td className="num wide-only">{s.drawn}</td>
+                  <td className="num wide-only">{s.lost}</td>
                   <td className="num">
                     {s.gamesFor}–{s.gamesAgainst}
                   </td>
@@ -106,7 +116,7 @@ function PoolView({ pool }: { pool: PoolData }) {
                   {hasRemaining && (
                     <td className="num">
                       {Math.round(projection.get(s.teamId)?.projected ?? s.points)}
-                      <span className="muted small"> ({projection.get(s.teamId)?.rank ?? '–'})</span>
+                      <div className="muted small">{rankOf(s.teamId)}</div>
                     </td>
                   )}
                 </tr>
@@ -116,7 +126,7 @@ function PoolView({ pool }: { pool: PoolData }) {
         </div>
         {hasRemaining && (
           <p className="muted small">
-            Projected: expected final points, with the projected position in brackets. It adds up the win and draw chances of
+            Proj.: projected final points, with the projected position under them. It adds up the win and draw chances of
             every remaining match, assuming each team fields lineups it has used this season.
           </p>
         )}
@@ -154,7 +164,6 @@ function PoolView({ pool }: { pool: PoolData }) {
             <thead>
               <tr>
                 <th scope="col">Player</th>
-                <th scope="col">Team</th>
                 <th scope="col" className="num">Rating</th>
                 <th scope="col" className="num">Singles</th>
                 <th scope="col" className="num">Won</th>
@@ -165,8 +174,8 @@ function PoolView({ pool }: { pool: PoolData }) {
                 <tr key={player.id}>
                   <th scope="row">
                     <a href={href('player', pool.pool.id, player.id)}>{player.name}</a>
+                    {player.teamId && <div className="muted small">{teamName(player.teamId)}</div>}
                   </th>
-                  <td>{player.teamId ? teamName(player.teamId) : '–'}</td>
                   <td className="num">{player.rating ?? '–'}</td>
                   <td className="num">
                     {line.singles.won}–{line.singles.lost}
