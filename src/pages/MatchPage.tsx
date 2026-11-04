@@ -1,8 +1,10 @@
+import { listNote, RatingRules } from '../components/RatingForecast';
 import { loadPool, useLoaded } from '../data/load';
 import type { PoolData, TeamMatch } from '../data/model';
+import { matchRatingPoints } from '../data/ratings';
 import { playersById, teamsById } from '../data/stats';
 import { href } from '../lib/router';
-import { matchDayLong, matchTime, NotFound, PageState, portalUrl } from '../components/ui';
+import { matchDayLong, matchTime, NotFound, PageState, portalUrl, signed } from '../components/ui';
 import { MatchPreview } from './MatchPreview';
 
 export function MatchPage({ poolId, matchId }: { poolId: string; matchId: string }) {
@@ -18,6 +20,7 @@ function MatchView({ pool, match }: { pool: PoolData; match: TeamMatch }) {
   const players = playersById(pool);
   const home = teams.get(match.homeTeamId);
   const away = teams.get(match.awayTeamId);
+  const ratingLines = matchRatingPoints(pool, match);
   const names = (ids: string[]) =>
     ids.length === 0 ? (
       <span className="muted">No player</span>
@@ -94,6 +97,44 @@ function MatchView({ pool, match }: { pool: PoolData; match: TeamMatch }) {
           </div>
         )}
       </section>
+      )}
+
+      {pool.pool.ratings && ratingLines.length > 0 && (
+        <section className="card">
+          <h2>Rating points</h2>
+          <p className="muted">
+            Estimated: this match is not in the official ratings yet ({listNote(pool.pool.ratings)}). Before is the rating
+            going into the match, after any earlier games the list does not include.
+          </p>
+          <div className="table-scroll">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th scope="col">Player</th>
+                  <th scope="col" className="num">
+                    Before
+                  </th>
+                  <th scope="col" className="num">
+                    Points
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {ratingLines.map((line) => (
+                  <tr key={line.playerId}>
+                    <th scope="row">
+                      <a href={href('player', pool.pool.id, line.playerId)}>{players.get(line.playerId)?.name ?? 'Unknown player'}</a>
+                      <div className="muted small">{(line.side === 'home' ? home : away)?.name}</div>
+                    </th>
+                    <td className="num">{line.before}</td>
+                    <td className="num strong">{signed(line.points)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <RatingRules />
+        </section>
       )}
     </div>
   );

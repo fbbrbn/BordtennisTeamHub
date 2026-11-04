@@ -11,13 +11,16 @@
  * - A pool whose match list has not changed costs one request: everything else is reused.
  * - Played-match details are fetched once and reused while the result is unchanged.
  * - After `maxMinutes` no new pools are started; the next run continues from there.
+ * - When a new official rating list is out, each pool's player ratings are read again (one
+ *   request per pool), and the games the list does not include yet get a rating forecast.
  * - Files are rewritten only when their content changes.
  */
 import { mkdir, readdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { clubOf, clubSlug, type Club } from '../src/data/clubs.ts';
-import type { ClubRef, DataIndex, NamedId, PoolData, PoolRef, Player, TeamMatch, TeamRef } from '../src/data/model.ts';
+import type { ClubRef, DataIndex, NamedId, PoolData, PoolRef, Player, RatingStatus, TeamMatch, TeamRef } from '../src/data/model.ts';
+import { forecastRatings, ratingPoints, type RatingForecast } from '../src/data/ratings.ts';
 import {
   parseClubList,
   parseDropdowns,
@@ -25,6 +28,7 @@ import {
   parseMatchDetails,
   parseMatchList,
   parsePlayerStats,
+  parseRatingLinks,
   parseRegionPools,
   parseStandings,
   seasonName,
@@ -32,6 +36,7 @@ import {
   type PoolLink,
 } from './parse.ts';
 import { PortalClient } from './portal.ts';
+import { findRatedThrough, latestRatingList, ratingPointsOf, type RatingLink } from './ratinglist.ts';
 
 interface ImportConfig {
   delayMs?: number;
@@ -55,6 +60,9 @@ interface Context {
   regionName: Map<string, string>;
   ageGroupName: Map<string, string>;
 }
+
+type RatingList = Awaited<ReturnType<typeof latestRatingList>>;
+type IndexRatings = NonNullable<DataIndex['ratings']>;
 
 // Contact URL for the portal's logs; in GitHub Actions it follows the repository, even after a rename.
 const REPO_URL = `https://github.com/${process.env.GITHUB_REPOSITORY ?? 'fbbrbn/BordtennisTeamHub'}`;
@@ -135,38 +143,87 @@ async function main() {
     }
   }
 
-  const refs: PoolRef[] = [];
+  // The official rating list. When a new version is out, every pool's ratings are read again.
+  const ratingSeason = season?.id ?? lists.currentSeason;
+  let ratingList: RatingList | null = null;
+  try {
+    if (ratingSeason) ratingList = await latestRatingList(client, ratingSeason);
+  } catch (error) {
+    console.warn(`Rating list unavailable (${message(error)}); keeping the last known one.`);
+  }
+
   const counts = { updated: 0, unchanged: 0, failed: 0, deferred: 0 };
   const ordered = [...targets.values()].sort(
     (a, b) => a.regionId.localeCompare(b.regionId) || a.ageGroupId.localeCompare(b.ageGroupId) || a.groupId.localeCompare(b.groupId),
   );
 
-  for (const target of ordered) {
+  // Pools are written at the end, once the rating forecasts (which span pools) are known.
+  const imported: { file: string; previous: PoolData | null; data: PoolData }[] = [];
+  /** Failed or deferred pools: their previous file stays as it is. */
+  const kept: PoolData[] = [];
+  const links = new Map<string, RatingLink>();
+  /** Official ratings from the player stats read in this run. */
+  const freshRatings = new Map<string, number>();
+  for (const [i, target] of ordered.entries()) {
+    if (i > 0 && i % 25 === 0) console.log(`  ${i}/${ordered.length} pools read (${Math.round(minutes())} min)`);
     const file = join(poolsDir, `${target.groupId}.json`);
     const previous = await readJson<PoolData>(file);
     if (config.maxMinutes && minutes() > config.maxMinutes) {
       counts.deferred++;
-      if (previous) refs.push(toRef(previous));
+      if (previous) kept.push(previous);
       continue;
     }
     try {
-      const data = await importPool(client, target, previous, ctx);
-      if (stableJson(previous) !== stableJson(data)) {
-        data.pool.updatedAt = now;
-        await writeJson(file, data);
-        counts.updated++;
-        const played = data.matches.filter((m) => m.score).length;
-        console.log(`Updated ${target.groupId} ${data.pool.league} · ${data.pool.name}: ${played}/${data.matches.length} played`);
-      } else {
-        if (previous) data.pool.updatedAt = previous.pool.updatedAt;
-        counts.unchanged++;
-      }
-      refs.push(toRef(data));
+      const refreshRatings =
+        !!ratingList && target.seasonId === ratingList.seasonId && previous?.pool.ratings?.listDate !== ratingList.listDate;
+      const result = await importPool(client, target, previous, ctx, refreshRatings);
+      for (const [id, link] of result.links) links.set(id, link);
+      for (const s of result.stats ?? []) if (s.rating !== null && target.seasonId === ratingSeason) freshRatings.set(s.id, s.rating);
+      imported.push({ file, previous, data: result.data });
     } catch (error) {
       counts.failed++;
       console.error(`Pool ${target.groupId}: import failed: ${message(error)}`);
-      if (previous) refs.push(toRef(previous));
+      if (previous) kept.push(previous);
     }
+  }
+
+  // A pool's player stats leave out some of the players who played in it (lent by another team, say).
+  // They get their official rating from another pool of the season; ratings read in this run come first.
+  const all = [...kept, ...imported.map((i) => i.data)];
+  const official = new Map(freshRatings);
+  for (const pool of [...imported.map((i) => i.data), ...kept]) {
+    if (pool.pool.seasonId !== ratingSeason) continue;
+    for (const p of pool.players) if (p.rating !== null && !official.has(p.id)) official.set(p.id, p.rating);
+  }
+  for (const { data } of imported) {
+    if (data.pool.seasonId !== ratingSeason) continue;
+    for (const p of data.players) p.rating = official.get(p.id) ?? p.rating;
+  }
+
+  // Rating forecasts: kept pools first, so ratings read in this run win for players in several pools.
+  const ratings = await ratingStatus(client, ratingList, previousIndex?.ratings, all, links);
+  const inSeason = (data: PoolData) => !!ratings && data.pool.seasonId === ratings.seasonId;
+  const forecasts = ratings ? forecastRatings(all.filter(inSeason), ratings.ratedThrough) : new Map<string, RatingForecast>();
+  if (ratings) {
+    // Every game counts for both players.
+    const games = [...forecasts.values()].reduce((sum, f) => sum + f.games.length, 0) / 2;
+    console.log(`Rating forecasts: ${forecasts.size} players, ${games} singles played after ${ratings.ratedThrough}.`);
+  }
+
+  const refs: PoolRef[] = kept.map(toRef);
+  for (const { file, previous, data } of imported) {
+    applyForecasts(data, inSeason(data) ? ratings : null, forecasts);
+    if (stableJson(previous) !== stableJson(data)) {
+      data.pool.updatedAt = now;
+      await writeJson(file, data);
+      counts.updated++;
+      const played = data.matches.filter((m) => m.score).length;
+      console.log(`Updated ${data.pool.id} ${data.pool.league} · ${data.pool.name}: ${played}/${data.matches.length} played`);
+    } else {
+      if (previous) data.pool.updatedAt = previous.pool.updatedAt;
+      counts.unchanged++;
+    }
+    refs.push(toRef(data));
   }
 
   // Pools no longer in scope: forget them, but only after a complete discovery.
@@ -205,6 +262,7 @@ async function main() {
     regions: used(refs.map((r) => r.regionId), ctx.regionName),
     ageGroups: used(refs.map((r) => r.ageGroupId), ctx.ageGroupName),
     clubs: [...clubs.values()].sort((a, b) => a.name.localeCompare(b.name, 'da')),
+    ...(ratings ? { ratings } : {}),
     pools: refs,
   };
   if (stableIndex(previousIndex) !== stableIndex(index)) {
@@ -220,19 +278,35 @@ async function main() {
   if (counts.failed > 0 && counts.failed === targets.size) process.exit(1);
 }
 
-async function importPool(client: PortalClient, target: PoolLink, previous: PoolData | null, ctx: Context): Promise<PoolData> {
+/**
+ * One pool's data. `refreshRatings` reads the players' official ratings again even when nothing
+ * else changed. Returns the player stats and their rating links whenever they were read.
+ */
+async function importPool(
+  client: PortalClient,
+  target: PoolLink,
+  previous: PoolData | null,
+  ctx: Context,
+  refreshRatings: boolean,
+): Promise<{ data: PoolData; links: Map<string, RatingLink>; stats: Player[] | null }> {
   const query = { seasonId: target.seasonId, groupId: target.groupId, ageGroupId: target.ageGroupId, regionId: target.regionId };
   const { matches, teams: matchTeams } = parseMatchList(await client.standing({ subPage: 4, ...query }));
 
   // Nothing new in the match list, and every played match has its games: reuse the previous file.
   if (previous && sameSchedule(previous.matches, matches) && previous.matches.every((m) => !m.score || m.games)) {
-    return describe(structuredClone(previous), target, ctx);
+    const data = describe(structuredClone(previous), target, ctx);
+    if (!refreshRatings) return { data, links: new Map(), stats: null };
+    const statsHtml = await client.standing({ subPage: 7, ...query });
+    const stats = parsePlayerStats(statsHtml);
+    data.players = withRatings(data.players, stats);
+    return { data, links: parseRatingLinks(statsHtml), stats };
   }
 
   const standingsHtml = await client.standing({ subPage: 2, ...query });
   const headings = parseHeadings(standingsHtml);
   const { standings, teams: standingTeams } = parseStandings(standingsHtml);
-  const stats = parsePlayerStats(await client.standing({ subPage: 7, ...query }));
+  const statsHtml = await client.standing({ subPage: 7, ...query });
+  const stats = parsePlayerStats(statsHtml);
   if (matches.length === 0 && standings.length === 0) throw new Error('no matches or standings found');
 
   const names = new Map<string, string>((previous?.players ?? []).map((p) => [p.id, p.name]));
@@ -269,7 +343,7 @@ async function importPool(client: PortalClient, target: PoolLink, previous: Pool
     if (!players.has(id)) players.set(id, { id, name: names.get(id) ?? 'Unknown player', teamId, rating: null });
   }
 
-  return describe(
+  const data = describe(
     {
       version: 1,
       pool: {
@@ -285,11 +359,94 @@ async function importPool(client: PortalClient, target: PoolLink, previous: Pool
       teams: mergeTeams(standingTeams, matchTeams),
       standings,
       matches,
-      players: [...players.values()].sort((a, b) => a.name.localeCompare(b.name, 'da') || a.id.localeCompare(b.id)),
+      players: [...players.values()].sort(byName),
     },
     target,
     ctx,
   );
+  return { data, links: parseRatingLinks(statsHtml), stats };
+}
+
+function byName(a: Player, b: Player): number {
+  return a.name.localeCompare(b.name, 'da') || a.id.localeCompare(b.id);
+}
+
+/** Takes the official ratings from fresh player stats; everyone else stays as they were. */
+function withRatings(players: Player[], stats: Player[]): Player[] {
+  const byId = new Map(players.map((p) => [p.id, p]));
+  for (const s of stats) {
+    const player = byId.get(s.id);
+    if (player) player.rating = s.rating;
+    else byId.set(s.id, s);
+  }
+  return [...byId.values()].sort(byName);
+}
+
+/**
+ * Which games the official ratings include: reused while the list is the same, otherwise
+ * found from a few players' rating pages. Null when unknown, and then there are no forecasts.
+ */
+async function ratingStatus(
+  client: PortalClient,
+  list: RatingList | null,
+  previous: IndexRatings | undefined,
+  pools: PoolData[],
+  links: Map<string, RatingLink>,
+): Promise<IndexRatings | null> {
+  if (!list) return previous ?? null;
+  if (previous && previous.listId === list.listId && previous.seasonId === list.seasonId && previous.listDate === list.listDate) {
+    return previous;
+  }
+  const season = pools.filter((p) => p.pool.seasonId === list.seasonId);
+  const read = new Set<string>();
+  const probe = async (playerId: string) => {
+    // Players seen only in pools whose stats were not read in this run: read those stats now.
+    const pool = links.has(playerId) ? undefined : season.find((p) => !read.has(p.pool.id) && p.players.some((x) => x.id === playerId));
+    if (pool) {
+      read.add(pool.pool.id);
+      const { seasonId, id: groupId, ageGroupId, regionId } = pool.pool;
+      for (const [id, link] of parseRatingLinks(await client.standing({ subPage: 7, seasonId, groupId, ageGroupId, regionId }))) {
+        links.set(id, link);
+      }
+    }
+    const link = links.get(playerId);
+    return link ? ratingPointsOf(client, playerId, link) : null;
+  };
+  try {
+    const found = await findRatedThrough(season, list.listDate, probe);
+    if (!found) throw new Error('no player could be looked up');
+    // Checks for the log: the pages' totals against the official ratings, and the points table.
+    const official = new Map(season.flatMap((p) => p.players.flatMap((x) => (x.rating === null ? [] : [[x.id, x.rating] as const]))));
+    let agree = 0;
+    let games = 0;
+    let matched = 0;
+    for (const { playerId, points } of found.probes) {
+      if ((points.start?.rating ?? 0) + points.games.reduce((sum, g) => sum + g.points, 0) === official.get(playerId)) agree++;
+      for (const g of points.games) {
+        games++;
+        if (ratingPoints(g.own, g.opp, g.points > 0) === g.points) matched++;
+      }
+    }
+    console.log(
+      `Rating list of ${list.listDate} includes games up to ${found.ratedThrough}. Checked ${found.probes.length} players: ` +
+        `${agree} totals agree with their official rating, and the points table matches ${matched} of ${games} rated games.`,
+    );
+    return { ...list, ratedThrough: found.ratedThrough };
+  } catch (error) {
+    console.warn(`Could not tell which games the rating list of ${list.listDate} includes (${message(error)}); no rating forecasts.`);
+    return null;
+  }
+}
+
+/** Sets which games the official ratings include, and each player's forecast. */
+function applyForecasts(data: PoolData, status: RatingStatus | null, forecasts: Map<string, RatingForecast>): void {
+  if (status) data.pool.ratings = { listDate: status.listDate, ratedThrough: status.ratedThrough };
+  else delete data.pool.ratings;
+  for (const player of data.players) {
+    const forecast = status && player.rating !== null ? forecasts.get(player.id) : undefined;
+    if (forecast) player.forecast = { rating: forecast.rating, games: forecast.games };
+    else delete player.forecast;
+  }
 }
 
 /** Adds region and age-group names and each team's club; needs no requests. */
@@ -305,8 +462,9 @@ function describe(data: PoolData, target: PoolLink, ctx: Context): PoolData {
 
 function toRef(data: PoolData): PoolRef {
   const standing = new Map(data.standings.map((s) => [s.teamId, s]));
+  const { ratings: _ratings, ...pool } = data.pool; // the index has them once, for all pools
   return {
-    ...data.pool,
+    ...pool,
     teams: data.teams.map((t) => ({
       ...t,
       position: standing.get(t.id)?.position ?? null,

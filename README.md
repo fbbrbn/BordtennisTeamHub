@@ -37,15 +37,17 @@ It is built for any team. Vallensbæk BTK 3 is the first test team.
     - what the strongest lineup would change.
   - A points race against the rest of the pool, with a table view.
   - All results, plus every upcoming match with its chance to win.
-  - Every player who played for the team: rating, matches, singles with win rate, doubles and sets.
+  - Every player who played for the team: rating, rating forecast, matches, singles with win rate, doubles and sets.
 - **Match preview** (for upcoming matches).
   - Chances from either team's side.
   - A lineup picker for both teams that updates the chances immediately.
   - Every one of your players against their regular lineup.
   - Results against common opponents.
-- **Match page.** All games of a played team match, with players and sets.
+- **Match page.** All games of a played team match, with players and sets. Until the official rating list includes
+  the match, it also shows each player's estimated rating points.
 - **Player page.**
   - Rating and singles, doubles and sets records.
+  - **Rating forecast:** the rating once the singles played since the official list are rated, game by game.
   - Insights: wins compared with the ratings, fifth sets, best win, upset losses and doubles partners.
   - Singles results placed by opponent rating.
   - The full game list.
@@ -91,6 +93,31 @@ Checked against all 1,307 played matches of the season so far, using the actual 
 
 These checks are in-sample, so real accuracy is a bit lower. The site always labels the chances as estimates.
 
+### How the rating forecast works
+
+The official rating list is published about every two weeks, and each version only includes games up to a few days
+before it came out, so a result can take up to three weeks to show. The forecast rates those games straight away:
+
+- Every singles game moves both players by a fixed number of points, from the rating gap and who won:
+
+  | Rating gap | Higher rated wins | Higher rated loses | Lower rated wins | Lower rated loses |
+  | ---------- | ----------------: | -----------------: | ---------------: | ----------------: |
+  | 0–24       |                +7 |                 −5 |               +7 |                −5 |
+  | 25–49      |                +6 |                −10 |              +12 |                −4 |
+  | 50–74      |                +5 |                −14 |              +16 |                −3 |
+  | 75–99      |                +4 |                −17 |              +19 |                −3 |
+  | 100–199    |                +3 |                −20 |              +22 |                −3 |
+  | 200–299    |                +2 |                −18 |              +22 |                −2 |
+  | 300+       |                +1 |                −15 |              +22 |                −1 |
+
+- All games of a match day use the ratings from before that day.
+- Doubles and walkovers are not rated.
+
+The table and the rules were read from the portal's "Opnåede point" pages and reproduce every one of more than 200
+rated games checked. Which games a list includes is not published either: the import finds the last included match day
+from a few players' rating pages. Tournament games and games against unrated players are not in the forecast, so the
+official rating can differ a little.
+
 ## What's next
 
 1. **Rating history.** Use the portal's ranking-list service to show each player's rating over time.
@@ -131,6 +158,8 @@ functions with unit tests.
   - The list of pools is rediscovered about once a day.
   - A pool whose match list has not changed costs one request.
   - Match details are fetched only for newly played matches.
+  - When a new official rating list is out, each pool's ratings are read again (one request per pool), and a few
+    players' rating pages show which games the list includes.
   - Requests are spaced 800 ms apart.
   - A run stops starting new pools after 5 hours, and the next run continues from there.
 - The data is published to the `data` branch as a single commit, so the repository does not grow with every update.

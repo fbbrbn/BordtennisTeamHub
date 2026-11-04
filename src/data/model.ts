@@ -15,6 +15,8 @@ export interface DataIndex {
   regions?: NamedId[];
   ageGroups?: NamedId[];
   clubs?: ClubRef[];
+  /** The official rating list the forecasts start from. */
+  ratings?: RatingStatus & { listId: string; seasonId: string };
   pools: PoolRef[];
 }
 
@@ -45,6 +47,8 @@ export interface PoolInfo {
   name: string;
   regionName?: string;
   ageGroupName?: string;
+  /** Which games the players' official ratings include; forecasts start after it. */
+  ratings?: RatingStatus;
   updatedAt: string;
 }
 
@@ -125,5 +129,32 @@ export interface Player {
   name: string;
   /** Team the player plays for in this pool, when known. */
   teamId: string | null;
+  /** Official rating from the latest rating list. */
   rating: number | null;
+  /** Estimated rating once the games played since that list are rated (see src/data/ratings.ts). */
+  forecast?: { rating: number; games: PendingRatingGame[] };
+}
+
+/** A singles game not yet in the official rating, with its estimated rating points. */
+export interface PendingRatingGame {
+  /** Pool of the match: usually this one, but players sometimes play in several. */
+  poolId: string;
+  matchId: string;
+  /** YYYY-MM-DD */
+  date: string;
+  opponentId: string;
+  opponentName: string;
+  /** Ratings used for the game: both players' ratings before that match day. */
+  own: number;
+  opp: number;
+  won: boolean;
+  points: number;
+}
+
+/** Which games the official ratings include. */
+export interface RatingStatus {
+  /** Date of the latest official rating list (YYYY-MM-DD). */
+  listDate: string;
+  /** Games up to this date (YYYY-MM-DD) are in the official ratings. */
+  ratedThrough: string;
 }

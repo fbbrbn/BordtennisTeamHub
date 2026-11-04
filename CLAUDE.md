@@ -26,6 +26,8 @@ names, ids or pools in code.
     - Averaging over the lineups each team has fielded (`ratingSummary`).
     - `projectTable` for projected final points.
   - `insights.ts`: plain-language team and player insights built on the above.
+  - `ratings.ts`: the official rating-points table and `forecastRatings`, which replays the games the official list
+    does not include yet. The importer runs it over all pools at once, because players appear in several.
   - Unrated players get the pool median inside the model, but the UI must show them as "unrated".
 - `src/pages/MatchPreview.tsx`: the upcoming-match page.
   - Chances from either side, a lineup picker and a matchup heat table.
@@ -84,6 +86,19 @@ Commands: `npm test`, `npm run typecheck`, `npm run build`, `npm run dev`.
 - Team match format in senior series: 1 doubles plus 9 singles (A1/B1 ...). Results are games won ("3-7"). Points are 2 for a win and 1 for a draw.
 - Player ids come from links `.../DBTU/Spiller/VisSpiller/#<id>`.
 - Privacy: the pages also show player numbers like `ddmmyy-XXXX`, which encode birth dates, and team contact names, emails and phone numbers. Never store either. `scraper/parse.test.ts` checks this.
+- Official ratings (`scraper/ratinglist.ts`), through other methods of the same service. Each page has its own
+  `SR_CallbackContext`:
+  - `/DBTU/Ranglister/` has `DefaultRankingListID` (59). `GetRankingListVersions` with `rankinglistagegroupid: ''`,
+    `rankinglistid` and `seasonid` lists the list's versions as `MM/DD/YYYY`, about every two weeks.
+  - `GetPlayerRankingListPoints`, in the context of `/DBTU/Spiller/VisSpiller/`, takes `seasonid`, `playerid`,
+    `rankinglistid`, `rankinglistplayerid` and `getplayerdata: false`. The ids come from the rating links in subPage 7:
+    `VisSpiller/#<player>,<list>,<listPlayer>,<season>`.
+  - Read only its `Html`: the response also has the player number. The table lists the season's start rating, then
+    every rated game (date carried down, team games as "Serie 4 #<matchId>", own and opponent rating, points).
+  - Rules, checked against every game on those pages: a fixed points table by rating gap; all games of a match day
+    use the ratings from before that day; doubles and walkovers are not rated; it is not zero-sum.
+  - Each version only includes games up to an unpublished cutoff: the list of 23 Oct 2026 included games up to 19 Oct,
+    but not 20 Oct.
 
 ## Data pipeline
 
@@ -109,6 +124,12 @@ Commands: `npm test`, `npm run typecheck`, `npm run build`, `npm run dev`.
     then triggers `site.yml`. Pushes made with the workflow token don't trigger workflows by themselves.
   - `site.yml` copies the branch into `public/data` before building.
   - Locally, run `npm run data:pull`.
+- Rating forecasts:
+  - Each run reads the latest list version (2 requests). A new version means each pool's subPage 7 is read again,
+    then `findRatedThrough` binary-searches the cutoff over the season's match days using a few players' rating pages.
+  - Pools are written at the end, after `forecastRatings`: `pool.ratings` says which list and cutoff, and
+    `player.forecast` has the estimated rating and the pending games. The index has `ratings` once.
+  - When the cutoff cannot be found there are no forecasts; the next run tries again.
 - Formats differ between pools. `matchFormat(pool)` in `forecast.ts` reads each pool's format from its played matches;
   never assume 3 players or 10 games. In 2026/27:
   - 3 v 3 with 9 singles and 1 doubles: 89 pools.

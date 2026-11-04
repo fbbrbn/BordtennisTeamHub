@@ -86,6 +86,49 @@ export class PortalClient {
     }
   }
 
+  /** Context keys of other portal pages (each page has its own), with the page HTML. */
+  private readonly pages = new Map<string, { key: string; html: string }>();
+
+  /** Loads a portal page (e.g. `/DBTU/Ranglister/`) once and keeps its HTML and service context key. */
+  async pageContext(path: string): Promise<{ key: string; html: string }> {
+    const cached = this.pages.get(path);
+    if (cached) return cached;
+    const response = await this.request(BASE + path, { method: 'GET' });
+    if (!response.ok) throw new Error(`${path} answered HTTP ${response.status}`);
+    const html = await response.text();
+    const key = /SR_CallbackContext\s*=\s*'([^']+)'/.exec(html)?.[1];
+    if (!key) throw new Error(`Could not find SR_CallbackContext on ${path}`);
+    const entry = { key, html };
+    this.pages.set(path, entry);
+    return entry;
+  }
+
+  /** Calls another method of the same service, in the context of the page that uses it. Returns `d`. */
+  async service(method: string, body: Record<string, unknown>, page: string): Promise<unknown> {
+    for (let attempt = 1; ; attempt++) {
+      try {
+        const { key } = await this.pageContext(page);
+        const response = await this.request(`${BASE}/SportsResults/Components/WebService1.asmx/${method}`, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json; charset=utf-8',
+            'x-requested-with': 'XMLHttpRequest',
+            referer: BASE + page,
+          },
+          body: JSON.stringify({ callbackcontextkey: key, ...body }),
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const json = (await response.json()) as { d?: unknown };
+        if (json.d === undefined) throw new Error('Unexpected response shape');
+        return json.d;
+      } catch (error) {
+        if (attempt >= 3) throw error;
+        await wait(3000 * attempt);
+        this.pages.delete(page);
+      }
+    }
+  }
+
   private async request(url: string, init: RequestInit): Promise<Response> {
     const due = this.lastRequest + this.options.delayMs - Date.now();
     if (due > 0) await wait(due);

@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { PointsRace } from '../charts/PointsRace';
 import { FollowButton } from '../components/FollowButton';
 import { OddsBar, oddsSentence, ThinOdds } from '../components/Odds';
+import { listNote } from '../components/RatingForecast';
 import { clubSlug } from '../data/clubs';
 import { fitScale, forecastMatch, lineupSize, type MatchForecast } from '../data/forecast';
 import { teamInsights, type Insight } from '../data/insights';
@@ -21,7 +22,7 @@ import {
 } from '../data/stats';
 import { rememberTeam } from '../lib/lastTeam';
 import { href } from '../lib/router';
-import { matchDay, matchTime, NotFound, ordinal, OutcomeBadge, PageState, percent, portalUrl, StatTile, WinMeter } from '../components/ui';
+import { matchDay, matchTime, NotFound, ordinal, OutcomeBadge, PageState, percent, portalUrl, signed, StatTile, WinMeter } from '../components/ui';
 import { plannedLineup } from '../lineup/planned';
 import { commonReason, ratingReason } from './MatchPreview';
 
@@ -298,6 +299,8 @@ function Matches({ pool, team, matches, forecasts }: { pool: PoolData; team: Tea
 function Players({ pool, team }: { pool: PoolData; team: TeamRef }) {
   const players = playersById(pool);
   const lines = teamPlayerLines(pool, team.id);
+  const status = pool.pool.ratings;
+  const forecasts = !!status && lines.some((line) => players.get(line.playerId)?.forecast);
   return (
     <section className="card">
       <div className="section-head">
@@ -313,6 +316,11 @@ function Players({ pool, team }: { pool: PoolData; team: TeamRef }) {
               <tr>
                 <th scope="col">Player</th>
                 <th scope="col" className="num">Rating</th>
+                {forecasts && (
+                  <th scope="col" className="num">
+                    Forecast
+                  </th>
+                )}
                 <th scope="col" className="num">Matches</th>
                 <th scope="col">Singles</th>
                 <th scope="col" className="num">Doubles</th>
@@ -329,6 +337,19 @@ function Players({ pool, team }: { pool: PoolData; team: TeamRef }) {
                       <a href={href('player', pool.pool.id, line.playerId)}>{player?.name ?? 'Unknown player'}</a>
                     </th>
                     <td className="num">{player?.rating ?? 'unrated'}</td>
+                    {forecasts && (
+                      <td className="num">
+                        {player?.forecast && player.rating !== null ? (
+                          <>
+                            {player.forecast.rating} <span className="muted small">{signed(player.forecast.rating - player.rating)}</span>
+                          </>
+                        ) : (
+                          <span className="muted" title="No singles since the official list">
+                            –
+                          </span>
+                        )}
+                      </td>
+                    )}
                     <td className="num">{line.matches}</td>
                     <td>
                       <span className="wl">
@@ -350,6 +371,11 @@ function Players({ pool, team }: { pool: PoolData; team: TeamRef }) {
             </tbody>
           </table>
         </div>
+      )}
+      {forecasts && status && (
+        <p className="muted small">
+          Forecast: the rating once the singles played since the official {listNote(status)} are rated.
+        </p>
       )}
     </section>
   );

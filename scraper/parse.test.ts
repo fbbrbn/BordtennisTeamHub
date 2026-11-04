@@ -7,6 +7,9 @@ import {
   parseMatchDetails,
   parseMatchList,
   parsePlayerStats,
+  parseRatingLinks,
+  parseRatingPoints,
+  parseRatingVersions,
   parseRegionPools,
   parseStandings,
   seasonName,
@@ -139,5 +142,35 @@ describe('pool names', () => {
     expect(tidyPoolName('Serie 1 Serie 1')).toBe('Serie 1');
     expect(tidyPoolName('Serie 4 Pulje 4')).toBe('Serie 4 Pulje 4');
     expect(tidyPoolName('60+ 60 A')).toBe('60+ 60 A');
+  });
+});
+
+describe('rating pages', () => {
+  it('reads rating-list ids from player stats links', () => {
+    expect(parseRatingLinks(PLAYERS).get('701')).toEqual({ listId: '59', listPlayerId: '1', seasonId: '42026' });
+  });
+
+  it('reads the start rating and rated games, with match ids for team games', () => {
+    const html = `<h2>Opnåede point</h2><table class='playerprofilerankingpointstable'>
+<tr class='headerrow'><td>Dato</td><td>Stævne/Holdkamp</td><td>Modstander</td><td>Egen rating</td><td>Modst. rating</td><td>Point</td></tr>
+<tr><td>01-07-2026</td><td>Startrating</td><td></td><td>0</td><td>0</td><td>1150</td></tr>
+<tr class='altsep'><td>30-09-2026</td><td>Serie 9 #5001</td><td>Bo Berg , Beta</td><td>1150</td><td>1183</td><td>12</td></tr>
+<tr><td></td><td>Serie 9 #5001</td><td>Cy Carl , Beta</td><td>1150</td><td>1115</td><td>-5</td></tr>
+<tr class='altsep'><td>04-10-2026</td><td>Beta Efterårsstævne</td><td>Di Dahl , Gamma</td><td>1157</td><td>1300</td><td>22</td></tr>
+</table>`;
+    expect(parseRatingPoints(html)).toEqual({
+      start: { date: '2026-07-01', rating: 1150 },
+      games: [
+        { date: '2026-09-30', matchId: '5001', own: 1150, opp: 1183, points: 12 },
+        { date: '2026-09-30', matchId: '5001', own: 1150, opp: 1115, points: -5 },
+        { date: '2026-10-04', matchId: null, own: 1157, opp: 1300, points: 22 },
+      ],
+    });
+  });
+
+  it('reads rating-list dates, newest first', () => {
+    const result = { Versions: [{ Text: '09-10-2026', Value: '10/09/2026' }, { Text: '23-10-2026', Value: '10/23/2026' }, { Value: 'x' }] };
+    expect(parseRatingVersions(result)).toEqual(['2026-10-23', '2026-10-09']);
+    expect(parseRatingVersions(null)).toEqual([]);
   });
 });

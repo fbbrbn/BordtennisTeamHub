@@ -1464,6 +1464,29 @@ textarea {
   font-size: 1.35rem;
 }
 
+.forecast-headline {
+  font-size: 1.05rem;
+}
+
+.forecast-headline strong {
+  font-size: 1.35rem;
+}
+
+.rating-table {
+  margin-top: 10px;
+}
+
+.rating-table caption {
+  caption-side: top;
+  text-align: left;
+  font-weight: 600;
+  padding-bottom: 4px;
+}
+
+.rating-table th[scope='colgroup'] {
+  text-align: center;
+}
+
 .next-when {
   font-weight: 550;
 }

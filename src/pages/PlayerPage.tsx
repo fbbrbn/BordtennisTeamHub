@@ -6,7 +6,8 @@ import { loadPool, useLoaded } from '../data/load';
 import type { Player, PoolData } from '../data/model';
 import { playerGames, playersById, summarize, teamsById, winRate } from '../data/stats';
 import { href } from '../lib/router';
-import { matchDay, NotFound, OutcomeBadge, PageState, percent, StatTile } from '../components/ui';
+import { RatingForecastCard } from '../components/RatingForecast';
+import { matchDay, NotFound, OutcomeBadge, PageState, percent, signed, StatTile } from '../components/ui';
 
 export function PlayerPage({ poolId, playerId }: { poolId: string; playerId: string }) {
   const loaded = useLoaded(() => loadPool(poolId), poolId);
@@ -55,11 +56,23 @@ function PlayerView({ pool, player }: { pool: PoolData; player: Player }) {
       </header>
 
       <div className="tiles">
-        <StatTile label="Rating" value={player.rating ?? '–'} />
+        <StatTile
+          label="Rating"
+          value={player.rating ?? '–'}
+          detail={
+            player.rating === null
+              ? 'unrated'
+              : player.forecast
+                ? `Forecast ${player.forecast.rating} (${signed(player.forecast.rating - player.rating)})`
+                : undefined
+          }
+        />
         <StatTile label="Singles won and lost" value={`${summary.singles.won}–${summary.singles.lost}`} detail={`${percent(winRate(summary.singles))} won`} />
         <StatTile label="Doubles won and lost" value={`${summary.doubles.won}–${summary.doubles.lost}`} />
         <StatTile label="Sets won and lost" value={`${summary.sets.won}–${summary.sets.lost}`} detail={`in ${summary.matches} ${summary.matches === 1 ? 'match' : 'matches'}`} />
       </div>
+
+      <RatingForecastCard pool={pool} player={player} />
 
       {insights.length > 0 && (
         <section className="card">

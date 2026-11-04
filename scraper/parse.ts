@@ -232,6 +232,50 @@ export function parseRegionPools(html: string): PoolLink[] {
   return pools;
 }
 
+/** Rating-list ids from the rating links in a pool's player stats: `VisSpiller/#<player>,<list>,<listPlayer>,<season>`. */
+export function parseRatingLinks(html: string): Map<string, { listId: string; listPlayerId: string; seasonId: string }> {
+  const links = new Map<string, { listId: string; listPlayerId: string; seasonId: string }>();
+  for (const m of html.matchAll(/VisSpiller\/?#(\d+),(\d+),(\d+),(\d+)/gi)) {
+    links.set(m[1], { listId: m[2], listPlayerId: m[3], seasonId: m[4] });
+  }
+  return links;
+}
+
+export interface RatingPoints {
+  /** The season's start rating ("Startrating"). */
+  start: { date: string; rating: number } | null;
+  /** Rated games; `matchId` is set for team-tournament games ("Serie 4 #485843"), null for tournaments. */
+  games: { date: string; matchId: string | null; own: number; opp: number; points: number }[];
+}
+
+/** A player's rating this season from the "Opnåede point" page: the start rating and every rated game. */
+export function parseRatingPoints(html: string): RatingPoints {
+  const result: RatingPoints = { start: null, games: [] };
+  let date: string | null = null;
+  for (const row of parse(html).querySelectorAll('table.playerprofilerankingpointstable tr')) {
+    const cells = row.querySelectorAll('td').map((c) => textOf(c));
+    if (cells.length < 6) continue;
+    if (cells[0]) date = parseDate(cells[0]);
+    const [own, opp, points] = [cells[3], cells[4], cells[5]].map((c) => toInt(c));
+    if (!date || own === null || opp === null || points === null) continue;
+    if (own === 0 && opp === 0) {
+      result.start = { date, rating: points };
+      continue;
+    }
+    result.games.push({ date, matchId: /#(\d+)/.exec(cells[1])?.[1] ?? null, own, opp, points });
+  }
+  return result;
+}
+
+/** Official rating-list dates from GetRankingListVersions, newest first (YYYY-MM-DD). */
+export function parseRatingVersions(result: unknown): string[] {
+  const versions = (result as { Versions?: { Value?: unknown }[] } | null)?.Versions ?? [];
+  return versions
+    .map((v) => /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String(v.Value ?? '')))
+    .flatMap((m) => (m ? [`${m[3]}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`] : []))
+    .sort((a, b) => b.localeCompare(a));
+}
+
 /** "on 30‑09‑2026 19:30" -> "2026-09-30T19:30" (the portal uses non-breaking hyphens). */
 export function parseDate(text: string): string | null {
   const m = /(\d{1,2})\D(\d{1,2})\D(\d{4})(?:\D+(\d{1,2}):(\d{2}))?/.exec(text);

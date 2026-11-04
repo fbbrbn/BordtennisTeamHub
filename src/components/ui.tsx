@@ -6,13 +6,16 @@ import { parseLocal } from '../lineup/format';
 
 const dayFormat = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 const longFormat = new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+const shortFormat = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' });
 
 export const matchDay = (date: string) => dayFormat.format(parseLocal(date));
 export const matchDayLong = (date: string) => longFormat.format(parseLocal(date));
 export const matchTime = (date: string) => date.split('T')[1] ?? '';
+/** "23 Oct" */
+export const shortDay = (date: string) => shortFormat.format(parseLocal(date));
 
 import { percent } from '../lib/text';
-export { ordinal, percent } from '../lib/text';
+export { ordinal, percent, signed } from '../lib/text';
 
 /** Link to the same page on bordtennisportalen.dk (its URL hash: subPage,season,pool,age,region,team,match,club,player). */
 export function portalUrl(pool: PoolInfo, subPage: number, ids: { teamId?: string; matchId?: string } = {}): string {
