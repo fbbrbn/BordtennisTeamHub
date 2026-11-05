@@ -5,6 +5,7 @@ import { PlayerPage } from './pages/PlayerPage';
 import { PoolPage } from './pages/PoolPage';
 import { StartPage } from './pages/StartPage';
 import { TeamPage } from './pages/TeamPage';
+import { Logo } from './components/Logo';
 import { Nav } from './components/Nav';
 import { goBack, useRoute, type Route } from './lib/router';
 
@@ -25,7 +26,9 @@ function Page({ route }: { route: Route }) {
   if (section === 'team' && ID_PATTERN.test(a) && ID_PATTERN.test(b)) {
     return <TeamPage key={`${a}-${b}`} poolId={a} teamId={b} tab={route.query.get('tab')} />;
   }
-  if (section === 'player' && ID_PATTERN.test(a) && ID_PATTERN.test(b)) return <PlayerPage key={`${a}-${b}`} poolId={a} playerId={b} />;
+  if (section === 'player' && ID_PATTERN.test(a) && ID_PATTERN.test(b)) {
+    return <PlayerPage key={`${a}-${b}`} poolId={a} playerId={b} tab={route.query.get('tab')} />;
+  }
   if (section === 'match' && ID_PATTERN.test(a) && ID_PATTERN.test(b)) return <MatchPage key={`${a}-${b}`} poolId={a} matchId={b} />;
   return <StartPage />;
 }
@@ -45,7 +48,7 @@ export default function App() {
             </button>
           )}
           <a className="brand" href="#/">
-            <span className="brand-mark" aria-hidden="true" />
+            <Logo className="brand-mark" />
             Team Hub
           </a>
         </div>

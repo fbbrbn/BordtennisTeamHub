@@ -21,9 +21,10 @@ import { fileURLToPath } from 'node:url';
 import { clubOf, clubSlug } from '../src/data/clubs.ts';
 import type { ClubRef, DataIndex, NamedId, PlayerIndex, PoolData, PoolRef, RatingStatus } from '../src/data/model.ts';
 import { fitScale } from '../src/data/forecast.ts';
-import { preMatchPredictions, predictionRecord } from '../src/data/prematch.ts';
+import { preMatchPredictions, predictionRecord, ratingOn } from '../src/data/prematch.ts';
 import { forecastRatings, ratingPoints, type RatingForecast } from '../src/data/ratings.ts';
 import { parseDropdowns, parseRatingLinks, parseRegionPools, seasonName, type PoolLink } from './parse.ts';
+import { careerShards } from './careers.ts';
 import { importPool, loadClubs, message, playersOf, readJson, toRef, writeJson, type Context } from './pool.ts';
 import { PortalClient } from './portal.ts';
 import {
@@ -291,6 +292,18 @@ async function main() {
   if (stableIndex(previousIndex) !== stableIndex(index)) {
     index.updatedAt = now;
     await writeJson(indexFile, index);
+  }
+
+  // This season's line for every player and team, for the player's history (data/careers/).
+  const careers = careerShards(seasonPools);
+  for (const shard of careers.values()) {
+    for (const [id, entries] of Object.entries(shard.players)) {
+      for (const e of entries) e.rating = (timeline && e.from ? ratingOn(timeline, id, e.from) : undefined) ?? e.rating;
+    }
+  }
+  for (const [key, shard] of careers) {
+    const file = join(outDir, 'careers', `${key}.json`);
+    if (JSON.stringify(await readJson(file)) !== JSON.stringify(shard)) await writeJson(file, shard);
   }
 
   // Every player with their teams, to find a player's club by name.

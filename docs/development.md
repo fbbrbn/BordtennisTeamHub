@@ -40,7 +40,7 @@ The main logic is in pure functions with unit tests:
   - `state.ts`: reducer. The UI lives in `LineupPage.tsx`, `Matches.tsx`, `BalanceTable.tsx` and `RosterEditor.tsx`.
 - `src/data/`: `model.ts` (shared JSON types), `load.ts` (fetch + cache) and `stats.ts` (pure, tested statistics).
   - `loadPool` tries the current season (`data/pools/`), then past seasons (`history/pools/`, marked `pool.past`).
-    `loadCareer` reads a player's past seasons.
+    `loadHistory` merges a player's seasons from `data/careers/` and `history/players/`.
   - `forecast.ts`: match odds.
     - Logistic rating model with a scale calibrated per pool by `fitScale`.
     - Exact distribution of games won, and common-opponent margins.
@@ -68,15 +68,22 @@ The main logic is in pure functions with unit tests:
   - Keep pages short on phones: put explanations behind `<details>`, and show the most useful items first.
   - Routes look like `#/team/<poolId>/<teamId>` and `#/club/<slug>`.
   - `src/data/clubs.ts` maps team names to clubs and makes club slugs.
+- Look: red against blue, the table and the paddle. Colour tokens are at the top of `src/styles.css`, light and dark;
+  chart colours are validated with the dataviz skill's script in both modes. Headings and big numbers use Barlow
+  Condensed (`@fontsource/barlow-condensed`, bundled, OFL); body text the system font.
+- The logo (`src/components/Logo.tsx`, `public/icon.svg`) is a red paddle and a white ball on a navy tile, so it reads
+  on light and dark pages. `public/manifest.webmanifest` makes the site installable; the PNG icons, the maskable icon and
+  the Apple touch icon are rendered from the SVGs by `node scripts/make-icons.cjs` (needs Playwright).
 - `src/components/`: shared UI.
   - `ui.tsx`: stat tiles, badges, dates and page states. `Odds.tsx`: the odds bars.
   - `Prediction.tsx`: the predicted line under results and the prediction record.
   - `RatingForecast.tsx`: the rating forecast card and the points table.
-  - `PastSeasons.tsx`: the player's past seasons, and the "Past season" tag. Past teams have no follow or planner
-    buttons and are never remembered as "My team".
+  - `PlayerHistory.tsx`: the player page's History tab (totals, rating over the seasons, every season and team), the
+    link to it, and the "Past season" tag. Past teams have no follow or planner buttons and are never "My team".
   - `FollowButton.tsx` and `Nav.tsx`.
-- `src/charts/`: hand-written SVG charts. `PointsRace` is a line chart in emphasis form; `RatingStrip` is a strip plot.
-  Both have hover, keyboard and touch tooltips and a table twin.
+- `src/charts/`: hand-written SVG charts. `PointsRace` is a line chart in emphasis form; `RatingStrip` is a strip plot;
+  `RatingHistory` is one player's rating over the seasons, with the forecast hollow and dashed. All have hover,
+  keyboard and touch tooltips and a table twin.
 - `src/lineup/sync.ts`: a planner stored under the key `team-<poolId>-<teamId>` syncs its roster, fixtures and
   `playedBy` from the pool data.
 - `.github/workflows/site.yml`: typecheck, test and build on every push and PR; deploy to GitHub Pages from `main`.

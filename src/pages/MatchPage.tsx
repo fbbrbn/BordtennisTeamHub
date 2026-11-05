@@ -1,5 +1,5 @@
 import { OddsBar } from '../components/Odds';
-import { PastSeasonTag } from '../components/PastSeasons';
+import { PastSeasonTag } from '../components/PlayerHistory';
 import { listNote, RatingRules } from '../components/RatingForecast';
 import { loadPool, useLoaded } from '../data/load';
 import type { PoolData, TeamMatch } from '../data/model';

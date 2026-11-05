@@ -28,9 +28,9 @@ describe('careerShards', () => {
     expect(shardOf('7')).toBe('007');
     expect([...shards.keys()]).toEqual(['001']);
     const a = shards.get('001')!.players['1001'];
-    expect(a.map((e) => [e.season, e.team, e.club, e.matches, e.singles, e.rating])).toEqual([
-      ['2024/2025', 'Alpha 1', 'Alpha', 1, [1, 1], 1500],
-      ['2023/2024', 'Alpha 1', 'Alpha', 1, [1, 0], 1500],
+    expect(a.map((e) => [e.season, e.team, e.club, e.matches, e.singles, e.rating, e.from])).toEqual([
+      ['2024/2025', 'Alpha 1', 'Alpha', 1, [1, 1], 1500, '2024-10-01'],
+      ['2023/2024', 'Alpha 1', 'Alpha', 1, [1, 0], 1500, '2024-10-01'],
     ]);
     expect(shards.get('001')!.players['2001'][0].rating).toBeNull();
   });

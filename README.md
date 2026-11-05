@@ -12,6 +12,7 @@ It is built for any team. Vallensbæk BTK 3 is the first test team.
 
 **Live site:** https://fbbrbn.github.io/BordtennisTeamHub/
 
+- **Install it on your phone.** "Add to Home screen" gives it its own app icon, in light and dark mode.
 - **Follow your team.** Tap ☆ Follow on a team page. Followed teams come first on the start page, with their next
   match, your chance to win and a button to plan the lineup.
 - **Navigation.**
@@ -49,12 +50,13 @@ It is built for any team. Vallensbæk BTK 3 is the first test team.
 - **Match page.** All games of a played team match, with players and sets.
   - The prediction made before the match, next to how it ended.
   - Until the official rating list includes the match, each player's estimated rating points.
-- **Player page.**
+- **Player page**, with two tabs:
+  - **History:** every season the player played, this one included: totals, clubs, the rating over the seasons
+    (with today's rating and the forecast) and every team, each linking to that season's pages.
+  - **This season:** the rest of this list.
   - Rating and singles, doubles and sets records.
   - **Rating forecast:** the rating once the singles played since the official list are rated, game by game.
   - Insights: wins compared with the ratings, fifth sets, best win, upset losses and doubles partners.
-  - **Past seasons:** every earlier season the player played, with team, pool, singles and the rating at the time. Tap
-    through to that season's team and games.
   - Singles results placed by opponent rating.
   - The full game list.
 - **Pool page.** Standings with projected final points, results (with the prediction record), next matches and a player

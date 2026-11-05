@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { PointsRace } from '../charts/PointsRace';
 import { FollowButton } from '../components/FollowButton';
 import { OddsBar, oddsSentence, ThinOdds } from '../components/Odds';
-import { PastSeasonTag } from '../components/PastSeasons';
+import { PastSeasonTag } from '../components/PlayerHistory';
 import { PredictedLine, PredictionRecordNote } from '../components/Prediction';
 import { listNote } from '../components/RatingForecast';
 import { clubSlug } from '../data/clubs';

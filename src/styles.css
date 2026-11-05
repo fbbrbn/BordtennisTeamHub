@@ -1,17 +1,24 @@
+/*
+ * Red against blue: the table (court blue) and the paddle's rubber (red), on cool navy neutrals.
+ * Blue is your side and a win, red the other side and a loss, grey a draw. Chart colours are
+ * validated with the dataviz skill's script in both modes (adjacent CVD ΔE ≥ 25, contrast ≥ 3:1).
+ */
 :root {
   color-scheme: light;
-  --page: #f9f9f7;
-  --surface: #fcfcfb;
-  --surface-2: #f0efec;
-  --text: #0b0b0b;
-  --text-2: #52514e;
-  --line: #e1e0d9;
-  --border: rgba(11, 11, 11, 0.12);
-  --accent: #2a78d6;
-  --accent-strong: #1c5cab;
-  --accent-soft: #e3eefc;
+  --page: #f3f5f9;
+  --surface: #ffffff;
+  --surface-2: #eaeef5;
+  --text: #0b1324;
+  --text-2: #4b5567;
+  --line: #e2e6ee;
+  --border: rgba(11, 19, 36, 0.12);
+  --accent: #1f5bd9;
+  --accent-strong: #1748b8;
+  --accent-soft: #e3ebfd;
   --on-accent: #ffffff;
-  --link: #1c5cab;
+  --link: #1748b8;
+  --brand-navy: #102a63;
+  --brand-red: #e0352f;
   --good: #0ca30c;
   --good-ink: #006300;
   --good-soft: #e3f4e3;
@@ -21,29 +28,36 @@
   --critical: #d03b3b;
   --critical-ink: #a02b2b;
   --critical-soft: #fbe6e6;
-  --bar-played: #2a78d6;
-  --bar-planned: #86b6ef;
-  --series-1: #2a78d6;
-  --deemph: #c3c2b7;
-  --grid: #e1e0d9;
-  --axis: #c3c2b7;
-  --tick: #898781;
-  --meter-track: #cde2fb;
-  --odds-win: #2a78d6;
-  --odds-draw: #a9a8a1;
-  --odds-loss: #e34948;
-  --odds-draw-ink: #0b0b0b;
-  --heat-4: #256abf;
-  --heat-3: #86b6ef;
-  --heat-2: #e8e7e1;
-  --heat-1: #f0908f;
-  --heat-0: #cc3d3c;
+  --won-ink: #1748b8;
+  --won-soft: #e3ebfd;
+  --lost-ink: #b4231e;
+  --lost-soft: #fde5e4;
+  --bar-played: #1f5bd9;
+  --bar-planned: #9db8f2;
+  --series-1: #1f5bd9;
+  --deemph: #c2c8d3;
+  --grid: #e2e6ee;
+  --axis: #c2c8d3;
+  --tick: #7d8696;
+  --meter-track: #d6e2fb;
+  --odds-win: #1f5bd9;
+  --odds-draw: #a7aebb;
+  --odds-loss: #d9302a;
+  --odds-win-ink: #ffffff;
+  --odds-draw-ink: #0b1324;
+  --odds-loss-ink: #ffffff;
+  --heat-4: #1f5bd9;
+  --heat-3: #9db8f2;
+  --heat-2: #e6e9ef;
+  --heat-1: #f4a7a3;
+  --heat-0: #c62a24;
   --heat-4-ink: #ffffff;
-  --heat-3-ink: #0b0b0b;
-  --heat-1-ink: #0b0b0b;
+  --heat-3-ink: #0b1324;
+  --heat-1-ink: #0b1324;
   --heat-0-ink: #ffffff;
   --radius: 12px;
-  --shadow: 0 1px 2px rgba(11, 11, 11, 0.05);
+  --shadow: 0 1px 2px rgba(11, 19, 36, 0.06);
+  --font-display: 'Barlow Condensed', system-ui, -apple-system, 'Segoe UI', sans-serif;
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
   line-height: 1.45;
 }
@@ -51,43 +65,51 @@
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --page: #0d0d0d;
-    --surface: #1a1a19;
-    --surface-2: #262624;
-    --text: #f0efec;
-    --text-2: #c3c2b7;
-    --line: #2c2c2a;
+    --page: #080c15;
+    --surface: #111826;
+    --surface-2: #1a2233;
+    --text: #eef2f8;
+    --text-2: #a3aec2;
+    --line: #222b3d;
     --border: rgba(255, 255, 255, 0.12);
-    --accent: #3987e5;
-    --accent-strong: #6da7ec;
-    --accent-soft: #15283f;
-    --link: #86b6ef;
+    --accent: #2f68e8;
+    --accent-strong: #8db0ff;
+    --accent-soft: #16234a;
+    --link: #8db0ff;
+    --brand-red: #f2554e;
     --good-ink: #5fd35f;
     --good-soft: #142a14;
     --warning-ink: #fbc24d;
     --warning-soft: #2e2510;
     --critical-ink: #f08a8a;
     --critical-soft: #331616;
-    --bar-played: #6da7ec;
-    --bar-planned: #1c5cab;
-    --series-1: #3987e5;
-    --deemph: #4b4a46;
-    --grid: #2c2c2a;
-    --axis: #383835;
-    --meter-track: #0d366b;
-    --odds-win: #3987e5;
-    --odds-draw: #6b6a64;
-    --odds-loss: #e66767;
+    --won-ink: #8db0ff;
+    --won-soft: #16234a;
+    --lost-ink: #ff8f8a;
+    --lost-soft: #3a1717;
+    --bar-played: #4a82f5;
+    --bar-planned: #24427f;
+    --series-1: #4a82f5;
+    --deemph: #3a4357;
+    --grid: #222b3d;
+    --axis: #343e52;
+    --tick: #8691a6;
+    --meter-track: #1a2d57;
+    --odds-win: #4a82f5;
+    --odds-draw: #5f6778;
+    --odds-loss: #f2554e;
+    --odds-win-ink: #07101f;
     --odds-draw-ink: #ffffff;
-    --heat-4: #5598e7;
-    --heat-3: #184f95;
-    --heat-2: #383835;
-    --heat-1: #8c3736;
-    --heat-0: #e66767;
-    --heat-4-ink: #0b0b0b;
-    --heat-3-ink: #f0efec;
-    --heat-1-ink: #f0efec;
-    --heat-0-ink: #0b0b0b;
+    --odds-loss-ink: #07101f;
+    --heat-4: #4a82f5;
+    --heat-3: #1c3a7a;
+    --heat-2: #2a3242;
+    --heat-1: #7a2b28;
+    --heat-0: #f2554e;
+    --heat-4-ink: #07101f;
+    --heat-3-ink: #eef2f8;
+    --heat-1-ink: #eef2f8;
+    --heat-0-ink: #07101f;
     --shadow: none;
   }
 }
@@ -111,12 +133,22 @@ h3 {
   text-wrap: balance;
 }
 
+/* Headings and big numbers in a condensed sports face; body text stays the system font. */
+h1,
+h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
 h1 {
-  font-size: 1.6rem;
+  font-size: 2rem;
+  line-height: 1.05;
 }
 
 h2 {
-  font-size: 1.1rem;
+  font-size: 1.3rem;
+  font-weight: 600;
 }
 
 h3 {
@@ -166,6 +198,7 @@ textarea {
 }
 
 .topbar {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -175,21 +208,39 @@ textarea {
   background: var(--surface);
 }
 
+.topbar::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent) 50%, var(--brand-red) 50%);
+}
+
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-weight: 650;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--text);
   text-decoration: none;
 }
 
+/* The logo carries its own navy tile, so it reads on light and dark pages alike. */
 .brand-mark {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #d9480f;
-  box-shadow: 9px -6px 0 -3px var(--text-2);
+  display: block;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .brand-mark {
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.16);
+  }
 }
 
 
@@ -679,7 +730,7 @@ textarea {
 
 .notice-warn .notice-icon {
   background: var(--warning);
-  color: #0b0b0b;
+  color: #0b1324;
 }
 
 .notice-info .notice-icon {
@@ -1015,14 +1066,17 @@ textarea {
 }
 
 .tile-value {
-  font-size: 1.6rem;
-  font-weight: 650;
-  line-height: 1.2;
+  font-family: var(--font-display);
+  font-size: 2.1rem;
+  font-weight: 700;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
 }
 
 .tile-detail {
   font-size: 0.8rem;
   color: var(--text-2);
+  overflow-wrap: anywhere;
 }
 
 .result-list {
@@ -1083,7 +1137,8 @@ textarea {
 }
 
 .result-score {
-  font-size: 1.05rem;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--text);
@@ -1100,13 +1155,13 @@ textarea {
 }
 
 .badge-won {
-  background: var(--good-soft);
-  color: var(--good-ink);
+  background: var(--won-soft);
+  color: var(--won-ink);
 }
 
 .badge-lost {
-  background: var(--critical-soft);
-  color: var(--critical-ink);
+  background: var(--lost-soft);
+  color: var(--lost-ink);
 }
 
 .badge-drawn {
@@ -1355,6 +1410,17 @@ textarea {
   stroke-width: 2;
 }
 
+/* An estimate: the same hue, dashed and hollow, so it is never read as a measured value. */
+.chart .line-estimate {
+  stroke-dasharray: 4 4;
+}
+
+.chart .dot-estimate {
+  fill: var(--surface);
+  stroke: var(--series-1);
+  stroke-width: 2;
+}
+
 .chart .end-label {
   fill: var(--text);
   font-size: 12px;
@@ -1446,6 +1512,12 @@ textarea {
   background: var(--deemph);
 }
 
+.key-estimate {
+  height: 0;
+  background: none;
+  border-top: 2px dashed var(--series-1);
+}
+
 .chart .legend .key {
   vertical-align: middle;
 }
@@ -1477,17 +1549,16 @@ textarea {
   font-size: 1.05rem;
 }
 
-.odds-headline strong {
-  font-size: 1.35rem;
+.odds-headline strong,
+.forecast-headline strong {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
 }
 
 .forecast-headline {
   font-size: 1.05rem;
 }
 
-.forecast-headline strong {
-  font-size: 1.35rem;
-}
 
 .rating-table {
   margin-top: 10px;
@@ -1537,7 +1608,7 @@ textarea {
 
 .odds-win {
   background: var(--odds-win);
-  color: #ffffff;
+  color: var(--odds-win-ink);
 }
 
 .odds-draw {
@@ -1547,7 +1618,7 @@ textarea {
 
 .odds-loss {
   background: var(--odds-loss);
-  color: #ffffff;
+  color: var(--odds-loss-ink);
 }
 
 .odds-swatch-win {
@@ -1809,6 +1880,19 @@ textarea {
 
 .club-teams a {
   font-weight: 550;
+}
+
+.history-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.history-link:hover {
+  border-color: var(--accent);
 }
 
 .results-head.after-clubs {

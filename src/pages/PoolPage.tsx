@@ -4,7 +4,7 @@ import { loadPool, useLoaded } from '../data/load';
 import type { PoolData, TeamMatch } from '../data/model';
 import { playerGames, summarize, teamsById, winRate } from '../data/stats';
 import { href } from '../lib/router';
-import { PastSeasonTag } from '../components/PastSeasons';
+import { PastSeasonTag } from '../components/PlayerHistory';
 import { PredictionRecordNote } from '../components/Prediction';
 import { matchDay, matchTime, ordinal, PageState, percent, portalUrl } from '../components/ui';
 

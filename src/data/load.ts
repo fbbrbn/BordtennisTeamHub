@@ -33,12 +33,17 @@ export function loadPool(poolId: string): Promise<PoolData> {
   });
 }
 
-/** A player's past seasons, newest first; empty when there are none (yet). */
-export function loadCareer(playerId: string): Promise<CareerEntry[]> {
-  // The same shard as scraper/careers.ts: the id's last three digits.
-  return getJson<CareerShard>(`history/players/${playerId.slice(-3).padStart(3, '0')}.json`).then(
-    (shard) => shard.players[playerId] ?? [],
-    () => [],
+/** Every season a player played, this one included: one entry per team, newest first. */
+export function loadHistory(playerId: string): Promise<CareerEntry[]> {
+  // The same file name as scraper/careers.ts: the id's last three digits.
+  const shard = playerId.slice(-3).padStart(3, '0');
+  const entries = (path: string) =>
+    getJson<CareerShard>(path).then(
+      (data) => data.players[playerId] ?? [],
+      () => [],
+    );
+  return Promise.all([entries(`data/careers/${shard}.json`), entries(`history/players/${shard}.json`)]).then(([current, past]) =>
+    [...current, ...past].sort((a, b) => b.seasonId.localeCompare(a.seasonId) || b.from.localeCompare(a.from)),
   );
 }
 

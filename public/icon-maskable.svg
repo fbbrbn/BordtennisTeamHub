@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Team Hub</title>
+  <!-- Full bleed: phones crop app icons to their own shape. The mark sits inside the central safe zone. -->
+  <rect width="64" height="64" fill="#102a63"/>
+  <g transform="translate(32 32) scale(0.74) translate(-32.5 -30)">
+    <rect x="-5" y="0" width="10" height="23" rx="4.5" fill="#ffffff" transform="translate(33.5 34.5) rotate(-45)"/>
+    <circle cx="26.5" cy="27.5" r="16" fill="#e0352f"/>
+    <circle cx="48.5" cy="14.5" r="6.5" fill="#ffffff"/>
+  </g>
+</svg>

@@ -6,19 +6,20 @@ import { loadPool, useLoaded } from '../data/load';
 import type { Player, PoolData } from '../data/model';
 import { playerGames, playersById, summarize, teamsById, winRate } from '../data/stats';
 import { href } from '../lib/router';
-import { PastSeasons, PastSeasonTag } from '../components/PastSeasons';
+import { HistoryLink, PastSeasonTag, PlayerHistory } from '../components/PlayerHistory';
 import { RatingForecastCard } from '../components/RatingForecast';
 import { matchDay, NotFound, OutcomeBadge, PageState, percent, shortDay, signed, StatTile } from '../components/ui';
 
-export function PlayerPage({ poolId, playerId }: { poolId: string; playerId: string }) {
+export function PlayerPage({ poolId, playerId, tab }: { poolId: string; playerId: string; tab: string | null }) {
   const loaded = useLoaded(() => loadPool(poolId), poolId);
   if (loaded.status !== 'ready') return <PageState state={loaded} what="this player" />;
   const player = loaded.data.players.find((p) => p.id === playerId);
   if (!player) return <NotFound what="this player" />;
-  return <PlayerView pool={loaded.data} player={player} />;
+  return <PlayerView pool={loaded.data} player={player} tab={tab === 'history' ? 'history' : 'season'} />;
 }
 
-function PlayerView({ pool, player }: { pool: PoolData; player: Player }) {
+/** Two tabs: the pool's season (results, insights, games) and the player's whole history. */
+function PlayerView({ pool, player, tab }: { pool: PoolData; player: Player; tab: 'season' | 'history' }) {
   const teams = teamsById(pool);
   const players = playersById(pool);
   const records = playerGames(pool, player.id);
@@ -45,6 +46,7 @@ function PlayerView({ pool, player }: { pool: PoolData; player: Player }) {
   });
   const unrated = singles.length - strip.length;
   const insights = useMemo(() => playerInsights(pool, player.id, fitScale(pool)), [pool, player.id]);
+  const base = href('player', pool.pool.id, player.id);
 
   return (
     <div className="dash">
@@ -56,6 +58,19 @@ function PlayerView({ pool, player }: { pool: PoolData; player: Player }) {
         <h1>{player.name}</h1>
       </header>
 
+      <nav className="tabs" aria-label="Player pages">
+        <a href={base} aria-current={tab === 'season' ? 'page' : undefined}>
+          {pool.pool.past ? pool.pool.season : 'This season'}
+        </a>
+        <a href={`${base}?tab=history`} aria-current={tab === 'history' ? 'page' : undefined}>
+          History
+        </a>
+      </nav>
+
+      {tab === 'history' ? (
+        <PlayerHistory pool={pool} player={player} />
+      ) : (
+      <>
       <div className="tiles">
         <StatTile
           label="Rating"
@@ -73,6 +88,8 @@ function PlayerView({ pool, player }: { pool: PoolData; player: Player }) {
         <StatTile label="Sets won and lost" value={`${summary.sets.won}–${summary.sets.lost}`} detail={`in ${summary.matches} ${summary.matches === 1 ? 'match' : 'matches'}`} />
       </div>
 
+      <HistoryLink playerId={player.id} href={`${base}?tab=history`} />
+
       <RatingForecastCard pool={pool} player={player} />
 
       {insights.length > 0 && (
@@ -88,8 +105,6 @@ function PlayerView({ pool, player }: { pool: PoolData; player: Player }) {
           </ul>
         </section>
       )}
-
-      <PastSeasons playerId={player.id} poolId={pool.pool.id} />
 
       {strip.length > 0 && (
         <section className="card">
@@ -159,6 +174,8 @@ function PlayerView({ pool, player }: { pool: PoolData; player: Player }) {
           </div>
         )}
       </section>
+      </>
+      )}
     </div>
   );
 }

@@ -60,7 +60,8 @@ The schedule follows the match evenings: in Danish winter time the evening runs 
 7. **The season's rating lists.** Every list version in force on a match day is kept (about 50 requests per new list).
 8. **Predictions.** Every match gets the prediction made from what was known before its day: the rating list of that
    day and the earlier results (`src/data/prematch.ts`). The season's record goes in the index.
-9. **Files.** Pool files are written only when their content changed, then the index and the player list.
+9. **Files.** Pool files are written only when their content changed, then the index, the player list and this
+   season's player lines (`careers/`).
 
 Then the workflow publishes the folder to the `data` branch as one new commit, replacing the previous one (so the
 repository does not grow with every update), and starts the site build. A quiet run costs about 150 requests and 2 minutes. Requests are spaced 800 ms apart, and a run stops
@@ -76,6 +77,7 @@ On the `data` branch, copied into the site as `data/`:
 | `pools/<poolId>.json` | One pool: its teams, standings, matches (results, games and the prediction made before each match) and players (official rating and rating forecast). |
 | `players.json` | Every player with their official rating and the teams they played for, for the player search. |
 | `ratings/<seasonId>.json` | The season's official rating lists: every player's rating in each version in force on a match day. |
+| `careers/<last three digits of the player id>.json` | This season's line for every player and team (matches, singles, doubles, rating when the pool started), for the player's History tab. |
 
 The fields are described in [`src/data/model.ts`](../src/data/model.ts). Ids are the portal's own: pool ids are
 `leagueGroupID`, team ids `leagueGroupTeamID`, match ids `leagueMatchID`, seasons `4YYYY` (42026 is 2026/2027).

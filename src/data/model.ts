@@ -27,13 +27,16 @@ export interface NamedId {
   name: string;
 }
 
-/** `history/players/<last three digits of the id>.json`: past seasons by player id (see scraper/careers.ts). */
+/**
+ * A player's seasons by player id, in files named by the id's last three digits (see scraper/careers.ts):
+ * `data/careers/` for the current season and `history/players/` for past ones.
+ */
 export interface CareerShard {
   version: 1;
   players: Record<string, CareerEntry[]>;
 }
 
-/** One team a player played for in a past season, newest season first. */
+/** One team a player played for in one season. */
 export interface CareerEntry {
   seasonId: string;
   /** e.g. "2025/2026" */
@@ -41,6 +44,8 @@ export interface CareerEntry {
   poolId: string;
   /** e.g. "Serie 4 Pulje 4" */
   pool: string;
+  /** The pool's first match day, YYYY-MM-DD. */
+  from: string;
   league: string;
   teamId: string;
   team: string;
