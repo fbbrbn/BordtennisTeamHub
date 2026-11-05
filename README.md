@@ -160,10 +160,19 @@ Other commands:
 - `npm run preview`: serve the built site
 - `npm run import`: refresh the data from bordtennisportalen.dk (needs network access to it)
 
-The planner's logic is in `src/lineup/planner.ts`; the forecasts are in `src/data/forecast.ts`. Both are pure
-functions with unit tests.
+The main logic is in pure functions with unit tests:
+
+- `src/lineup/planner.ts`: the lineup planner;
+- `src/data/forecast.ts`: the match odds;
+- `src/data/prematch.ts`: the predictions made before each match;
+- `src/data/ratings.ts`: the rating forecast;
+- `scraper/`: reading the portal (`parse.ts`), one pool (`pool.ts`), the season (`import.ts`) and past seasons
+  (`history.ts`).
 
 ## Data
+
+How the data gets from bordtennisportalen.dk to the site, step by step, and what is in each file:
+[docs/data.md](docs/data.md).
 
 - `scraper/config.json` says what to import. By default that is every pool of the current season, in all regions and
   age groups; single pools or regions can be added.

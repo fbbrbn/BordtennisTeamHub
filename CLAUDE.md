@@ -47,6 +47,11 @@ names, ids or pools in code.
   - Keep pages short on phones: put explanations behind `<details>`, and show the most useful items first.
   - Routes look like `#/team/<poolId>/<teamId>` and `#/club/<slug>`.
   - `src/data/clubs.ts` maps team names to clubs and makes club slugs.
+- `src/components/`: shared UI.
+  - `ui.tsx`: stat tiles, badges, dates and page states. `Odds.tsx`: the odds bars.
+  - `Prediction.tsx`: the predicted line under results and the prediction record.
+  - `RatingForecast.tsx`: the rating forecast card and the points table.
+  - `FollowButton.tsx` and `Nav.tsx`.
 - `src/charts/`: hand-written SVG charts. `PointsRace` is a line chart in emphasis form; `RatingStrip` is a strip plot.
   Both have hover, keyboard and touch tooltips and a table twin.
 - `src/lineup/sync.ts`: a planner stored under the key `team-<poolId>-<teamId>` syncs its roster, fixtures and
@@ -117,6 +122,8 @@ Commands: `npm test`, `npm run typecheck`, `npm run build`, `npm run dev`.
   ratings for past seasons; ratings at the time come from the rating-list versions.
 
 ## Data pipeline
+
+The user-facing version, step by step with the file formats, is `docs/data.md`. Keep it in step with this section.
 
 - `scraper/config.json` says what to import:
   - `discover`: every pool of a season (`"current"` or an id), for all or some regions and age groups. Pools are
