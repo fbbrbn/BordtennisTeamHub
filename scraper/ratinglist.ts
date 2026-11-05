@@ -8,7 +8,7 @@
  * search over the season's match days needs about half a dozen pages.
  */
 import type { PoolData } from '../src/data/model.ts';
-import { parseRatingPoints, parseRatingVersions, type RatingPoints } from './parse.ts';
+import { parseRatingListPage, parseRatingPoints, parseRatingVersions, type RatingPoints } from './parse.ts';
 import type { PortalClient } from './portal.ts';
 
 const RATING_PAGE = '/DBTU/Ranglister/';
@@ -21,15 +21,76 @@ export interface RatingLink {
   seasonId: string;
 }
 
-/** The rating list shown by default, and the date of its latest version (YYYY-MM-DD). */
-export async function latestRatingList(client: PortalClient, seasonId: string): Promise<{ listId: string; seasonId: string; listDate: string }> {
+/** Id of the rating list the portal shows by default (the overall list, 59). */
+export async function defaultRatingList(client: PortalClient): Promise<string> {
   const { html } = await client.pageContext(RATING_PAGE);
   const listId = /DefaultRankingListID\s*=\s*(\d+)/.exec(html)?.[1];
   if (!listId) throw new Error('no DefaultRankingListID on the rating page');
+  return listId;
+}
+
+/** Every version of a rating list in a season, newest first (YYYY-MM-DD). */
+export async function ratingListVersions(client: PortalClient, listId: string, seasonId: string): Promise<string[]> {
   const result = await client.service('GetRankingListVersions', { rankinglistagegroupid: '', rankinglistid: listId, seasonid: seasonId }, RATING_PAGE);
-  const listDate = parseRatingVersions(result)[0];
+  return parseRatingVersions(result);
+}
+
+/** The default rating list, and the date of its latest version (YYYY-MM-DD). */
+export async function latestRatingList(client: PortalClient, seasonId: string): Promise<{ listId: string; seasonId: string; listDate: string }> {
+  const listId = await defaultRatingList(client);
+  const listDate = (await ratingListVersions(client, listId, seasonId))[0];
   if (!listDate) throw new Error('the rating list has no versions');
   return { listId, seasonId, listDate };
+}
+
+const LIST_PAGE_SIZE = 100;
+
+/**
+ * Every player's rating in one version of a rating list: about 50 pages of 100 players.
+ * Only the player ids and ratings are read (see parseRatingListPage).
+ */
+export async function ratingListAt(client: PortalClient, listId: string, seasonId: string, date: string): Promise<Map<string, number>> {
+  const [year, month, day] = date.split('-');
+  const ratings = new Map<string, number>();
+  for (let pageindex = 0; pageindex < 500; pageindex++) {
+    const result = await client.service(
+      'GetRankingListPlayers',
+      {
+        rankinglistagegroupid: '',
+        rankinglistid: listId,
+        seasonid: seasonId,
+        rankinglistversiondate: `${month}/${day}/${year}`,
+        agegroupid: '',
+        classid: '',
+        gender: '',
+        clubid: '',
+        // All players, not only recently active ones: about 4,600 instead of 2,500 in 2026, covering 96% of rated players.
+        searchall: true,
+        regionid: '',
+        pointsfrom: '',
+        pointsto: '',
+        rankingfrom: '',
+        rankingto: '',
+        birthdatefromstring: '',
+        birthdatetostring: '',
+        agefrom: '',
+        ageto: '',
+        playerid: '',
+        param: '',
+        pageindex,
+        sortfield: 0,
+        getversions: false,
+        getplayer: false,
+      },
+      RATING_PAGE,
+    );
+    const html = (result as { Html?: unknown } | null)?.Html;
+    if (typeof html !== 'string') throw new Error(`no rating list for ${date}, page ${pageindex}`);
+    const page = parseRatingListPage(html);
+    for (const [id, rating] of page) ratings.set(id, rating);
+    if (page.size < LIST_PAGE_SIZE) break;
+  }
+  return ratings;
 }
 
 /** One player's rating this season. Only the points table is read: the response's player details are ignored. */
@@ -139,4 +200,45 @@ function latest(days: Set<string>): string | undefined {
 
 function dayBefore(day: string): string {
   return new Date(Date.parse(`${day}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
+}
+
+/** Ratings by version date; `players[id][i]` belongs to `versions[i]` (null: not on that list). */
+export interface SeasonRatings {
+  version: 1;
+  listId: string;
+  /** Every version the list has in this season, newest first. */
+  available: string[];
+  /** The versions read, oldest first. */
+  versions: string[];
+  players: Record<string, (number | null)[]>;
+}
+
+/**
+ * The versions worth reading for a season whose matches ran from `first` to `last` (YYYY-MM-DD):
+ * the one in force on the first match day, then others spread evenly up to the last match day,
+ * at most `max`. A season whose list has no version that early gets its earliest one.
+ */
+export function chooseVersions(available: string[], first: string, last: string, max: number): string[] {
+  const sorted = [...new Set(available)].sort();
+  const before = sorted.filter((d) => d <= first).at(-1);
+  const candidates = [...(before ? [before] : []), ...sorted.filter((d) => d > first && d <= last)];
+  if (candidates.length === 0) return sorted.slice(0, 1);
+  if (candidates.length <= max) return candidates;
+  if (max <= 1) return candidates.slice(0, 1);
+  const picked = new Set<string>();
+  for (let i = 0; i < max; i++) picked.add(candidates[Math.round((i * (candidates.length - 1)) / (max - 1))]);
+  return [...picked];
+}
+
+/** Adds one version's ratings, keeping `versions` oldest first and every player's list aligned with it. */
+export function addVersion(ratings: SeasonRatings, date: string, list: Map<string, number>): void {
+  const versions = [...ratings.versions, date].sort();
+  const at = versions.indexOf(date);
+  for (const values of Object.values(ratings.players)) values.splice(at, 0, null);
+  for (const [id, rating] of list) {
+    const values = ratings.players[id] ?? new Array<number | null>(versions.length).fill(null);
+    values[at] = rating;
+    ratings.players[id] = values;
+  }
+  ratings.versions = versions;
 }

@@ -8,6 +8,7 @@ import {
   parseMatchList,
   parsePlayerStats,
   parseRatingLinks,
+  parseRatingListPage,
   parseRatingPoints,
   parseRatingVersions,
   parseRegionPools,
@@ -166,6 +167,17 @@ describe('rating pages', () => {
         { date: '2026-10-04', matchId: null, own: 1157, opp: 1300, points: 22 },
       ],
     });
+  });
+
+  it('reads ratings from a rating-list page, and never the player number', () => {
+    const row = (place: number, id: string, name: string, rating: number) =>
+      `<tr><td class='rank'>${place}</td><td>(${place})</td><td class='playerid'>010190&#8209;ABCD</td>` +
+      `<td class='name'><a href='/DBTU/Spiller/VisSpiller/#${id},59,${id}9,42026' title='Vis spiller' >${name}</a>, Alpha BTK</td>` +
+      `<td class='points pointsw'>${rating}</td><td class='points pointsw'>-4</td><td class='points pointsw'>12</td></tr>`;
+    const html = `<table><tr><td>Plac.</td><td></td><td>Spiller-Id</td><td>Navn</td><td>Rating</td><td>+/-</td><td>Kampe</td></tr>${row(1, '701', 'Anna Andersen', 1450)}${row(2, '702', 'Bo Berg', 1390)}</table>`;
+    const ratings = parseRatingListPage(html);
+    expect([...ratings]).toEqual([['701', 1450], ['702', 1390]]);
+    expect(JSON.stringify([...ratings])).not.toMatch(/010190|ABCD/);
   });
 
   it('reads rating-list dates, newest first', () => {

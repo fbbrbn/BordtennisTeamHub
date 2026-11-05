@@ -267,6 +267,20 @@ export function parseRatingPoints(html: string): RatingPoints {
   return result;
 }
 
+/**
+ * One page of a rating list (GetRankingListPlayers): player id to rating. Only the name link and
+ * the first points cell are read; the row's player-number cell is never touched.
+ */
+export function parseRatingListPage(html: string): Map<string, number> {
+  const ratings = new Map<string, number>();
+  for (const row of parse(html).querySelectorAll('tr')) {
+    const id = playerIdOf(row.querySelector('td.name a'));
+    const rating = toInt(textOf(row.querySelector('td.points')));
+    if (id && rating !== null) ratings.set(id, rating);
+  }
+  return ratings;
+}
+
 /** Official rating-list dates from GetRankingListVersions, newest first (YYYY-MM-DD). */
 export function parseRatingVersions(result: unknown): string[] {
   const versions = (result as { Versions?: { Value?: unknown }[] } | null)?.Versions ?? [];

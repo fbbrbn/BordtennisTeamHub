@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Game, PoolData, TeamMatch } from '../src/data/model.ts';
 import type { RatingPoints } from './parse.ts';
-import { findRatedThrough } from './ratinglist.ts';
+import { addVersion, chooseVersions, findRatedThrough, type SeasonRatings } from './ratinglist.ts';
 
 // Made-up pools: player pN plays pN+1 in match mN on day N of October.
 const single = (home: string, away: string): Game => ({
@@ -70,5 +70,32 @@ describe('findRatedThrough', () => {
 
   it('gives up when no player can be looked up', async () => {
     expect(await findRatedThrough([pool([1, 2])], day(10), async () => null)).toBeNull();
+  });
+});
+
+describe('chooseVersions', () => {
+  const weekly = Array.from({ length: 52 }, (_, i) => new Date(Date.UTC(2015, 6, 2 + 7 * i)).toISOString().slice(0, 10)).reverse();
+
+  it('starts with the list in force on the first match day and spreads the rest over the season', () => {
+    const chosen = chooseVersions(weekly, '2015-09-20', '2016-04-10', 6);
+    expect(chosen).toHaveLength(6);
+    expect(chosen[0]).toBe('2015-09-17');
+    expect(chosen.at(-1)).toBe('2016-04-07');
+    expect([...chosen].sort()).toEqual(chosen);
+  });
+
+  it('takes every version when there are few, and the earliest when none is that early', () => {
+    expect(chooseVersions(['2015-10-01', '2015-09-01'], '2015-09-20', '2016-04-10', 12)).toEqual(['2015-09-01', '2015-10-01']);
+    expect(chooseVersions(['2012-07-05', '2012-06-28'], '2011-10-03', '2012-04-01', 12)).toEqual(['2012-06-28']);
+  });
+});
+
+describe('addVersion', () => {
+  it('keeps versions oldest first and every player aligned with them', () => {
+    const ratings: SeasonRatings = { version: 1, listId: '59', available: [], versions: [], players: {} };
+    addVersion(ratings, '2015-10-01', new Map([['a', 1200], ['b', 1100]]));
+    addVersion(ratings, '2015-09-01', new Map([['a', 1180], ['c', 900]]));
+    expect(ratings.versions).toEqual(['2015-09-01', '2015-10-01']);
+    expect(ratings.players).toEqual({ a: [1180, 1200], b: [null, 1100], c: [900, null] });
   });
 });

@@ -1,0 +1,63 @@
+name: History
+
+# Imports past seasons (back to 2011/2012) from bordtennisportalen.dk into the `history` branch,
+# newest season first, for a few hours each night (00:41 UTC, 01:41 Danish time in winter).
+# Past seasons do not change, so every pool and rating list is read only once: the whole backfill
+# takes about two weeks of nights, and after that a run costs a handful of requests.
+# Requests are spaced one second apart, and the run ends before the morning data refresh.
+on:
+  schedule:
+    - cron: '41 0 * * *'
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: Stop starting new work after this many minutes
+        default: '240'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: history
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Check out the history branch
+        run: |
+          if git ls-remote --exit-code --heads origin history > /dev/null; then
+            git fetch --depth 1 origin history
+            git worktree add --detach history FETCH_HEAD
+          else
+            mkdir history
+            git -C history init -q -b history
+          fi
+      - name: Import past seasons
+        env:
+          MINUTES: ${{ inputs.minutes || '240' }}
+        run: node scraper/history.ts --out history --max-minutes "$MINUTES"
+      # Files are written as they are read, so even a failed run publishes what it got.
+      - name: Publish the history branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd history
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing new."
+            exit 0
+          fi
+          git commit -q -m "Past seasons $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push -q "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/history
