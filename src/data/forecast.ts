@@ -11,8 +11,8 @@
  *
  * These are estimates, not data: the UI always says so and shows the reasons.
  */
-import type { PoolData, TeamMatch } from './model';
-import { isHome, scoreFor, teamMatches } from './stats';
+import type { PoolData, TeamMatch } from './model.ts';
+import { isHome, scoreFor, teamMatches } from './stats.ts';
 
 export interface Odds {
   win: number;
@@ -78,6 +78,19 @@ export interface MatchForecast {
 }
 
 export const DEFAULT_SCALE = 300;
+
+/**
+ * How much a team's form on the day varies, in rating points. The games of one match are not
+ * independent: on a good evening the whole team plays better. Averaging the match odds over
+ * this spread makes them less extreme without moving the expected score.
+ */
+export const FORM_SPREAD = 100;
+/** Three-point Gauss-Hermite rule for a normal distribution: offsets in standard deviations, and weights. */
+const FORM_POINTS: readonly [number, number][] = [
+  [-Math.sqrt(3), 1 / 6],
+  [0, 2 / 3],
+  [Math.sqrt(3), 1 / 6],
+];
 
 /** Chance that a player rated `a` beats one rated `b`. */
 export function winChance(a: number, b: number, scale: number): number {
@@ -180,6 +193,11 @@ export function fitScale(pool: PoolData): number {
       games.push({ diff: a - b, won: g.winner === 'home' });
     }
   }
+  return fitScaleTo(games);
+}
+
+/** The logistic scale that best explains these singles (rating gap, and whether the first player won). */
+export function fitScaleTo(games: readonly { diff: number; won: boolean }[]): number {
   if (games.length < 20) return DEFAULT_SCALE;
   let best = DEFAULT_SCALE;
   let bestScore = -Infinity;
@@ -264,6 +282,14 @@ export interface MatchFormat {
 
 const SINGLE_LABEL = /A\s*(\d+)\s*[/-]\s*B\s*(\d+)/i;
 const formats = new WeakMap<PoolData, MatchFormat>();
+
+/**
+ * Lets `view`, the pool as it was on some earlier day, play in the format read from the whole
+ * season. The format is the league's rules, so knowing it early reveals no results.
+ */
+export function shareFormat(view: PoolData, pool: PoolData): void {
+  formats.set(view, matchFormat(pool));
+}
 
 export function matchFormat(pool: PoolData): MatchFormat {
   const cached = formats.get(pool);
@@ -445,6 +471,7 @@ export function ratingForecast(
   opponent: string[],
   scale: number,
   home = true,
+  spread = FORM_SPREAD,
 ): RatingForecast | null {
   if (team.length === 0 || opponent.length === 0) return null;
   const rating = ratingsOf(pool);
@@ -459,17 +486,33 @@ export function ratingForecast(
   const byRating = (ids: string[]) => [...ids].sort((a, b) => rating(b) - rating(a)).slice(0, format.size);
   const ours = byRating(team);
   const theirs = byRating(opponent);
-  const chances = format.sequence.map((g) => {
-    if (g.kind === 'team') return doubles;
-    // A label "A1/B2" means home position 1 against away position 2.
-    const a = ours[home ? g.pair[0] : g.pair[1]];
-    const b = theirs[home ? g.pair[1] : g.pair[0]];
-    if (a === undefined && b === undefined) return 0.5;
-    if (a === undefined) return 0;
-    if (b === undefined) return 1;
-    return winChance(rating(a), rating(b), scale);
-  });
-  return { odds: oddsForFormat(format, chances, doubles), singles, doubles, team, opponent, teamAverage, opponentAverage };
+  // `form`: how much better than their ratings our team plays on the day, in rating points.
+  const oddsWithForm = (form: number) => {
+    const teamGame = winChance(teamAverage + form, opponentAverage, scale);
+    const chances = format.sequence.map((g) => {
+      if (g.kind === 'team') return teamGame;
+      // A label "A1/B2" means home position 1 against away position 2.
+      const a = ours[home ? g.pair[0] : g.pair[1]];
+      const b = theirs[home ? g.pair[1] : g.pair[0]];
+      if (a === undefined && b === undefined) return 0.5;
+      if (a === undefined) return 0;
+      if (b === undefined) return 1;
+      return winChance(rating(a) + form, rating(b), scale);
+    });
+    return oddsForFormat(format, chances, teamGame);
+  };
+  const parts = spread > 0 ? FORM_POINTS.map(([z, w]) => [oddsWithForm(z * spread), w] as const) : [[oddsWithForm(0), 1] as const];
+  const mix = (key: 'win' | 'draw' | 'loss' | 'expectedGames' | 'totalGames') => parts.reduce((sum, [o, w]) => sum + w * o[key], 0);
+  const odds: Odds = {
+    win: mix('win'),
+    draw: mix('draw'),
+    loss: mix('loss'),
+    expectedGames: mix('expectedGames'),
+    // Fixed formats play the same number of games whatever the form: keep it exact.
+    totalGames: parts.every(([o]) => o.totalGames === parts[0][0].totalGames) ? parts[0][0].totalGames : mix('totalGames'),
+    drawPossible: parts[0][0].drawPossible,
+  };
+  return { odds, singles, doubles, team, opponent, teamAverage, opponentAverage };
 }
 
 export function commonOpponentForecast(pool: PoolData, teamId: string, opponentId: string): CommonForecast {

@@ -20,11 +20,23 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { clubOf, clubSlug } from '../src/data/clubs.ts';
 import type { ClubRef, DataIndex, NamedId, PlayerIndex, PoolData, PoolRef, RatingStatus } from '../src/data/model.ts';
+import { fitScale } from '../src/data/forecast.ts';
+import { preMatchPredictions, predictionRecord } from '../src/data/prematch.ts';
 import { forecastRatings, ratingPoints, type RatingForecast } from '../src/data/ratings.ts';
 import { parseDropdowns, parseRatingLinks, parseRegionPools, seasonName, type PoolLink } from './parse.ts';
 import { importPool, loadClubs, message, playersOf, readJson, toRef, writeJson, type Context } from './pool.ts';
 import { PortalClient } from './portal.ts';
-import { findRatedThrough, latestRatingList, ratingPointsOf, type RatingLink } from './ratinglist.ts';
+import {
+  addVersion,
+  chooseVersions,
+  findRatedThrough,
+  latestRatingList,
+  ratingListAt,
+  ratingListVersions,
+  ratingPointsOf,
+  type RatingLink,
+  type SeasonRatings,
+} from './ratinglist.ts';
 
 interface ImportConfig {
   delayMs?: number;
@@ -192,6 +204,34 @@ async function main() {
     console.log(`Rating forecasts: ${forecasts.size} players, ${games} singles played after ${ratings.ratedThrough}.`);
   }
 
+  // Predictions made before each match, from the rating list in force on its day and earlier results.
+  const timeline = ratingList ? await seasonTimeline(client, ratingList, all.filter((d) => d.pool.seasonId === ratingList.seasonId)) : null;
+  for (const { previous, data } of imported) {
+    if (timeline && data.pool.seasonId === ratingList?.seasonId) {
+      const predictions = preMatchPredictions(data, timeline, (view) => fitScale(view));
+      for (const m of data.matches) {
+        const prediction = predictions.get(m.id);
+        if (prediction) m.prediction = prediction;
+        else delete m.prediction;
+      }
+    } else {
+      // Without the season's rating lists, keep what was predicted before.
+      const before = new Map((previous?.matches ?? []).map((m) => [m.id, m.prediction]));
+      for (const m of data.matches) {
+        const prediction = before.get(m.id);
+        if (prediction) m.prediction = prediction;
+      }
+    }
+  }
+  const seasonPools = [...kept, ...imported.map((i) => i.data)].filter((d) => !season || d.pool.seasonId === season.id);
+  const record = predictionRecord(seasonPools.flatMap((d) => d.matches));
+  if (record) {
+    console.log(
+      `Predictions made before each match: the likeliest outcome happened in ${record.right} of ${record.matches} played matches ` +
+        `(${Math.round((100 * record.right) / record.matches)}%), Brier ${record.brier.toFixed(3)}.`,
+    );
+  }
+
   const refs: PoolRef[] = kept.map(toRef);
   for (const { file, previous, data } of imported) {
     applyForecasts(data, inSeason(data) ? ratings : null, forecasts);
@@ -245,6 +285,7 @@ async function main() {
     ageGroups: used(refs.map((r) => r.ageGroupId), ctx.ageGroupName),
     clubs: [...clubs.values()].sort((a, b) => a.name.localeCompare(b.name, 'da')),
     ...(ratings ? { ratings } : {}),
+    ...(record ? { predictions: roundRecord(record) } : {}),
     pools: refs,
   };
   if (stableIndex(previousIndex) !== stableIndex(index)) {
@@ -319,6 +360,40 @@ async function ratingStatus(
     console.warn(`Could not tell which games the rating list of ${list.listDate} includes (${message(error)}); no rating forecasts.`);
     return null;
   }
+}
+
+/**
+ * The season's rating lists, kept in data/ratings/<season>.json: every version in force on one of
+ * the season's match days. A new version costs about 50 requests, once.
+ */
+async function seasonTimeline(client: PortalClient, list: RatingList, pools: PoolData[]): Promise<SeasonRatings | null> {
+  const file = join(outDir, 'ratings', `${list.seasonId}.json`);
+  const stored = await readJson<SeasonRatings>(file);
+  const days = pools.flatMap((p) => p.matches.map((m) => m.date.slice(0, 10))).sort();
+  if (days.length === 0) return stored;
+  try {
+    const available = await ratingListVersions(client, list.listId, list.seasonId);
+    const ratings: SeasonRatings = stored?.listId === list.listId ? stored : { version: 1, listId: list.listId, available, versions: [], players: {} };
+    const before = JSON.stringify(ratings.available);
+    ratings.available = available;
+    let changed = before !== JSON.stringify(available);
+    for (const date of chooseVersions(available, days[0], days[days.length - 1], 100)) {
+      if (ratings.versions.includes(date)) continue;
+      const found = await ratingListAt(client, list.listId, list.seasonId, date);
+      addVersion(ratings, date, found);
+      changed = true;
+      console.log(`Rating list of ${date}: ${found.size} players.`);
+    }
+    if (changed) await writeJson(file, ratings);
+    return ratings;
+  } catch (error) {
+    console.warn(`Rating lists of the season unavailable (${message(error)}); using the ones read before.`);
+    return stored;
+  }
+}
+
+function roundRecord(r: NonNullable<ReturnType<typeof predictionRecord>>) {
+  return { matches: r.matches, right: r.right, brier: Math.round(r.brier * 1000) / 1000, gamesError: Math.round(r.gamesError * 1000) / 1000 };
 }
 
 /** Sets which games the official ratings include, and each player's forecast. */

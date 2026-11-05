@@ -4,6 +4,7 @@ import { loadPool, useLoaded } from '../data/load';
 import type { PoolData, TeamMatch } from '../data/model';
 import { playerGames, summarize, teamsById, winRate } from '../data/stats';
 import { href } from '../lib/router';
+import { PredictionRecordNote } from '../components/Prediction';
 import { matchDay, matchTime, ordinal, PageState, percent, portalUrl } from '../components/ui';
 
 export function PoolPage({ poolId }: { poolId: string }) {
@@ -139,6 +140,7 @@ function PoolView({ pool }: { pool: PoolData }) {
             {played.length} of {pool.matches.length} matches played
           </span>
         </div>
+        <PredictionRecordNote matches={played} />
         <ul className="result-list">{shownPlayed.map(matchRow)}</ul>
         {played.length > 10 && (
           <button type="button" className="button" onClick={() => setShowAll((v) => !v)}>

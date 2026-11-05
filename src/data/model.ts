@@ -17,6 +17,8 @@ export interface DataIndex {
   clubs?: ClubRef[];
   /** The official rating list the forecasts start from. */
   ratings?: RatingStatus & { listId: string; seasonId: string };
+  /** How the predictions made before each match did this season (see src/data/prematch.ts). */
+  predictions?: { matches: number; right: number; brier: number; gamesError: number };
   pools: PoolRef[];
 }
 
@@ -122,6 +124,19 @@ export interface TeamMatch {
   walkover: boolean;
   /** Individual games. Null when not played or not fetched yet. */
   games: Game[] | null;
+  /** What the forecast expected, from what was known before the match day (src/data/prematch.ts). */
+  prediction?: MatchPrediction;
+}
+
+/** Chances and expected games for the home side, made before the match day. */
+export interface MatchPrediction {
+  win: number;
+  draw: number;
+  loss: number;
+  /** Expected games won by the home side. */
+  homeGames: number;
+  /** Expected games played. */
+  totalGames: number;
 }
 
 export interface Game {

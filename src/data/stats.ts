@@ -1,4 +1,4 @@
-import type { Game, Player, PoolData, TeamMatch, TeamRef } from './model';
+import type { Game, Player, PoolData, TeamMatch, TeamRef } from './model.ts';
 
 export type Outcome = 'won' | 'drawn' | 'lost';
 

@@ -28,13 +28,19 @@ names, ids or pools in code.
   - `insights.ts`: plain-language team and player insights built on the above.
   - `ratings.ts`: the official rating-points table and `forecastRatings`, which replays the games the official list
     does not include yet. The importer runs it over all pools at once, because players appear in several.
+  - `prematch.ts`: the prediction made before each match. `poolBefore(pool, day, timeline)` hides results from that day
+    on and rates players as on the rating list in force then; the format is shared from the whole season
+    (`shareFormat`). The importer stores the result as `match.prediction` (home side); `predictionRecord` scores them.
+  - `forecast.ts` averages match odds over a team's form on the day (`FORM_SPREAD`, 100 rating points, three-point
+    Gauss-Hermite). It helped the honest backtest; fresher replayed ratings and other scales did not.
   - Unrated players get the pool median inside the model, but the UI must show them as "unrated".
 - `src/pages/MatchPreview.tsx`: the upcoming-match page.
   - Chances from either side, a lineup picker and a matchup heat table.
   - It starts from the planner lineup when the captain has answers (`src/lineup/planned.ts`).
 - `src/pages/`: the start page, plus club, team, player, pool and match dashboards.
-  - The start page shows followed teams first (`src/lib/follow.ts`, localStorage), then a search across every club
-    and team with region and age-group filters. Without a query it shows a short club list.
+  - The start page shows followed teams first (`src/lib/follow.ts`, localStorage), then a search across every club,
+    team and player with region and age-group filters. Player names come from `data/players.json`, loaded on the first
+    keystroke (`matchPlayers`). Without a query it shows a short club list.
   - Team pages have tabs via `?tab=overview|matches|players`; the router scrolls to the top only when the path changes.
   - `src/components/Nav.tsx`: Home · My team · Lineup, a bottom bar on phones and top links on desktop. "My team" is
     the first followed team, otherwise the last team opened.
@@ -98,7 +104,17 @@ Commands: `npm test`, `npm run typecheck`, `npm run build`, `npm run dev`.
   - Rules, checked against every game on those pages: a fixed points table by rating gap; all games of a match day
     use the ratings from before that day; doubles and walkovers are not rated; it is not zero-sum.
   - Each version only includes games up to an unpublished cutoff: the list of 23 Oct 2026 included games up to 19 Oct,
-    but not 20 Oct.
+    but not 20 Oct. Replaying from one version reproduces the next best with the cutoff 4 days before each version
+    (88% exact from 9 to 23 Oct 2026).
+  - `GetRankingListPlayers` (context `/DBTU/Ranglister/`) gives a whole version, 100 players per `pageindex` (from 0),
+    with `rankinglistversiondate: 'MM/DD/YYYY'`, `sortfield: 0` and `searchall: true` (all players, about 4,600 in 2026
+    and 96% of rated players; `false` gives only recently active ones). Every other parameter is `''` or `false`.
+  - Its rows: `td.rank`, the previous rank, `td.playerid` (the player number: never read it), `td.name` with the
+    `VisSpiller/#<player>,<list>,<listPlayer>,<season>` link and the club, then `td.points` cells: rating, change,
+    matches. `parseRatingListPage` reads only the link and the first points cell.
+  - Versions go back to 2011/12: weekly in 2015/16, every two weeks lately, and only two (June 2012) for 2011/12.
+- Past seasons: every pool, match and game back to 2011/12 is on the portal, but the pools' player stats show no
+  ratings for past seasons; ratings at the time come from the rating-list versions.
 
 ## Data pipeline
 
@@ -124,6 +140,15 @@ Commands: `npm test`, `npm run typecheck`, `npm run build`, `npm run dev`.
     then triggers `site.yml`. Pushes made with the workflow token don't trigger workflows by themselves.
   - `site.yml` copies the branch into `public/data` before building.
   - Locally, run `npm run data:pull`.
+- `scraper/pool.ts` reads one pool (shared by `import.ts` and `history.ts`). `import.ts` also writes:
+  - `data/players.json`: every player with their teams, for the player search.
+  - `data/ratings/<season>.json`: every rating-list version in force on a match day of the season (`seasonTimeline`).
+  - `match.prediction` in every pool of the season, and the season's record as `index.predictions`.
+- Past seasons: `scraper/history.ts` and `.github/workflows/history.yml` (nightly at 00:41 UTC, four hours, requests one
+  second apart) write `history/<season>/` on the `history` branch, newest season first:
+  - `targets.json` (the season's pools, discovered once), `pools/<pool>.json` (same format as the current season),
+    `ratings.json` (up to 12 versions spread over the match days, `chooseVersions`) and `index.json` (`complete`).
+  - The branch gets one ordinary commit per night; it is not copied into the site.
 - Rating forecasts:
   - Each run reads the latest list version (2 requests). A new version means each pool's subPage 7 is read again,
     then `findRatedThrough` binary-searches the cutoff over the season's match days using a few players' rating pages.
@@ -145,9 +170,13 @@ Commands: `npm test`, `npm run typecheck`, `npm run build`, `npm run dev`.
   - `decider`: some matches have exactly one game more than the format.
 - `ratingForecast` maps lineups to positions by rating and needs to know whether our team is home. A missing player
   loses their games by walkover. `oddsForFormat` applies first-to-N and deciding games.
-- Model check over all 1,307 played matches (Nov 2026):
-  - Brier 0.35, where guessing scores 0.67.
-  - The most likely outcome was right 75% of the time.
-  - The expected score was off by 13% of the games.
-  - These checks are in-sample.
+- Model check, honest: each of the 946 matches played by 5 Nov 2026 that has a prediction was predicted only from what
+  was known before its day (`src/data/prematch.ts`):
+  - The most likely outcome was right 69% of the time; Brier 0.431, where guessing scores 0.67; log loss 0.744.
+  - The expected score was off by 16% of the games.
+  - About a third of played matches have no prediction: they were a team's first of the season.
+  - Tried and rejected: one global scale (no better), fixed scales, and ratings replayed with the games after each
+    list's cutoff. Replayed ratings fitted the pool scale on post-game ratings and made the odds overconfident.
+  - An older in-sample check with the actual lineups gave Brier 0.35 and 75%: that is not what the site can know in
+    advance.
 - Node runs the scraper's TypeScript directly through type stripping. Keep its syntax erasable: no enums and no parameter properties. `scraper/tsconfig.json` enforces this.

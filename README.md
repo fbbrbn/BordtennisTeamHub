@@ -17,10 +17,11 @@ It is built for any team. Vallensbæk BTK 3 is the first test team.
 - **Navigation.**
   - Three places, one tap away: Home, My team and Lineup. On phones they are in a bar at the bottom.
   - Inner pages have a Back button.
-- **Find any club or team.** The start page searches every pool of the season: all regions (DT, ØST, VEST, MIDT,
-  Bornholm and the DGI regions) and all age groups.
+- **Find any club, team or player.** The start page searches every pool of the season: all regions (DT, ØST, VEST,
+  MIDT, Bornholm and the DGI regions) and all age groups.
   - Filter by region and age group.
   - Results are grouped by club. Without a search, a short club list.
+  - Type a player's name to see their club, team and pool.
 - **Team pages have three tabs:**
   - **Overview:** key numbers, the next match and insights.
   - **Matches:** upcoming matches with chances, then results.
@@ -37,21 +38,25 @@ It is built for any team. Vallensbæk BTK 3 is the first test team.
     - what the strongest lineup would change.
   - A points race against the rest of the pool, with a table view.
   - All results, plus every upcoming match with its chance to win.
+  - Every result keeps the prediction made before the match (expected score and chance to win), with a record of how
+    often the likeliest outcome happened.
   - Every player who played for the team: rating, rating forecast, matches, singles with win rate, doubles and sets.
 - **Match preview** (for upcoming matches).
   - Chances from either team's side.
   - A lineup picker for both teams that updates the chances immediately.
   - Every one of your players against their regular lineup.
   - Results against common opponents.
-- **Match page.** All games of a played team match, with players and sets. Until the official rating list includes
-  the match, it also shows each player's estimated rating points.
+- **Match page.** All games of a played team match, with players and sets.
+  - The prediction made before the match, next to how it ended.
+  - Until the official rating list includes the match, each player's estimated rating points.
 - **Player page.**
   - Rating and singles, doubles and sets records.
   - **Rating forecast:** the rating once the singles played since the official list are rated, game by game.
   - Insights: wins compared with the ratings, fifth sets, best win, upset losses and doubles partners.
   - Singles results placed by opponent rating.
   - The full game list.
-- **Pool page.** Standings with projected final points, results, next matches and a player table.
+- **Pool page.** Standings with projected final points, results (with the prediction record), next matches and a player
+  table.
 - **Lineup planner.**
   - Opening it from a team page fills in the roster, the fixtures, who played and the number of players per match
     from the results, and keeps them up to date.
@@ -74,6 +79,8 @@ Two independent estimates are averaged:
    9 singles and 1 doubles; other formats work the same way. The curve is calibrated on the pool's own singles results:
    in the first pool, the higher-rated player won 78% of singles. The exact distribution of games won then gives the
    chances of a win, a draw and a loss.
+   - The games of one match are not independent: on a good evening the whole team plays better. The odds are averaged
+     over a team's form on the day, which varies by about 100 rating points.
    - Without a chosen or planned lineup, it averages over every lineup each team has fielded this season.
 2. **Common opponents.** It compares how both teams did against the same teams, and against each other if they already
    met. Fewer comparisons pull the estimate towards even.
@@ -85,13 +92,19 @@ Each pool's real match format is read from its results:
 - whether matches stop at "first to N" (the national divisions);
 - whether a level score is settled by a deciding game.
 
-Checked against all 1,307 played matches of the season so far, using the actual lineups:
+### How good the predictions are
 
-- The probability score was 0.35, where pure guessing scores 0.67.
-- The most likely outcome was right 75% of the time.
-- The expected score was off by 13% of the games on average.
+Every match keeps the prediction made from what was known before its day: the official rating list in force then, and
+the results of earlier matches only. Checked against the 946 matches of 2026/27 played by 5 November that had one:
 
-These checks are in-sample, so real accuracy is a bit lower. The site always labels the chances as estimates.
+- The likeliest outcome happened 69% of the time.
+- The probability score (Brier) was 0.431, where pure guessing scores 0.67.
+- The expected score was off by 16% of the games on average.
+
+Averaging over the day's form improved the probability score from 0.440 and the log loss from 0.778 to 0.744; the share
+of right outcomes stayed about the same. Matches that were a team's first of the season have no prediction, because
+nothing was known about its lineup yet. Earlier seasons (see [Data](#data)) should fill that gap. The site always
+labels the chances as estimates.
 
 ### How the rating forecast works
 
@@ -120,8 +133,9 @@ official rating can differ a little.
 
 ## What's next
 
-1. **Rating history.** Use the portal's ranking-list service to show each player's rating over time.
-2. **Earlier seasons.** The portal goes back to 2011/2012.
+1. **Use the earlier seasons.** Predict a team's first matches from last season's lineups, and calibrate the model on
+   ten seasons of games.
+2. **Rating history.** Show each player's rating over time, from the rating lists already stored.
 3. **Danish interface.** Optional.
 4. **Shared availability (optional).** Let each player answer in the app instead of through the captain. This needs a
    small shared backend, so it is a later decision.
@@ -162,8 +176,15 @@ functions with unit tests.
     players' rating pages show which games the list includes.
   - Requests are spaced 800 ms apart.
   - A run stops starting new pools after 5 hours, and the next run continues from there.
+  - It keeps the season's official rating lists (`data/ratings/<season>.json`) for the predictions made before each
+    match: about 50 requests per new list.
 - The data is published to the `data` branch as a single commit, so the repository does not grow with every update.
   The site build (`.github/workflows/site.yml`) copies it into the site.
+- **Earlier seasons.** `.github/workflows/history.yml` imports the past seasons, back to 2011/2012, into the `history`
+  branch, newest first, a few hours each night (requests one second apart):
+  - per season, every pool in the same format as the current season, and the official ratings from up to 12 rating
+    lists spread over its match days;
+  - past seasons do not change, so each one is read once: the whole backfill takes about two weeks of nights.
 
 ## Deployment
 

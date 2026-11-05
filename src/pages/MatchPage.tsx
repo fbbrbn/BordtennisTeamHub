@@ -1,10 +1,13 @@
+import { OddsBar } from '../components/Odds';
 import { listNote, RatingRules } from '../components/RatingForecast';
 import { loadPool, useLoaded } from '../data/load';
 import type { PoolData, TeamMatch } from '../data/model';
+import { homeOutcome, likeliest, predictionOdds } from '../data/prematch';
 import { matchRatingPoints } from '../data/ratings';
 import { playersById, teamsById } from '../data/stats';
 import { href } from '../lib/router';
-import { matchDayLong, matchTime, NotFound, PageState, portalUrl, signed } from '../components/ui';
+import { matchDayLong, matchTime, NotFound, PageState, percent, portalUrl, signed } from '../components/ui';
+import { oneDecimal } from '../lib/text';
 import { MatchPreview } from './MatchPreview';
 
 export function MatchPage({ poolId, matchId }: { poolId: string; matchId: string }) {
@@ -99,6 +102,8 @@ function MatchView({ pool, match }: { pool: PoolData; match: TeamMatch }) {
       </section>
       )}
 
+      {match.score && match.prediction && <PredictionCard match={match} homeName={home?.name ?? 'Home'} awayName={away?.name ?? 'Away'} />}
+
       {pool.pool.ratings && ratingLines.length > 0 && (
         <section className="card">
           <h2>Rating points</h2>
@@ -139,3 +144,39 @@ function MatchView({ pool, match }: { pool: PoolData; match: TeamMatch }) {
     </div>
   );
 }
+
+/** What was predicted before a played match, next to how it ended. */
+function PredictionCard({ match, homeName, awayName }: { match: TeamMatch; homeName: string; awayName: string }) {
+  const odds = predictionOdds(match, match.homeTeamId);
+  const outcome = homeOutcome(match.score, match.walkover);
+  if (!odds || !match.prediction || !match.score) return null;
+  const expected = `${oneDecimal(odds.expectedGames)}–${oneDecimal(odds.totalGames - odds.expectedGames)}`;
+  const favourite = likeliest(match.prediction);
+  const favouriteText = favourite === 'win' ? `a win for ${homeName}` : favourite === 'loss' ? `a win for ${awayName}` : 'a draw';
+  return (
+    <section className="card">
+      <h2>Prediction and result</h2>
+      <p className="odds-headline">
+        <strong>{percent(odds.win)}</strong> chance for {homeName} to win{odds.drawPossible ? `, ${percent(odds.draw)} to draw` : ''}, before the
+        match.
+      </p>
+      <OddsBar odds={odds} />
+      <p>
+        Expected score <strong>{expected}</strong>; it ended <strong>{match.score.join('–')}</strong>.{' '}
+        {outcome === null
+          ? ''
+          : outcome === favourite
+            ? `The likeliest outcome, ${favouriteText}, happened.`
+            : `Not the likeliest outcome: the prediction favoured ${favouriteText}.`}
+      </p>
+      <details className="why">
+        <summary>How was this predicted?</summary>
+        <p className="muted small">
+          From what was known before the match day: the official rating list in force that day, and the results of earlier
+          matches, for the lineups both teams had used and for common opponents. Win, draw and loss are from {homeName}'s side.
+        </p>
+      </details>
+    </section>
+  );
+}
+

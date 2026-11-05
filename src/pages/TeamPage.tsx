@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { PointsRace } from '../charts/PointsRace';
 import { FollowButton } from '../components/FollowButton';
 import { OddsBar, oddsSentence, ThinOdds } from '../components/Odds';
+import { PredictedLine, PredictionRecordNote } from '../components/Prediction';
 import { listNote } from '../components/RatingForecast';
 import { clubSlug } from '../data/clubs';
 import { fitScale, forecastMatch, lineupSize, type MatchForecast } from '../data/forecast';
@@ -268,6 +269,7 @@ function Matches({ pool, team, matches, forecasts }: { pool: PoolData; team: Tea
           <h2>Results</h2>
           <span className="muted">{played.length} played</span>
         </div>
+        <PredictionRecordNote matches={played} />
         {played.length === 0 ? (
           <p className="muted">No matches played yet.</p>
         ) : (
@@ -280,6 +282,7 @@ function Matches({ pool, team, matches, forecasts }: { pool: PoolData; team: Tea
                   <div className="result-main">
                     <span className="result-when">{matchDay(m.date)}</span>
                     {opponentLink(m)}
+                    <PredictedLine match={m} teamId={team.id} />
                   </div>
                   <div className="result-side">
                     <a className="result-score" href={href('match', pool.pool.id, m.id)} aria-label={`Games of the match, ${score?.join(' to ')}`}>

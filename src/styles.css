@@ -1051,6 +1051,11 @@ textarea {
   min-width: 0;
 }
 
+.result-predicted {
+  font-size: 0.8rem;
+  color: var(--text-2);
+}
+
 .result-when {
   font-size: 0.8rem;
   font-weight: 600;
