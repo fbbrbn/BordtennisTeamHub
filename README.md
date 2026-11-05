@@ -197,3 +197,8 @@ manual runs on `main` also publish it to GitHub Pages. The data workflow starts 
 - **Match data.** It comes from the public pages of bordtennisportalen.dk.
   - It stores names, internal ids, ratings, clubs and results.
   - It never stores player numbers (they contain birth dates) or team contact details.
+
+## Copyright
+
+© 2026 fbbrbn. All rights reserved. The code and design of this project may not be copied, reused or published elsewhere
+without permission. The match data comes from bordtennisportalen.dk and is not covered by this notice.
