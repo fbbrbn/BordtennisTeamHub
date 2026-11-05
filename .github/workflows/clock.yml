@@ -35,6 +35,7 @@ jobs:
       - name: Start each import on time
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           start() {
             for attempt in 1 2 3 4 5; do

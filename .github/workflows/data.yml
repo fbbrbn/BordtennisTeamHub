@@ -41,6 +41,7 @@ jobs:
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           running=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/clock.yml/runs?per_page=5" \
             -q '[.workflow_runs[] | select(.status != "completed")] | length')
