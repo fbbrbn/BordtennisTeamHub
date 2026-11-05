@@ -19,10 +19,10 @@ import { readdir, readFile, unlink } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { clubOf, clubSlug } from '../src/data/clubs.ts';
-import type { ClubRef, DataIndex, NamedId, PoolData, PoolRef, RatingStatus } from '../src/data/model.ts';
+import type { ClubRef, DataIndex, NamedId, PlayerIndex, PoolData, PoolRef, RatingStatus } from '../src/data/model.ts';
 import { forecastRatings, ratingPoints, type RatingForecast } from '../src/data/ratings.ts';
 import { parseDropdowns, parseRatingLinks, parseRegionPools, seasonName, type PoolLink } from './parse.ts';
-import { importPool, loadClubs, message, readJson, toRef, writeJson, type Context } from './pool.ts';
+import { importPool, loadClubs, message, playersOf, readJson, toRef, writeJson, type Context } from './pool.ts';
 import { PortalClient } from './portal.ts';
 import { findRatedThrough, latestRatingList, ratingPointsOf, type RatingLink } from './ratinglist.ts';
 
@@ -251,6 +251,11 @@ async function main() {
     index.updatedAt = now;
     await writeJson(indexFile, index);
   }
+
+  // Every player with their teams, to find a player's club by name.
+  const playersFile = join(outDir, 'players.json');
+  const playerIndex = playersOf([...imported.map((i) => i.data), ...kept].filter((d) => !season || d.pool.seasonId === season.id));
+  if (JSON.stringify(await readJson<PlayerIndex>(playersFile)) !== JSON.stringify(playerIndex)) await writeJson(playersFile, playerIndex);
 
   const seconds = Math.round((Date.now() - started) / 1000);
   console.log(

@@ -5,7 +5,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { clubOf, type Club } from '../src/data/clubs.ts';
-import type { PoolData, PoolRef, Player, TeamMatch, TeamRef } from '../src/data/model.ts';
+import type { PlayerEntry, PlayerIndex, PoolData, PoolRef, Player, TeamMatch, TeamRef } from '../src/data/model.ts';
 import {
   parseClubList,
   parseHeadings,
@@ -203,4 +203,19 @@ export async function readJson<T>(file: string): Promise<T | null> {
 export async function writeJson(file: string, data: unknown): Promise<void> {
   await mkdir(dirname(file), { recursive: true });
   await writeFile(file, JSON.stringify(data) + '\n');
+}
+
+/** Players with the teams they played for, A to Z; players without a team are left out. */
+export function playersOf(pools: PoolData[]): PlayerIndex {
+  const players = new Map<string, PlayerEntry>();
+  for (const pool of [...pools].sort((a, b) => a.pool.id.localeCompare(b.pool.id))) {
+    for (const p of pool.players) {
+      if (!p.teamId) continue;
+      const entry = players.get(p.id) ?? { id: p.id, name: p.name, rating: p.rating, teams: [] };
+      entry.rating ??= p.rating;
+      entry.teams.push([pool.pool.id, p.teamId]);
+      players.set(p.id, entry);
+    }
+  }
+  return { version: 1, players: [...players.values()].sort((a, b) => a.name.localeCompare(b.name, 'da') || a.id.localeCompare(b.id)) };
 }

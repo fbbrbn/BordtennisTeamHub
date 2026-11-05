@@ -25,6 +25,21 @@ export interface NamedId {
   name: string;
 }
 
+/** `players.json`: every player of the season, to find a player's club and teams by name. */
+export interface PlayerIndex {
+  version: 1;
+  players: PlayerEntry[];
+}
+
+export interface PlayerEntry {
+  id: string;
+  name: string;
+  /** Official rating, when rated. */
+  rating: number | null;
+  /** The teams the player played for, as [poolId, teamId]. */
+  teams: [string, string][];
+}
+
 export interface ClubRef {
   /** URL key, from `clubSlug(name)`. */
   slug: string;

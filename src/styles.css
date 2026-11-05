@@ -1805,6 +1805,12 @@ textarea {
   font-weight: 550;
 }
 
+.results-head.after-clubs {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
 /* ---------- Navigation ---------- */
 
 .topbar-start {

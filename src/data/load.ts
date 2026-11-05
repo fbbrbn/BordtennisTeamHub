@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { DataIndex, PoolData } from './model';
+import type { DataIndex, PlayerIndex, PoolData } from './model';
 
 const cache = new Map<string, Promise<unknown>>();
 
@@ -18,6 +18,7 @@ function getJson<T>(path: string): Promise<T> {
 }
 
 export const loadIndex = () => getJson<DataIndex>('data/index.json');
+export const loadPlayers = () => getJson<PlayerIndex>('data/players.json');
 export const loadPool = (poolId: string) => getJson<PoolData>(`data/pools/${encodeURIComponent(poolId)}.json`);
 
 export type Loaded<T> = { status: 'loading' } | { status: 'error'; error: string } | { status: 'ready'; data: T };

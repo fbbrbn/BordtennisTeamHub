@@ -1,11 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FollowButton } from '../components/FollowButton';
 import { ThinOdds } from '../components/Odds';
 import { matchDay, matchTime } from '../components/ui';
 import { clubSlug, fallbackClubName } from '../data/clubs';
 import { fitScale, forecastMatch, lineupSize } from '../data/forecast';
-import { loadIndex, loadPool, useLoaded } from '../data/load';
-import type { DataIndex, IndexTeam, PoolData, PoolRef } from '../data/model';
+import { loadIndex, loadPlayers, loadPool, useLoaded } from '../data/load';
+import type { DataIndex, IndexTeam, PlayerEntry, PoolData, PoolRef } from '../data/model';
 import { isHome, opponentOf, teamMatches, teamsById } from '../data/stats';
 import { useFollowing, type FollowedTeam } from '../lib/follow';
 import { readLastTeam } from '../lib/lastTeam';
@@ -17,6 +17,33 @@ import { listSavedPlanners, newId } from '../lineup/storage';
 const fold = (s: string) => s.toLocaleLowerCase('da').normalize('NFKD').replace(/[̀-ͯ]/g, '');
 const RESULTS_PAGE = 20;
 const BROWSE_PAGE = 12;
+
+export interface PlayerMatch {
+  player: PlayerEntry;
+  teams: { team: IndexTeam; pool: PoolRef }[];
+}
+
+/**
+ * Players whose name has every word of the query, in any order, with their teams in the given
+ * pools. Players with no team there are left out.
+ */
+export function matchPlayers(players: PlayerEntry[], query: string, pools: PoolRef[]): PlayerMatch[] {
+  const words = fold(query).split(/\s+/).filter(Boolean);
+  if (words.length === 0) return [];
+  const byId = new Map(pools.map((p) => [p.id, p]));
+  const found: PlayerMatch[] = [];
+  for (const player of players) {
+    const name = fold(player.name);
+    if (!words.every((w) => name.includes(w))) continue;
+    const teams = player.teams.flatMap(([poolId, teamId]) => {
+      const pool = byId.get(poolId);
+      const team = pool?.teams.find((t) => t.id === teamId);
+      return pool && team ? [{ team, pool }] : [];
+    });
+    if (teams.length > 0) found.push({ player, teams });
+  }
+  return found;
+}
 
 export interface ClubGroup {
   slug: string;
@@ -83,7 +110,7 @@ export function StartPage() {
           <h2>How it works</h2>
           <ol className="steps">
             <li>
-              <strong>Find your team</strong> by club name below.
+              <strong>Find your team</strong> by club, team or player name below.
             </li>
             <li>
               <strong>Follow it</strong> with ☆ so it is always here, with its next match and your chances.
@@ -99,7 +126,7 @@ export function StartPage() {
         <ClubSearch index={index.data} />
       ) : (
         <section className="card">
-          <h2>Find a club or team</h2>
+          <h2>Find a club, team or player</h2>
           <p className="muted">{index.status === 'loading' ? 'Loading clubs…' : 'Club data is not available right now.'}</p>
         </section>
       )}
@@ -199,7 +226,9 @@ function ClubSearch({ index }: { index: DataIndex }) {
   const [region, setRegion] = useState('');
   const [ageGroup, setAgeGroup] = useState('');
   const [shown, setShown] = useState(RESULTS_PAGE);
+  const [shownPlayers, setShownPlayers] = useState(RESULTS_PAGE);
   const [browseAll, setBrowseAll] = useState(false);
+  const [players, setPlayers] = useState<PlayerEntry[] | null>(null);
 
   const pools = index.pools.filter((p) => (!region || p.regionId === region) && (!ageGroup || p.ageGroupId === ageGroup));
   const allClubs = groupByClub(pools);
@@ -214,17 +243,46 @@ function ClubSearch({ index }: { index: DataIndex }) {
         })
         .filter((club) => club.teams.length > 0)
     : [];
+  // Player names are a separate file, loaded once someone starts typing.
+  const wantPlayers = q.length >= 2;
+  useEffect(() => {
+    if (!wantPlayers || players) return;
+    let cancelled = false;
+    loadPlayers().then(
+      (data) => !cancelled && setPlayers(data.players),
+      () => !cancelled && setPlayers([]),
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [wantPlayers, players]);
+  const playerResults = wantPlayers && players ? matchPlayers(players, q, pools) : [];
   const browse = browseAll ? allClubs : allClubs.slice(0, BROWSE_PAGE);
-  const reset = () => setShown(RESULTS_PAGE);
+  const reset = () => {
+    setShown(RESULTS_PAGE);
+    setShownPlayers(RESULTS_PAGE);
+  };
+  const teamCount = results.reduce((sum, c) => sum + c.teams.length, 0);
+  const status =
+    results.length === 0 && playerResults.length === 0
+      ? wantPlayers && !players
+        ? 'Searching…'
+        : `Nothing matches “${query.trim()}”. Try part of a club, team or player name.`
+      : [
+          results.length > 0 ? `${count(results.length, 'club')}, ${count(teamCount, 'team')}` : '',
+          playerResults.length > 0 ? count(playerResults.length, 'player') : '',
+        ]
+          .filter(Boolean)
+          .join(' · ');
 
   return (
     <section className="card picker">
-      <h2>Find a club or team</h2>
+      <h2>Find a club, team or player</h2>
       <label className="field search-field">
-        <span className="sr-only">Club or team</span>
+        <span className="sr-only">Club, team or player</span>
         <input
           type="search"
-          placeholder="Search a club or team, e.g. Vallensbæk"
+          placeholder="Club, team or player, e.g. Vallensbæk"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -272,36 +330,75 @@ function ClubSearch({ index }: { index: DataIndex }) {
       {searching ? (
         <>
           <p className="muted small" role="status">
-            {results.length === 0
-              ? `Nothing matches “${query.trim()}”. Try part of the club name.`
-              : `${count(results.length, 'club')}, ${count(results.reduce((sum, c) => sum + c.teams.length, 0), 'team')}`}
+            {status}
           </p>
-          <ul className="club-list">
-            {results.slice(0, shown).map((club) => (
-              <li key={club.slug} className="club-item">
-                <a className="club-name" href={href('club', club.slug)}>
-                  {club.name}
-                </a>
-                <ul className="club-teams">
-                  {club.teams.map(({ team, pool }) => (
-                    <li key={`${pool.id}-${team.id}`}>
-                      <a href={href('team', pool.id, team.id)}>{team.name}</a>
-                      <span className="muted small">
-                        {' '}
-                        {pool.ageGroupName ? `${pool.ageGroupName} · ` : ''}
-                        {pool.name}
-                        {team.position ? ` · ${ordinal(team.position)}` : ''}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            ))}
-          </ul>
+          {results.length > 0 && (
+            <ul className="club-list">
+              {results.slice(0, shown).map((club) => (
+                <li key={club.slug} className="club-item">
+                  <a className="club-name" href={href('club', club.slug)}>
+                    {club.name}
+                  </a>
+                  <ul className="club-teams">
+                    {club.teams.map(({ team, pool }) => (
+                      <li key={`${pool.id}-${team.id}`}>
+                        <a href={href('team', pool.id, team.id)}>{team.name}</a>
+                        <span className="muted small">
+                          {' '}
+                          {pool.ageGroupName ? `${pool.ageGroupName} · ` : ''}
+                          {pool.name}
+                          {team.position ? ` · ${ordinal(team.position)}` : ''}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              ))}
+            </ul>
+          )}
           {results.length > shown && (
             <button type="button" className="button" onClick={() => setShown((n) => n + RESULTS_PAGE)}>
               Show more ({results.length - shown} left)
             </button>
+          )}
+          {playerResults.length > 0 && (
+            <>
+              <h3 className={results.length > 0 ? 'results-head after-clubs' : 'results-head'}>Players</h3>
+              <ul className="club-list">
+                {playerResults.slice(0, shownPlayers).map(({ player, teams }) => (
+                  <li key={player.id} className="club-item">
+                    <span>
+                      <a className="club-name" href={href('player', teams[0].pool.id, player.id)}>
+                        {player.name}
+                      </a>
+                      <span className="muted small"> {player.rating === null ? 'unrated' : `rating ${player.rating}`}</span>
+                    </span>
+                    <ul className="club-teams">
+                      {teams.map(({ team, pool }) => {
+                        const club = team.club ?? fallbackClubName(team.name);
+                        return (
+                          <li key={`${pool.id}-${team.id}`}>
+                            <a href={href('club', clubSlug(club))}>{club}</a>
+                            {' · '}
+                            <a href={href('team', pool.id, team.id)}>{team.name}</a>
+                            <span className="muted small">
+                              {' '}
+                              {pool.ageGroupName ? `${pool.ageGroupName} · ` : ''}
+                              {pool.name}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </li>
+                ))}
+              </ul>
+              {playerResults.length > shownPlayers && (
+                <button type="button" className="button" onClick={() => setShownPlayers((n) => n + RESULTS_PAGE)}>
+                  Show more players ({playerResults.length - shownPlayers} left)
+                </button>
+              )}
+            </>
           )}
         </>
       ) : (
