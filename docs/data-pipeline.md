@@ -35,11 +35,18 @@ read into the data, and a test checks this. Only names, internal ids, ratings, c
 
 | Workflow | When (UTC) | What |
 | --- | --- | --- |
-| `.github/workflows/data.yml` | 05:23, 12:23, and hourly 16:23 to 22:23 | The current season. |
+| `.github/workflows/data.yml` | Mornings and middays, and every hour from 16 to 23 | The current season. |
 | `.github/workflows/history.yml` | 00:41, for up to four hours | Past seasons, back to 2011/2012. |
 | `.github/workflows/site.yml` | After every data change and every push | Builds and publishes the site. |
 
-The schedule follows the match evenings: in Danish winter time the evening runs are 17:23 to 23:23.
+The schedule follows the match evenings: in Danish winter time the evening runs are from 17 to 24.
+
+GitHub delays or drops many scheduled runs when Actions is busy (on 4 and 5 November 2026 only 2 or 3 of the 9 daily
+runs started, some hours late). So the data workflow tries every slot several times: 05:23 and 05:53, 12:23 and 12:53,
+and four times an hour in the evening (:08, :23, :38, :53). Its first job checks when the last import finished, from a
+small `import-done` artifact each import leaves, and lets an attempt import only when that was more than 50 minutes
+ago. The portal still sees at most one import an hour; a failed import leaves no marker, so the next attempt retries.
+Started by hand, the workflow always imports.
 
 ## 3. One data run, step by step
 
@@ -143,8 +150,9 @@ imports a small part of a past season into `history/` (also ignored by git).
     national-league tag such as "(N)", "(O)" or "(I.O)".
   - When nothing matches, the tag and the trailing team number are dropped instead.
 - Data lives on the `data` branch, never on `main` (`public/data/` is gitignored):
-  - `data.yml` (05:23, 12:23 and hourly 16:23 to 22:23 UTC) restores it, imports, force-pushes a single new commit when anything changed, and
-    then triggers `site.yml`. Pushes made with the workflow token don't trigger workflows by themselves.
+  - `data.yml` (see "When it runs": several attempts per slot, at most one import per 50 minutes) restores it, imports,
+    force-pushes a single new commit when anything changed, and then triggers `site.yml`. Pushes made with the
+    workflow token don't trigger workflows by themselves.
   - `site.yml` copies the branch into `public/data` before building.
   - Locally, run `npm run data:pull`.
 - `scraper/pool.ts` reads one pool (shared by `import.ts` and `history.ts`). `import.ts` also writes:

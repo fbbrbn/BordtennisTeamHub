@@ -51,5 +51,8 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # GitHub Pages sometimes takes longer than the default 10 minutes to publish.
       - id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          timeout: 1200000
