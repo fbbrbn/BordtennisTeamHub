@@ -26,7 +26,7 @@ The portal's own pages load their content from one web service. The importer mak
 4. Club names come from the portal's club-search script.
 
 Each answer is an HTML fragment. `scraper/parse.ts` reads the parts it needs and ignores the rest. The exact calls and
-their parameters are in [CLAUDE.md](../CLAUDE.md#data-source-verified).
+their parameters are in [portal-api.md](portal-api.md).
 
 **Privacy.** The pages also show player numbers (they encode birth dates) and team contact details. They are never
 read into the data, and a test checks this. Only names, internal ids, ratings, clubs and results are stored.
@@ -62,8 +62,8 @@ The schedule follows the match evenings: in Danish winter time the evening runs 
    day and the earlier results (`src/data/prematch.ts`). The season's record goes in the index.
 9. **Files.** Pool files are written only when their content changed, then the index and the player list.
 
-Then the workflow publishes the folder to the `data` branch as one new commit, replacing the previous one, and starts
-the site build. A quiet run costs about 150 requests and 2 minutes. Requests are spaced 800 ms apart, and a run stops
+Then the workflow publishes the folder to the `data` branch as one new commit, replacing the previous one (so the
+repository does not grow with every update), and starts the site build. A quiet run costs about 150 requests and 2 minutes. Requests are spaced 800 ms apart, and a run stops
 starting new pools after 5 hours (the next run continues).
 
 ## 4. The files
@@ -112,3 +112,43 @@ node scraper/history.ts --seasons 42025 --regions 4004 --age-groups 4006 --max-m
 ```
 
 imports a small part of a past season into `history/` (also ignored by git).
+
+## Details for developers
+
+- `scraper/config.json` says what to import:
+  - `discover`: every pool of a season (`"current"` or an id), for all or some regions and age groups. Pools are
+    rediscovered every `everyHours`; otherwise the previous index's list is reused.
+  - `pools` / `regions`: extra single pools or whole regions.
+- In 2026/2027 there are 154 pools: 200 region and age-group combinations, most of them empty.
+- `npm run import` writes `public/data/index.json` and `public/data/pools/<poolId>.json` as compact JSON.
+  - The index has the season, regions, age groups, clubs, pools, and each team's club and place.
+  - A pool whose match list (subPage 4) is unchanged costs one request: its file is reused.
+  - Played-match details are fetched again only when a result changes.
+  - Files are rewritten only when their content changes.
+  - Requests are spaced 800 ms apart. After `maxMinutes` no new pools are started.
+  - Pools no longer in scope are deleted, but only after a complete discovery.
+  - Locally behind the cloud proxy, run it with `NODE_USE_ENV_PROXY=1`.
+- Clubs come from the portal's club-search script (`clublistclientscript.aspx`, `SportsResultsTeamList`).
+  - Each team is matched to the longest club name that prefixes its name, followed by a team number and/or a
+    national-league tag such as "(N)", "(O)" or "(I.O)".
+  - When nothing matches, the tag and the trailing team number are dropped instead.
+- Data lives on the `data` branch, never on `main` (`public/data/` is gitignored):
+  - `data.yml` (05:23, 12:23 and hourly 16:23 to 22:23 UTC) restores it, imports, force-pushes a single new commit when anything changed, and
+    then triggers `site.yml`. Pushes made with the workflow token don't trigger workflows by themselves.
+  - `site.yml` copies the branch into `public/data` before building.
+  - Locally, run `npm run data:pull`.
+- `scraper/pool.ts` reads one pool (shared by `import.ts` and `history.ts`). `import.ts` also writes:
+  - `data/players.json`: every player with their teams, for the player search.
+  - `data/ratings/<season>.json`: every rating-list version in force on a match day of the season (`seasonTimeline`).
+  - `match.prediction` in every pool of the season, and the season's record as `index.predictions`.
+- Past seasons: `scraper/history.ts` and `.github/workflows/history.yml` (nightly at 00:41 UTC, four hours, requests one
+  second apart) write `history/<season>/` on the `history` branch, newest season first:
+  - `targets.json` (the season's pools, discovered once), `pools/<pool>.json` (same format as the current season),
+    `ratings.json` (up to 12 versions spread over the match days, `chooseVersions`) and `index.json` (`complete`).
+  - The branch gets one ordinary commit per night; it is not copied into the site.
+- Rating forecasts:
+  - Each run reads the latest list version (2 requests). A new version means each pool's subPage 7 is read again,
+    then `findRatedThrough` binary-searches the cutoff over the season's match days using a few players' rating pages.
+  - Pools are written at the end, after `forecastRatings`: `pool.ratings` says which list and cutoff, and
+    `player.forecast` has the estimated rating and the pending games. The index has `ratings` once.
+  - When the cutoff cannot be found there are no forecasts; the next run tries again.

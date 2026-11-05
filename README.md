@@ -69,67 +69,17 @@ It is built for any team. Vallensbæk BTK 3 is the first test team.
   - Share the plan as a link or as a short message for the team chat. Download a backup and restore it.
   - Plans are stored in the browser of whoever made them. There are no accounts and no server.
 
-Results are refreshed by a GitHub Action every morning, at midday and every hour on match evenings (see [Data](#data)).
+Results are refreshed by a GitHub Action every morning, at midday and every hour on match evenings.
 
-### How the chances are estimated
+## Documentation
 
-Two independent estimates are averaged:
-
-1. **Player ratings.** Every game of a team match gets a win chance from the rating gap. In most senior series that is
-   9 singles and 1 doubles; other formats work the same way. The curve is calibrated on the pool's own singles results:
-   in the first pool, the higher-rated player won 78% of singles. The exact distribution of games won then gives the
-   chances of a win, a draw and a loss.
-   - The games of one match are not independent: on a good evening the whole team plays better. The odds are averaged
-     over a team's form on the day, which varies by about 100 rating points.
-   - Without a chosen or planned lineup, it averages over every lineup each team has fielded this season.
-2. **Common opponents.** It compares how both teams did against the same teams, and against each other if they already
-   met. Fewer comparisons pull the estimate towards even.
-
-Each pool's real match format is read from its results:
-- the number of players per side;
-- which positions meet in the singles;
-- the number of doubles;
-- whether matches stop at "first to N" (the national divisions);
-- whether a level score is settled by a deciding game.
-
-### How good the predictions are
-
-Every match keeps the prediction made from what was known before its day: the official rating list in force then, and
-the results of earlier matches only. Checked against the 946 matches of 2026/27 played by 5 November that had one:
-
-- The likeliest outcome happened 69% of the time.
-- The probability score (Brier) was 0.431, where pure guessing scores 0.67.
-- The expected score was off by 16% of the games on average.
-
-Averaging over the day's form improved the probability score from 0.440 and the log loss from 0.778 to 0.744; the share
-of right outcomes stayed about the same. Matches that were a team's first of the season have no prediction, because
-nothing was known about its lineup yet. Earlier seasons (see [Data](#data)) should fill that gap. The site always
-labels the chances as estimates.
-
-### How the rating forecast works
-
-The official rating list is published about every two weeks, and each version only includes games up to a few days
-before it came out, so a result can take up to three weeks to show. The forecast rates those games straight away:
-
-- Every singles game moves both players by a fixed number of points, from the rating gap and who won:
-
-  | Rating gap | Higher rated wins | Higher rated loses | Lower rated wins | Lower rated loses |
-  | ---------- | ----------------: | -----------------: | ---------------: | ----------------: |
-  | 0–24       |                +7 |                 −5 |               +7 |                −5 |
-  | 25–49      |                +6 |                −10 |              +12 |                −4 |
-  | 50–74      |                +5 |                −14 |              +16 |                −3 |
-  | 75–99      |                +4 |                −17 |              +19 |                −3 |
-  | 100–199    |                +3 |                −20 |              +22 |                −3 |
-  | 200–299    |                +2 |                −18 |              +22 |                −2 |
-  | 300+       |                +1 |                −15 |              +22 |                −1 |
-
-- All games of a match day use the ratings from before that day.
-- Doubles and walkovers are not rated.
-
-The table and the rules were read from the portal's "Opnåede point" pages and reproduce every one of more than 200
-rated games checked. Which games a list includes is not published either: the import finds the last included match day
-from a few players' rating pages. Tournament games and games against unrated players are not in the forecast, so the
-official rating can differ a little.
+| Document | What it covers |
+| --- | --- |
+| [docs/predictions.md](docs/predictions.md) | How the match chances are estimated, and how good the predictions have been. |
+| [docs/rating-forecast.md](docs/rating-forecast.md) | The rating forecast and the official points table. |
+| [docs/data-pipeline.md](docs/data-pipeline.md) | How the data gets from bordtennisportalen.dk to the site, and what is in each file. |
+| [docs/portal-api.md](docs/portal-api.md) | The portal's web service: the calls, their parameters and answers. |
+| [docs/development.md](docs/development.md) | Setting up, commands, how the code is organised, conventions and deployment. |
 
 ## What's next
 
@@ -139,66 +89,6 @@ official rating can differ a little.
 3. **Danish interface.** Optional.
 4. **Shared availability (optional).** Let each player answer in the app instead of through the captain. This needs a
    small shared backend, so it is a later decision.
-
-## Development
-
-Requires Node.js 22 or newer.
-
-```bash
-npm install
-npm run data:pull
-npm run dev
-```
-
-`npm run data:pull` copies the current match data from the `data` branch into `public/data/` (ignored by git).
-
-Other commands:
-
-- `npm test`: run the unit tests
-- `npm run typecheck`: check the TypeScript types
-- `npm run build`: build the production site into `dist/`
-- `npm run preview`: serve the built site
-- `npm run import`: refresh the data from bordtennisportalen.dk (needs network access to it)
-
-The main logic is in pure functions with unit tests:
-
-- `src/lineup/planner.ts`: the lineup planner;
-- `src/data/forecast.ts`: the match odds;
-- `src/data/prematch.ts`: the predictions made before each match;
-- `src/data/ratings.ts`: the rating forecast;
-- `scraper/`: reading the portal (`parse.ts`), one pool (`pool.ts`), the season (`import.ts`) and past seasons
-  (`history.ts`).
-
-## Data
-
-How the data gets from bordtennisportalen.dk to the site, step by step, and what is in each file:
-[docs/data.md](docs/data.md).
-
-- `scraper/config.json` says what to import. By default that is every pool of the current season, in all regions and
-  age groups; single pools or regions can be added.
-- `.github/workflows/data.yml` runs the import at 05:23 and 12:23 UTC, and every hour from 16:23 to 22:23 UTC on match
-  evenings (17:23 to 23:23 Danish time in winter):
-  - The list of pools is rediscovered about once a day.
-  - A pool whose match list has not changed costs one request.
-  - Match details are fetched only for newly played matches.
-  - When a new official rating list is out, each pool's ratings are read again (one request per pool), and a few
-    players' rating pages show which games the list includes.
-  - Requests are spaced 800 ms apart.
-  - A run stops starting new pools after 5 hours, and the next run continues from there.
-  - It keeps the season's official rating lists (`data/ratings/<season>.json`) for the predictions made before each
-    match: about 50 requests per new list.
-- The data is published to the `data` branch as a single commit, so the repository does not grow with every update.
-  The site build (`.github/workflows/site.yml`) copies it into the site.
-- **Earlier seasons.** `.github/workflows/history.yml` imports the past seasons, back to 2011/2012, into the `history`
-  branch, newest first, a few hours each night (requests one second apart):
-  - per season, every pool in the same format as the current season, and the official ratings from up to 12 rating
-    lists spread over its match days;
-  - past seasons do not change, so each one is read once: the whole backfill takes about two weeks of nights.
-
-## Deployment
-
-`.github/workflows/site.yml` runs on every push and pull request: it typechecks, tests and builds the site. Pushes and
-manual runs on `main` also publish it to GitHub Pages. The data workflow starts it whenever the data changes.
 
 ## Data and privacy
 
