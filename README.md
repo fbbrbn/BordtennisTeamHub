@@ -86,15 +86,20 @@ Results are refreshed by a GitHub Action every morning, at midday and every hour
 | [docs/data-pipeline.md](docs/data-pipeline.md) | How the data gets from bordtennisportalen.dk to the site, and what is in each file. |
 | [docs/portal-api.md](docs/portal-api.md) | The portal's web service: the calls, their parameters and answers. |
 | [docs/development.md](docs/development.md) | Setting up, commands, how the code is organised, conventions and deployment. |
+| [docs/roadmap.md](docs/roadmap.md) | The next steps: domain, Danish, shared login, donations and taxes. |
 
 ## What's next
 
-1. **Use the earlier seasons.** Predict a team's first matches from last season's lineups, and calibrate the model on
-   ten seasons of games.
-2. **Rating history.** Show each player's rating over time, from the rating lists already stored.
-3. **Danish interface.** Optional.
-4. **Shared availability (optional).** Let each player answer in the app instead of through the captain. This needs a
-   small shared backend, so it is a later decision.
+The plan, with the steps and decisions for each, is in [docs/roadmap.md](docs/roadmap.md):
+
+1. **Own domain** on Cloudflare.
+2. **Danish** as a second language.
+3. **A legal home** for the project: you personally, or a small association.
+4. **Shared login** for teams and clubs, so every player answers in the app.
+5. **Donations**, within the Danish rules for fundraising and tax.
+
+Also planned in the code: predictions for a team's first matches from last season's lineups, and head-to-head records
+across all seasons.
 
 ## Data and privacy
 
