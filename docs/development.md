@@ -27,8 +27,8 @@ The main logic is in pure functions with unit tests:
 - `src/data/forecast.ts`: the match odds;
 - `src/data/prematch.ts`: the predictions made before each match;
 - `src/data/ratings.ts`: the rating forecast;
-- `scraper/`: reading the portal (`parse.ts`), one pool (`pool.ts`), the season (`import.ts`) and past seasons
-  (`history.ts`).
+- `scraper/`: reading the portal (`parse.ts`), one pool (`pool.ts`), the season (`import.ts`), past seasons
+  (`history.ts`) and when the imports run (`clock.ts`).
 
 ## Code layout
 

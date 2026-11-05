@@ -5,6 +5,8 @@ name: History
 # Past seasons do not change, so every pool and rating list is read only once: the whole backfill
 # takes about two weeks of nights, and after that a run costs a handful of requests.
 # Requests are spaced one second apart, and the run ends before the morning data refresh.
+# The clock workflow (clock.yml) starts it; GitHub's own schedule stays as a backup, and when both
+# start a run the same night, the `check` job skips the second one.
 on:
   schedule:
     - cron: '41 0 * * *'
@@ -13,6 +15,10 @@ on:
       minutes:
         description: Stop starting new work after this many minutes
         default: '240'
+      clock:
+        description: Started by the clock (skip the import if one finished in the last 12 hours)
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -23,7 +29,34 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.recent.outputs.run }}
+    steps:
+      # Each night's import leaves a small "history-done" artifact; its time is the last import.
+      - name: Was there a history import tonight?
+        id: recent
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CLOCK: ${{ inputs.clock }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" != schedule ] && [ "$CLOCK" != true ]; then
+            echo "Started by hand: always import."
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          last=$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=history-done&per_page=1" -q '.artifacts[0].created_at // empty')
+          if [ -n "$last" ] && [ $(( $(date +%s) - $(date -d "$last" +%s) )) -lt 43200 ]; then
+            echo "The last history import finished at $last: this run is skipped."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
   backfill:
+    needs: check
+    if: needs.check.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 300
     steps:
@@ -70,3 +103,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run site.yml --ref main
+      - name: Mark the import as done
+        if: always()
+        run: date -u +%Y-%m-%dT%H:%M:%SZ > "$RUNNER_TEMP/history-done.txt"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: history-done
+          path: ${{ runner.temp }}/history-done.txt
+          retention-days: 1

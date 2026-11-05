@@ -1,0 +1,58 @@
+name: Clock
+
+# Starts the data and history imports on time. GitHub delays or drops many scheduled runs when
+# Actions is busy (on 5 November 2026 it started none of the evening ones), but a run started with
+# `gh workflow run` always starts. So this job waits for each time in scraper/clock.ts and starts
+# that workflow itself. A job may run six hours, so after 340 minutes it starts the next clock run
+# and ends: one clock is always running.
+#
+# The imports keep GitHub's own schedule as a backup, and every data run starts the clock again
+# if it has stopped. A sleeping job is free in a public repository; in a private one it would use
+# up the free Actions minutes.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+# One clock at a time: a second one waits, and the next clock run replaces it.
+concurrency:
+  group: clock
+  cancel-in-progress: false
+
+jobs:
+  clock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: scraper
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Start each import on time
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          start() {
+            for attempt in 1 2 3 4 5; do
+              if gh workflow run "$@" --ref main; then return 0; fi
+              sleep $(( attempt * 20 ))
+            done
+            echo "::warning::Could not start $1"
+          }
+          end=$(( $(date +%s) + 340 * 60 ))
+          # Runs up to 5 minutes after the end are still this clock's, so none falls between two clocks.
+          while :; do
+            read -r at workflow < <(node scraper/clock.ts)
+            [ "$at" -lt $(( end + 300 )) ] || break
+            echo "Next: $workflow at $(date -u -d "@$at" +%H:%M) UTC"
+            delay=$(( at - $(date +%s) ))
+            if [ "$delay" -gt 0 ]; then sleep "$delay"; fi
+            start "$workflow" -f clock=true
+          done
+          delay=$(( end - $(date +%s) ))
+          if [ "$delay" -gt 0 ]; then sleep "$delay"; fi
+          start clock.yml

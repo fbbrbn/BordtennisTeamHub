@@ -35,18 +35,32 @@ read into the data, and a test checks this. Only names, internal ids, ratings, c
 
 | Workflow | When (UTC) | What |
 | --- | --- | --- |
-| `.github/workflows/data.yml` | Mornings and middays, and every hour from 16 to 23 | The current season. |
+| `.github/workflows/data.yml` | 05:23, 12:23, and every hour from 16:23 to 22:23 | The current season. |
 | `.github/workflows/history.yml` | 00:41, for up to four hours | Past seasons, back to 2011/2012. |
+| `.github/workflows/clock.yml` | Always (one job at a time) | Starts the two imports above on time. |
 | `.github/workflows/site.yml` | After every data change and every push | Builds and publishes the site. |
 
 The schedule follows the match evenings: in Danish winter time the evening runs are from 17 to 24.
 
-GitHub delays or drops many scheduled runs when Actions is busy (on 4 and 5 November 2026 only 2 or 3 of the 9 daily
-runs started, some hours late). So the data workflow tries every slot several times: 05:23 and 05:53, 12:23 and 12:53,
-and four times an hour in the evening (:08, :23, :38, :53). Its first job checks when the last import finished, from a
-small `import-done` artifact each import leaves, and lets an attempt import only when that was more than 50 minutes
-ago. The portal still sees at most one import an hour; a failed import leaves no marker, so the next attempt retries.
-Started by hand, the workflow always imports.
+GitHub delays or drops many scheduled runs when Actions is busy. On 4 and 5 November 2026 only 2 or 3 of the 9 daily
+runs started, some hours late, and on the evening of 5 November none did. But a run started with `gh workflow run`
+always starts. So the times are kept by the clock workflow:
+
+- One job waits for each time in [`scraper/clock.ts`](../scraper/clock.ts) and starts that workflow itself.
+- A job may run six hours, so after 340 minutes it starts the next clock run and ends. One clock is always running.
+- A sleeping job is free in a public repository. In a private one it would use up the free Actions minutes.
+
+GitHub's own schedule stays in the import workflows as a backup:
+
+- The data workflow tries every slot several times: 05:23 and 05:53, 12:23 and 12:53, and four times an hour in the
+  evening (:08, :23, :38, :53).
+- Its first job starts the clock again if it has stopped. It also checks when the last import finished, from a small
+  `import-done` artifact each import leaves. A scheduled attempt imports only when that was more than 50 minutes ago,
+  and a run from the clock only when it was more than 30 minutes ago.
+- So the portal still sees at most one import an hour. A failed import leaves no marker, so the next attempt retries.
+- Started by hand, the workflow always imports, and also restarts the clock if needed.
+- The history workflow skips a run when another one finished in the last 12 hours (its `history-done` artifact), so
+  the clock and the schedule never both run a night's import.
 
 ## 3. One data run, step by step
 
@@ -150,23 +164,29 @@ imports a small part of a past season into `history/` (also ignored by git).
     national-league tag such as "(N)", "(O)" or "(I.O)".
   - When nothing matches, the tag and the trailing team number are dropped instead.
 - Data lives on the `data` branch, never on `main` (`public/data/` is gitignored):
-  - `data.yml` (see "When it runs": several attempts per slot, at most one import per 50 minutes) restores it, imports,
-    force-pushes a single new commit when anything changed, and then triggers `site.yml`. Pushes made with the
-    workflow token don't trigger workflows by themselves.
+  - `data.yml` (see "When it runs": started by `clock.yml`, with GitHub's schedule as a backup, and at most one import
+    per 50 minutes) restores it, imports, force-pushes a single new commit when anything changed, and then triggers
+    `site.yml`. Pushes made with the workflow token don't trigger workflows by themselves.
   - `site.yml` copies the branch into `public/data` before building.
   - Locally, run `npm run data:pull`.
 - `scraper/pool.ts` reads one pool (shared by `import.ts` and `history.ts`). `import.ts` also writes:
   - `data/players.json`: every player with their teams, for the player search.
   - `data/ratings/<season>.json`: every rating-list version in force on a match day of the season (`seasonTimeline`).
   - `match.prediction` in every pool of the season, and the season's record as `index.predictions`.
-- Past seasons: `scraper/history.ts` and `.github/workflows/history.yml` (nightly at 00:41 UTC, four hours, requests one
-  second apart) write `history/<season>/` on the `history` branch, newest season first:
+- Past seasons: `scraper/history.ts` and `.github/workflows/history.yml` (nightly at 00:41 UTC from the clock, four
+  hours, requests one second apart) write `history/<season>/` on the `history` branch, newest season first:
   - `targets.json` (the season's pools, discovered once), `pools/<pool>.json` (same format as the current season),
     `ratings.json` (up to 12 versions spread over the match days, `chooseVersions`) and `index.json` (`complete`).
   - Also `players/<shard>.json` (`scraper/careers.ts`, rebuilt from every stored pool at the end of each run). A
     complete season's pools get the ratings at the time (`applyRatings`).
   - The branch gets one ordinary commit per night, and then the workflow starts `site.yml`, which copies it in with
     `scripts/pull-history.sh` (`npm run history:pull` locally).
+- The clock (`clock.yml`): its only job sleeps until the next time in `scraper/clock.ts` (`nextRun`), starts that
+  workflow with `gh workflow run <file> -f clock=true`, and repeats. Times up to 5 minutes after its 340 minutes still
+  belong to it, so none falls between two clocks; then it starts the next clock run. The `clock` concurrency group
+  keeps one clock: a second one waits, and the next clock run replaces it. To change the times, edit `TIMETABLE`.
+  Each clock run reads it when it starts, so a change applies within six hours. To apply it at once, cancel the
+  running clock and start a data run, which starts a new clock.
 - Rating forecasts:
   - Each run reads the latest list version (2 requests). A new version means each pool's subPage 7 is read again,
     then `findRatedThrough` binary-searches the cutoff over the season's match days using a few players' rating pages.
