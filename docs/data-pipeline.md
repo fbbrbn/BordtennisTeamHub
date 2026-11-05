@@ -89,8 +89,16 @@ On the `history` branch, one folder per past season (for example `42025/`):
 | `ratings.json` | Official ratings from up to 12 rating lists spread over the season's match days. |
 | `index.json` | The season's pools, and whether the season is complete. |
 
+And at the top of the branch, `players/<last three digits of the player id>.json`: every player's past seasons (team,
+pool, matches, singles and doubles, rating at the time), for the player page.
+
 Past seasons do not change, so each pool and rating list is read once. The whole backfill takes about two weeks of
-nights, with requests one second apart. This branch is not copied into the site yet.
+nights, with requests one second apart. Once a season's rating lists are in, its pool files get each player's official
+rating when the pool started.
+
+The site build copies the past pools (by pool id) and the player files into the site as `history/`
+([`scripts/pull-history.sh`](../scripts/pull-history.sh)). The site looks a pool up in `data/pools/` first, then in
+`history/pools/`, and marks it as a past season.
 
 ## 5. Running it yourself
 
@@ -145,7 +153,10 @@ imports a small part of a past season into `history/` (also ignored by git).
   second apart) write `history/<season>/` on the `history` branch, newest season first:
   - `targets.json` (the season's pools, discovered once), `pools/<pool>.json` (same format as the current season),
     `ratings.json` (up to 12 versions spread over the match days, `chooseVersions`) and `index.json` (`complete`).
-  - The branch gets one ordinary commit per night; it is not copied into the site.
+  - Also `players/<shard>.json` (`scraper/careers.ts`, rebuilt from every stored pool at the end of each run). A
+    complete season's pools get the ratings at the time (`applyRatings`).
+  - The branch gets one ordinary commit per night, and then the workflow starts `site.yml`, which copies it in with
+    `scripts/pull-history.sh` (`npm run history:pull` locally).
 - Rating forecasts:
   - Each run reads the latest list version (2 requests). A new version means each pool's subPage 7 is read again,
     then `findRatedThrough` binary-searches the cutoff over the season's match days using a few players' rating pages.

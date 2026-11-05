@@ -53,10 +53,14 @@ It is built for any team. Vallensbæk BTK 3 is the first test team.
   - Rating and singles, doubles and sets records.
   - **Rating forecast:** the rating once the singles played since the official list are rated, game by game.
   - Insights: wins compared with the ratings, fifth sets, best win, upset losses and doubles partners.
+  - **Past seasons:** every earlier season the player played, with team, pool, singles and the rating at the time. Tap
+    through to that season's team and games.
   - Singles results placed by opponent rating.
   - The full game list.
 - **Pool page.** Standings with projected final points, results (with the prediction record), next matches and a player
   table.
+- **Past seasons**, back to 2011/2012 as the import works back in time: their pools, teams, matches and players open in
+  the same pages, marked as a past season.
 - **Lineup planner.**
   - Opening it from a team page fills in the roster, the fixtures, who played and the number of players per match
     from the results, and keeps them up to date.

@@ -6,3 +6,4 @@ dist/
 # Match data lives on the `data` branch (npm run data:pull)
 public/data/
 history/
+public/history/

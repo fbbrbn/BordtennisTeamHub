@@ -11,7 +11,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit && tsc --noEmit -p scraper",
     "import": "node scraper/import.ts",
-    "data:pull": "mkdir -p public/data && git fetch --depth 1 origin data && git archive FETCH_HEAD | tar -x -C public/data"
+    "data:pull": "mkdir -p public/data && git fetch --depth 1 origin data && git archive FETCH_HEAD | tar -x -C public/data",
+    "history:pull": "bash scripts/pull-history.sh"
   },
   "dependencies": {
     "react": "^19.3.1",

@@ -6,6 +6,7 @@ import { loadPool, useLoaded } from '../data/load';
 import type { Player, PoolData } from '../data/model';
 import { playerGames, playersById, summarize, teamsById, winRate } from '../data/stats';
 import { href } from '../lib/router';
+import { PastSeasons, PastSeasonTag } from '../components/PastSeasons';
 import { RatingForecastCard } from '../components/RatingForecast';
 import { matchDay, NotFound, OutcomeBadge, PageState, percent, shortDay, signed, StatTile } from '../components/ui';
 
@@ -50,7 +51,7 @@ function PlayerView({ pool, player }: { pool: PoolData; player: Player }) {
       <header className="dash-head">
         <p className="eyebrow">
           {team ? <a href={href('team', pool.pool.id, team.id)}>{team.name}</a> : 'Player'} ·{' '}
-          <a href={href('pool', pool.pool.id)}>{pool.pool.name}</a>
+          <a href={href('pool', pool.pool.id)}>{pool.pool.name}</a> <PastSeasonTag pool={pool.pool} />
         </p>
         <h1>{player.name}</h1>
       </header>
@@ -87,6 +88,8 @@ function PlayerView({ pool, player }: { pool: PoolData; player: Player }) {
           </ul>
         </section>
       )}
+
+      <PastSeasons playerId={player.id} poolId={pool.pool.id} />
 
       {strip.length > 0 && (
         <section className="card">

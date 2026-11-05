@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { PointsRace } from '../charts/PointsRace';
 import { FollowButton } from '../components/FollowButton';
 import { OddsBar, oddsSentence, ThinOdds } from '../components/Odds';
+import { PastSeasonTag } from '../components/PastSeasons';
 import { PredictedLine, PredictionRecordNote } from '../components/Prediction';
 import { listNote } from '../components/RatingForecast';
 import { clubSlug } from '../data/clubs';
@@ -52,9 +53,11 @@ interface Forecasts {
 }
 
 function TeamView({ pool, team, tab }: { pool: PoolData; team: TeamRef; tab: Tab }) {
+  // A past season's team is not "My team".
+  const past = pool.pool.past === true;
   useEffect(() => {
-    rememberTeam({ poolId: pool.pool.id, teamId: team.id, name: team.name });
-  }, [pool.pool.id, team.id, team.name]);
+    if (!past) rememberTeam({ poolId: pool.pool.id, teamId: team.id, name: team.name });
+  }, [past, pool.pool.id, team.id, team.name]);
 
   const matches = teamMatches(pool, team.id);
   const upcoming = matches.filter((m) => !m.score);
@@ -82,15 +85,17 @@ function TeamView({ pool, team, tab }: { pool: PoolData; team: TeamRef; tab: Tab
               <a href={href('club', clubSlug(team.club))}>{team.club}</a> ·{' '}
             </>
           )}
-          <a href={href('pool', pool.pool.id)}>{pool.pool.name}</a> · {pool.pool.league}
+          <a href={href('pool', pool.pool.id)}>{pool.pool.name}</a> · {pool.pool.league} <PastSeasonTag pool={pool.pool} />
         </p>
         <h1>{team.name}</h1>
-        <div className="button-row">
-          <FollowButton team={{ poolId: pool.pool.id, teamId: team.id, name: team.name }} />
-          <a className="button primary" href={href('lineup', `team-${pool.pool.id}-${team.id}`)}>
-            Plan lineup
-          </a>
-        </div>
+        {!past && (
+          <div className="button-row">
+            <FollowButton team={{ poolId: pool.pool.id, teamId: team.id, name: team.name }} />
+            <a className="button primary" href={href('lineup', `team-${pool.pool.id}-${team.id}`)}>
+              Plan lineup
+            </a>
+          </div>
+        )}
       </header>
 
       <nav className="tabs" aria-label="Team pages">

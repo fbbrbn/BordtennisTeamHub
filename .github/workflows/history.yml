@@ -16,6 +16,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: history
@@ -47,6 +48,7 @@ jobs:
         run: node scraper/history.ts --out history --max-minutes "$MINUTES"
       # Files are written as they are read, so even a failed run publishes what it got.
       - name: Publish the history branch
+        id: publish
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
@@ -61,3 +63,10 @@ jobs:
           fi
           git commit -q -m "Past seasons $(date -u +%Y-%m-%dT%H:%MZ)"
           git push -q "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/history
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+      # The site shows past seasons too. Pushes made with the workflow token start no workflows, so start it here.
+      - name: Redeploy the site
+        if: always() && steps.publish.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run site.yml --ref main

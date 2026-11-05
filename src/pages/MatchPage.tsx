@@ -1,4 +1,5 @@
 import { OddsBar } from '../components/Odds';
+import { PastSeasonTag } from '../components/PastSeasons';
 import { listNote, RatingRules } from '../components/RatingForecast';
 import { loadPool, useLoaded } from '../data/load';
 import type { PoolData, TeamMatch } from '../data/model';
@@ -40,7 +41,7 @@ function MatchView({ pool, match }: { pool: PoolData; match: TeamMatch }) {
     <div className="dash">
       <header className="dash-head">
         <p className="eyebrow">
-          <a href={href('pool', pool.pool.id)}>{pool.pool.name}</a> · Match {match.id}
+          <a href={href('pool', pool.pool.id)}>{pool.pool.name}</a> · Match {match.id} <PastSeasonTag pool={pool.pool} />
         </p>
         <h1 className="match-title">
           <a href={href('team', pool.pool.id, match.homeTeamId)}>{home?.name ?? 'Home'}</a>

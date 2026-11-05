@@ -30,6 +30,8 @@ jobs:
           else
             echo "No data branch yet: building without match data."
           fi
+      - name: Fetch past seasons
+        run: bash scripts/pull-history.sh
       - run: npm run typecheck
       - run: npm test
       - run: npm run build

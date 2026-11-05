@@ -10,6 +10,10 @@
  *   history/<season>/pools/<pool>.json one file per pool, the same format as the current season
  *   history/<season>/ratings.json      official ratings from a few rating-list versions
  *   history/<season>/index.json        the season's pools, and whether the season is complete
+ *   history/players/<shard>.json       every player's past seasons by the id's last 3 digits (careers.ts)
+ *
+ * Once a season's rating lists are in, its pool files get each player's official rating at the
+ * time, so past pools show ratings like the current season.
  *
  * Past seasons do not change, so every pool and rating list is read once. A run stops starting
  * new work after `--max-minutes`; the next run continues where it stopped.
@@ -17,6 +21,8 @@
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { NamedId, PoolData, PoolRef } from '../src/data/model.ts';
+import { ratingOn } from '../src/data/prematch.ts';
+import { careerShards } from './careers.ts';
 import { parseDropdowns, parseRegionPools, seasonName, type PoolLink } from './parse.ts';
 import { importPool, loadClubs, message, readJson, toRef, writeJson, type Context } from './pool.ts';
 import { PortalClient } from './portal.ts';
@@ -156,6 +162,7 @@ async function main() {
         console.log(`${season.name}: rating list of ${date}, ${found.size} players.`);
       }
       ratingsDone = chosen.every((d) => ratings.versions.includes(d));
+      if (ratingsDone) await applyRatings(dir, stored, ratings);
     }
 
     const skipped = targets.pools.filter((t) => !stored.has(t.groupId)).map((t) => t.groupId);
@@ -169,7 +176,42 @@ async function main() {
     await writeJson(join(dir, 'index.json'), seasonIndex);
     if (seasonIndex.complete) console.log(`${season.name}: complete.`);
   }
+  await writeCareers();
   console.log(`Done in ${Math.round((Date.now() - started) / 60_000)} min, ${client.requests} requests.`);
+}
+
+/** Each player's official rating when the pool started, or their first rating that season. */
+async function applyRatings(dir: string, ids: Iterable<string>, ratings: SeasonRatings): Promise<void> {
+  for (const id of ids) {
+    const file = join(dir, 'pools', `${id}.json`);
+    const data = await readJson<PoolData>(file);
+    const first = data?.matches.map((m) => m.date.slice(0, 10)).sort()[0];
+    if (!data || !first) continue;
+    for (const player of data.players) {
+      const values = ratings.players[player.id] ?? [];
+      player.rating = ratingOn(ratings, player.id, first) ?? values.find((v) => v != null) ?? player.rating;
+    }
+    await writeJson(file, data);
+  }
+}
+
+/** Rebuilds players/<shard>.json from every stored past pool, whatever seasons this run covered. */
+async function writeCareers(): Promise<void> {
+  const pools: PoolData[] = [];
+  const seasons = (await readdir(outDir).catch(() => [] as string[])).filter((name) => /^4\d{4}$/.test(name));
+  for (const seasonId of seasons) {
+    const dir = join(outDir, seasonId, 'pools');
+    for (const name of await readdir(dir).catch(() => [] as string[])) {
+      const data = await readJson<PoolData>(join(dir, name));
+      if (data) pools.push(data);
+    }
+  }
+  const shards = careerShards(pools);
+  for (const [key, shard] of shards) {
+    const file = join(outDir, 'players', `${key}.json`);
+    if (JSON.stringify(await readJson(file)) !== JSON.stringify(shard)) await writeJson(file, shard);
+  }
+  console.log(`Past seasons by player: ${pools.length} pools, ${shards.size} files.`);
 }
 
 main().catch((error) => {

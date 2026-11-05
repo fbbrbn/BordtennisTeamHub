@@ -10,7 +10,8 @@ npm run data:pull
 npm run dev
 ```
 
-`npm run data:pull` copies the current match data from the `data` branch into `public/data/` (ignored by git).
+`npm run data:pull` copies the current match data from the `data` branch into `public/data/`, and
+`npm run history:pull` the past seasons into `public/history/` (both ignored by git).
 
 Other commands:
 
@@ -38,6 +39,8 @@ The main logic is in pure functions with unit tests:
   - `storage.ts`: localStorage, share-link encoding (deflate + base64url) and validation of untrusted input.
   - `state.ts`: reducer. The UI lives in `LineupPage.tsx`, `Matches.tsx`, `BalanceTable.tsx` and `RosterEditor.tsx`.
 - `src/data/`: `model.ts` (shared JSON types), `load.ts` (fetch + cache) and `stats.ts` (pure, tested statistics).
+  - `loadPool` tries the current season (`data/pools/`), then past seasons (`history/pools/`, marked `pool.past`).
+    `loadCareer` reads a player's past seasons.
   - `forecast.ts`: match odds.
     - Logistic rating model with a scale calibrated per pool by `fitScale`.
     - Exact distribution of games won, and common-opponent margins.
@@ -69,6 +72,8 @@ The main logic is in pure functions with unit tests:
   - `ui.tsx`: stat tiles, badges, dates and page states. `Odds.tsx`: the odds bars.
   - `Prediction.tsx`: the predicted line under results and the prediction record.
   - `RatingForecast.tsx`: the rating forecast card and the points table.
+  - `PastSeasons.tsx`: the player's past seasons, and the "Past season" tag. Past teams have no follow or planner
+    buttons and are never remembered as "My team".
   - `FollowButton.tsx` and `Nav.tsx`.
 - `src/charts/`: hand-written SVG charts. `PointsRace` is a line chart in emphasis form; `RatingStrip` is a strip plot.
   Both have hover, keyboard and touch tooltips and a table twin.

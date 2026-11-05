@@ -4,6 +4,7 @@ import { loadPool, useLoaded } from '../data/load';
 import type { PoolData, TeamMatch } from '../data/model';
 import { playerGames, summarize, teamsById, winRate } from '../data/stats';
 import { href } from '../lib/router';
+import { PastSeasonTag } from '../components/PastSeasons';
 import { PredictionRecordNote } from '../components/Prediction';
 import { matchDay, matchTime, ordinal, PageState, percent, portalUrl } from '../components/ui';
 
@@ -63,7 +64,9 @@ function PoolView({ pool }: { pool: PoolData }) {
   return (
     <div className="dash">
       <header className="dash-head">
-        <p className="eyebrow">{pool.pool.league}</p>
+        <p className="eyebrow">
+          {pool.pool.league} <PastSeasonTag pool={pool.pool} />
+        </p>
         <h1>{pool.pool.name}</h1>
         <div className="button-row">
           <a className="button" href={portalUrl(pool.pool, 2)} target="_blank" rel="noreferrer">

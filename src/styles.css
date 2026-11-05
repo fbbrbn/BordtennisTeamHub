@@ -1051,7 +1051,8 @@ textarea {
   min-width: 0;
 }
 
-.result-predicted {
+.result-predicted,
+.result-note {
   font-size: 0.8rem;
   color: var(--text-2);
 }

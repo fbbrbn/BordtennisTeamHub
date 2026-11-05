@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { DataIndex, PlayerIndex, PoolData } from './model';
+import type { CareerEntry, CareerShard, DataIndex, PlayerIndex, PoolData } from './model';
 
 const cache = new Map<string, Promise<unknown>>();
 
@@ -9,6 +9,8 @@ function getJson<T>(path: string): Promise<T> {
   if (!request) {
     request = fetch(path).then((response) => {
       if (!response.ok) throw new Error(response.status === 404 ? 'not-found' : `HTTP ${response.status}`);
+      // Dev servers answer a missing file with the app's own page.
+      if (!(response.headers.get('content-type') ?? '').includes('json')) throw new Error('not-found');
       return response.json() as Promise<T>;
     });
     request.catch(() => cache.delete(path));
@@ -19,7 +21,26 @@ function getJson<T>(path: string): Promise<T> {
 
 export const loadIndex = () => getJson<DataIndex>('data/index.json');
 export const loadPlayers = () => getJson<PlayerIndex>('data/players.json');
-export const loadPool = (poolId: string) => getJson<PoolData>(`data/pools/${encodeURIComponent(poolId)}.json`);
+/** A pool of the current season, or else of a past season (then marked `past`). */
+export function loadPool(poolId: string): Promise<PoolData> {
+  const id = encodeURIComponent(poolId);
+  return getJson<PoolData>(`data/pools/${id}.json`).catch((error: unknown) => {
+    if (!(error instanceof Error) || error.message !== 'not-found') throw error;
+    return getJson<PoolData>(`history/pools/${id}.json`).then((data) => {
+      data.pool.past = true;
+      return data;
+    });
+  });
+}
+
+/** A player's past seasons, newest first; empty when there are none (yet). */
+export function loadCareer(playerId: string): Promise<CareerEntry[]> {
+  // The same shard as scraper/careers.ts: the id's last three digits.
+  return getJson<CareerShard>(`history/players/${playerId.slice(-3).padStart(3, '0')}.json`).then(
+    (shard) => shard.players[playerId] ?? [],
+    () => [],
+  );
+}
 
 export type Loaded<T> = { status: 'loading' } | { status: 'error'; error: string } | { status: 'ready'; data: T };
 

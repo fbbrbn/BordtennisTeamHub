@@ -27,6 +27,32 @@ export interface NamedId {
   name: string;
 }
 
+/** `history/players/<last three digits of the id>.json`: past seasons by player id (see scraper/careers.ts). */
+export interface CareerShard {
+  version: 1;
+  players: Record<string, CareerEntry[]>;
+}
+
+/** One team a player played for in a past season, newest season first. */
+export interface CareerEntry {
+  seasonId: string;
+  /** e.g. "2025/2026" */
+  season: string;
+  poolId: string;
+  /** e.g. "Serie 4 Pulje 4" */
+  pool: string;
+  league: string;
+  teamId: string;
+  team: string;
+  club: string | null;
+  matches: number;
+  /** Games won and lost. */
+  singles: [number, number];
+  doubles: [number, number];
+  /** Official rating when the pool started, from the season's rating lists. */
+  rating: number | null;
+}
+
 /** `players.json`: every player of the season, to find a player's club and teams by name. */
 export interface PlayerIndex {
   version: 1;
@@ -66,6 +92,8 @@ export interface PoolInfo {
   ageGroupName?: string;
   /** Which games the players' official ratings include; forecasts start after it. */
   ratings?: RatingStatus;
+  /** Set by the site for a pool of a past season (loaded from history/). */
+  past?: boolean;
   updatedAt: string;
 }
 
