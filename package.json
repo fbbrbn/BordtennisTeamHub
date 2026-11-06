@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p scraper",
     "import": "node scraper/import.ts",
     "data:pull": "mkdir -p public/data && git fetch --depth 1 origin data && git archive FETCH_HEAD | tar -x -C public/data",
-    "history:pull": "bash scripts/pull-history.sh"
+    "history:pull": "bash scripts/pull-history.sh",
+    "backtest": "node scraper/backtest.ts"
   },
   "dependencies": {
     "@fontsource/barlow-condensed": "^5.3.0",

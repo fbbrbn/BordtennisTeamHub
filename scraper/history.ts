@@ -11,6 +11,7 @@
  *   history/<season>/ratings.json      official ratings from a few rating-list versions
  *   history/<season>/index.json        the season's pools, and whether the season is complete
  *   history/players/<shard>.json       every player's past seasons by the id's last 3 digits (careers.ts)
+ *   history/form/<season>.json         a complete season's form, for the next season's forecasts (seasonform.ts)
  *
  * Once a season's rating lists are in, its pool files get each player's official rating at the
  * time, so past pools show ratings like the current season.
@@ -21,11 +22,12 @@
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { NamedId, PoolData, PoolRef } from '../src/data/model.ts';
-import { ratingOn } from '../src/data/prematch.ts';
+import { ratingOn, replaySeason } from '../src/data/prematch.ts';
 import { careerShards } from './careers.ts';
 import { parseDropdowns, parseRegionPools, seasonName, type PoolLink } from './parse.ts';
 import { importPool, loadClubs, message, readJson, toRef, writeJson, type Context } from './pool.ts';
 import { PortalClient } from './portal.ts';
+import { seasonFormFile } from './seasonform.ts';
 import { addVersion, chooseVersions, defaultRatingList, ratingListAt, ratingListVersions, type SeasonRatings } from './ratinglist.ts';
 
 /** The season's pools, with failed attempts so a broken pool is not retried for ever. */
@@ -177,6 +179,7 @@ async function main() {
     if (seasonIndex.complete) console.log(`${season.name}: complete.`);
   }
   await writeCareers();
+  await writeSeasonForms();
   console.log(`Done in ${Math.round((Date.now() - started) / 60_000)} min, ${client.requests} requests.`);
 }
 
@@ -212,6 +215,26 @@ async function writeCareers(): Promise<void> {
     if (JSON.stringify(await readJson(file)) !== JSON.stringify(shard)) await writeJson(file, shard);
   }
   console.log(`Past seasons by player: ${pools.length} pools, ${shards.size} files.`);
+}
+
+/** Writes form/<season>.json for every complete season that has none yet: past seasons never change. */
+async function writeSeasonForms(): Promise<void> {
+  const seasons = (await readdir(outDir).catch(() => [] as string[])).filter((name) => /^4\d{4}$/.test(name));
+  for (const seasonId of seasons) {
+    const file = join(outDir, 'form', `${seasonId}.json`);
+    if (await readJson(file)) continue;
+    const index = await readJson<SeasonIndex>(join(outDir, seasonId, 'index.json'));
+    const ratings = await readJson<SeasonRatings>(join(outDir, seasonId, 'ratings.json'));
+    if (!index?.complete || !ratings) continue;
+    const pools: PoolData[] = [];
+    for (const ref of index.pools) {
+      const data = await readJson<PoolData>(join(outDir, seasonId, 'pools', `${ref.id}.json`));
+      if (data) pools.push(data);
+    }
+    const form = seasonFormFile(seasonId, replaySeason(pools, ratings));
+    await writeJson(file, form);
+    console.log(`${seasonName(seasonId)}: form of ${Object.keys(form.players).length} players.`);
+  }
 }
 
 main().catch((error) => {

@@ -6,7 +6,7 @@ import { PastSeasonTag } from '../components/PlayerHistory';
 import { PredictedLine, PredictionRecordNote } from '../components/Prediction';
 import { listNote } from '../components/RatingForecast';
 import { clubSlug } from '../data/clubs';
-import { fitScale, forecastMatch, lineupSize, type MatchForecast } from '../data/forecast';
+import { fitScale, forecastMatch, lineupSize, ratingSummary, type MatchForecast } from '../data/forecast';
 import { teamInsights, type Insight } from '../data/insights';
 import { loadPool, useLoaded } from '../data/load';
 import type { PoolData, TeamMatch, TeamRef } from '../data/model';
@@ -27,7 +27,7 @@ import { count } from '../lib/text';
 import { href } from '../lib/router';
 import { matchDay, matchTime, NotFound, ordinal, OutcomeBadge, PageState, percent, portalUrl, signed, StatTile, WinMeter } from '../components/ui';
 import { plannedLineup } from '../lineup/planned';
-import { commonReason, ratingReason } from './MatchPreview';
+import { commonReason, formReason, HowWorkedOut, ratingReason } from './MatchPreview';
 
 type Tab = 'overview' | 'matches' | 'players';
 const TABS: { id: Tab; label: string }[] = [
@@ -142,6 +142,11 @@ function Overview({
   const nextForecast = next ? forecasts.get(next.id) : undefined;
   const odds = nextForecast?.forecast.odds;
   const opponent = next ? (teams.get(opponentOf(next, team.id))?.name ?? 'the opponent') : '';
+  // The same forecast without form and the home table, for "ratings alone".
+  const nextLineup = next ? (plannedLineup(pool.pool.id, team.id, next.id, lineupSize(pool)) ?? undefined) : undefined;
+  const plain = next ? ratingSummary(pool, team.id, opponentOf(next, team.id), scale, { team: nextLineup }, isHome(next, team.id), false) : null;
+  const nameOf = (id: string) => teams.get(id)?.name ?? 'Team';
+  const playerName = (id: string) => players.get(id)?.name ?? 'Unknown player';
 
   return (
     <>
@@ -177,7 +182,11 @@ function Overview({
                 <summary>Why these chances?</summary>
                 <ul className="reasons">
                   <li>
-                    <strong>Player ratings.</strong> {ratingReason(nextForecast.forecast.rating, team.name, opponent)}
+                    <strong>Player ratings.</strong> {ratingReason(plain, team.name, opponent)}
+                  </li>
+                  <li>
+                    <strong>Form and home table.</strong>{' '}
+                    {formReason(pool, scale, next, [{ teamId: team.id, lineup: nextLineup }, { teamId: opponentOf(next, team.id) }], nextForecast.forecast.rating, plain, nameOf, playerName)}
                   </li>
                   <li>
                     <strong>Common opponents.</strong> {commonReason(nextForecast.forecast.common, team.name)}
@@ -188,6 +197,7 @@ function Overview({
                     ? `Using the lineup from your planner: ${(nextForecast.forecast.rating?.team ?? []).map((id) => players.get(id)?.name ?? '?').join(', ')}.`
                     : 'Based on the lineups both teams have used this season. Mark who can play in the planner to use your real lineup.'}
                 </p>
+                <HowWorkedOut />
               </details>
             </>
           )}

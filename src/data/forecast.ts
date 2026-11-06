@@ -3,14 +3,17 @@
  *
  *  1. Player ratings. Every game of a team match (all singles pairings plus one
  *     doubles) gets a win chance from the rating difference, using a logistic curve
- *     calibrated on the pool's own singles results. The exact distribution of games
- *     won then gives the chances of a win, a draw and a loss.
+ *     calibrated on the pool's own singles results, plus the edges in form.ts: each
+ *     player's form, youth players, unrated players and the home table. The exact
+ *     distribution of games won then gives the chances of a win, a draw and a loss.
  *  2. Common opponents. Compare how both teams did against the same teams (and
  *     against each other, if they already met). If we beat C 6-4 and they lost to
  *     C 3-7, we were 6 games better against C.
  *
- * These are estimates, not data: the UI always says so and shows the reasons.
+ * The ratings count three times as much as the common opponents. These are estimates,
+ * not data: the UI always says so and shows the reasons.
  */
+import { edgeParts, homeEdge, playerEdge } from './form.ts';
 import type { PoolData, TeamMatch } from './model.ts';
 import { isHome, scoreFor, teamMatches } from './stats.ts';
 
@@ -92,9 +95,27 @@ const FORM_POINTS: readonly [number, number][] = [
   [Math.sqrt(3), 1 / 6],
 ];
 
-/** Chance that a player rated `a` beats one rated `b`. */
+/**
+ * A pool's scale is fitted on its earlier games with today's ratings, which already include those
+ * games, so it comes out a little too confident: the forecasts use 84% of the rating gap.
+ */
+export const CALIBRATION = 0.84;
+/** How much the ratings count against the common opponents when both are known. */
+export const RATING_WEIGHT = 0.75;
+
+/** Chance that a player rated `a` beats one rated `b`: the plain rating curve, without edges. */
 export function winChance(a: number, b: number, scale: number): number {
   return 1 / (1 + 10 ** (-(a - b) / scale));
+}
+
+/** A game's chance in the forecasts: the calibrated rating gap plus `edge` in log-odds (form.ts). */
+export function gameChance(a: number, b: number, scale: number, edge = 0): number {
+  return 1 / (1 + Math.exp(-((CALIBRATION * Math.LN10 * (a - b)) / scale + edge)));
+}
+
+/** An edge in log-odds as rating points, at this scale. */
+export function edgePoints(edge: number, scale: number): number {
+  return (edge * scale) / (CALIBRATION * Math.LN10);
 }
 
 /** Probability of winning exactly k of the games, for k = 0..n (games independent). */
@@ -408,6 +429,7 @@ export function fieldedLineups(pool: PoolData, teamId: string): { ids: string[];
 /**
  * Rating odds averaged over possible lineups. A side given as one specific lineup uses
  * just that; otherwise every lineup the team fielded this season counts, weighted by use.
+ * `adjust`: false leaves out the edges (form, youth, unrated, home table), for "ratings alone".
  */
 export function ratingSummary(
   pool: PoolData,
@@ -416,6 +438,7 @@ export function ratingSummary(
   scale: number,
   lineups: { team?: string[]; opponent?: string[] } = {},
   home = true,
+  adjust = true,
 ): RatingSummary | null {
   const options = (id: string, given?: string[]) => {
     if (given) return [{ ids: given, weight: 1 }];
@@ -432,7 +455,7 @@ export function ratingSummary(
   let drawPossible = true;
   for (const a of ours) {
     for (const b of theirs) {
-      const f = ratingForecast(pool, a.ids, b.ids, scale, home);
+      const f = ratingForecast(pool, a.ids, b.ids, scale, home, FORM_SPREAD, adjust);
       if (!f) continue;
       const w = a.weight * b.weight;
       total += w;
@@ -464,7 +487,10 @@ export function ratingSummary(
   };
 }
 
-/** `home`: whether our team is the home side, which matters when a format's pairings are not symmetric. */
+/**
+ * `home`: whether our team is the home side. It gets the home table's edge, and it matters when a
+ * format's pairings are not symmetric. `adjust`: false leaves out every edge (see ratingSummary).
+ */
 export function ratingForecast(
   pool: PoolData,
   team: string[],
@@ -472,13 +498,18 @@ export function ratingForecast(
   scale: number,
   home = true,
   spread = FORM_SPREAD,
+  adjust = true,
 ): RatingForecast | null {
   if (team.length === 0 || opponent.length === 0) return null;
   const rating = ratingsOf(pool);
-  const singles = team.map((a) => opponent.map((b) => winChance(rating(a), rating(b), scale)));
+  const players = new Map(pool.players.map((p) => [p.id, p]));
+  const edge = (id: string) => (adjust ? playerEdge(players.get(id)) : 0);
+  const homeSide = adjust ? (home ? 1 : -1) * homeEdge(pool.pool) : 0;
+  const singles = team.map((a) => opponent.map((b) => gameChance(rating(a), rating(b), scale, homeSide + edge(a) - edge(b))));
   const teamAverage = average(team.map(rating));
   const opponentAverage = average(opponent.map(rating));
-  const doubles = winChance(teamAverage, opponentAverage, scale);
+  const teamEdge = homeSide + average(team.map(edge)) - average(opponent.map(edge));
+  const doubles = gameChance(teamAverage, opponentAverage, scale, teamEdge);
 
   // Play the pool's real format: players take positions by rating, strongest first. A missing
   // player (a side fielding fewer players than the format) loses their games by walkover.
@@ -488,7 +519,7 @@ export function ratingForecast(
   const theirs = byRating(opponent);
   // `form`: how much better than their ratings our team plays on the day, in rating points.
   const oddsWithForm = (form: number) => {
-    const teamGame = winChance(teamAverage + form, opponentAverage, scale);
+    const teamGame = gameChance(teamAverage + form, opponentAverage, scale, teamEdge);
     const chances = format.sequence.map((g) => {
       if (g.kind === 'team') return teamGame;
       // A label "A1/B2" means home position 1 against away position 2.
@@ -497,7 +528,7 @@ export function ratingForecast(
       if (a === undefined && b === undefined) return 0.5;
       if (a === undefined) return 0;
       if (b === undefined) return 1;
-      return winChance(rating(a) + form, rating(b), scale);
+      return gameChance(rating(a) + form, rating(b), scale, homeSide + edge(a) - edge(b));
     });
     return oddsForFormat(format, chances, teamGame);
   };
@@ -550,17 +581,58 @@ export function commonOpponentForecast(pool: PoolData, teamId: string, opponentI
   return { rows, direct, margin: expected, odds: oddsForFormat(format, new Array(gamesPerMatch(pool)).fill(shrunk), shrunk) };
 }
 
-export function combineOdds(list: (Odds | null)[]): Odds | null {
-  const present = list.filter((o): o is Odds => o !== null);
+/** The players a forecast counts for a team: the given lineup, or everyone in the lineups it fielded. */
+export function forecastPlayers(pool: PoolData, teamId: string, lineup?: string[]): string[] {
+  if (lineup && lineup.length > 0) return lineup;
+  const fielded = fieldedLineups(pool, teamId);
+  return fielded.length > 0 ? [...new Set(fielded.flatMap((l) => l.ids))] : usualLineup(pool, teamId);
+}
+
+export interface PlayerAdjustment {
+  id: string;
+  /** The player's edge as rating points: form this season and last, youth, unrated (form.ts). */
+  points: number;
+  youth: boolean;
+  unrated: boolean;
+}
+
+/** The players among `ids` whose edge is worth at least `min` rating points, largest first. */
+export function playerAdjustments(pool: PoolData, ids: string[], scale: number, min = 10): PlayerAdjustment[] {
+  const players = new Map(pool.players.map((p) => [p.id, p]));
+  return [...new Set(ids)]
+    .map((id) => {
+      const parts = edgeParts(players.get(id));
+      const points = Math.round(edgePoints(parts.form + parts.last + parts.youth + parts.unrated, scale));
+      return { id, points, youth: parts.youth !== 0, unrated: parts.unrated !== 0 };
+    })
+    .filter((a) => Math.abs(a.points) >= min)
+    .sort((a, b) => Math.abs(b.points) - Math.abs(a.points));
+}
+
+/** The home side's edge in this pool, as rating points a game (0 in veteran pools). */
+export function homePoints(pool: PoolData, scale: number): number {
+  return Math.round(edgePoints(homeEdge(pool.pool), scale));
+}
+
+/** A weighted average of the estimates that are present (equal weights unless given). */
+export function combineOdds(list: (Odds | null)[], weights: number[] = list.map(() => 1)): Odds | null {
+  const present = list.flatMap((o, i) => (o ? [{ o, w: weights[i] }] : []));
   if (present.length === 0) return null;
+  const total = present.reduce((s, p) => s + p.w, 0);
+  const mean = (key: 'win' | 'draw' | 'loss' | 'expectedGames' | 'totalGames') => present.reduce((s, p) => s + p.w * p.o[key], 0) / total;
   return {
-    win: average(present.map((o) => o.win)),
-    draw: average(present.map((o) => o.draw)),
-    loss: average(present.map((o) => o.loss)),
-    expectedGames: average(present.map((o) => o.expectedGames)),
-    totalGames: average(present.map((o) => o.totalGames)),
-    drawPossible: present.every((o) => o.drawPossible),
+    win: mean('win'),
+    draw: mean('draw'),
+    loss: mean('loss'),
+    expectedGames: mean('expectedGames'),
+    totalGames: mean('totalGames'),
+    drawPossible: present.every((p) => p.o.drawPossible),
   };
+}
+
+/** The match odds from both estimates: the ratings count three times as much as the common opponents. */
+export function matchOdds(rating: Odds | null, common: Odds | null): Odds | null {
+  return combineOdds([rating, common], [RATING_WEIGHT, 1 - RATING_WEIGHT]);
 }
 
 export function forecastMatch(
@@ -573,7 +645,7 @@ export function forecastMatch(
   const opponentId = isHome(match, teamId) ? match.awayTeamId : match.homeTeamId;
   const rating = ratingSummary(pool, teamId, opponentId, scale, lineups, isHome(match, teamId));
   const common = commonOpponentForecast(pool, teamId, opponentId);
-  return { teamId, opponentId, rating, common, odds: combineOdds([rating?.odds ?? null, common.odds]) };
+  return { teamId, opponentId, rating, common, odds: matchOdds(rating?.odds ?? null, common.odds) };
 }
 
 export interface Projection {

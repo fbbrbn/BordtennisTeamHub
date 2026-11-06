@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CALIBRATION,
   combineOdds,
   commonOpponentForecast,
   DEFAULT_SCALE,
+  edgePoints,
   fieldedLineups,
   fitScale,
+  FORM_SPREAD,
+  gameChance,
   lineupSize,
   matchFormat,
+  matchOdds,
   oddsForFormat,
   oddsFromGames,
   projectTable,
@@ -16,6 +21,7 @@ import {
   winChance,
   winDistribution,
 } from './forecast';
+import { HOME_EDGE } from './form';
 import type { Game, PoolData, TeamMatch } from './model';
 
 const single = (home: string, away: string, homeWins: boolean): Game => ({
@@ -202,10 +208,54 @@ describe('match formats', () => {
   });
 
   it('forecasts the real number of games', () => {
-    const forecast = ratingForecast(pool, ['h1', 'h2', 'h3', 'h4'], ['a1', 'a2', 'a3', 'a4'], 265)!;
+    const forecast = ratingForecast(pool, ['h1', 'h2', 'h3', 'h4'], ['a1', 'a2', 'a3', 'a4'], 265, true, FORM_SPREAD, false)!;
     expect(forecast.odds.totalGames).toBe(14);
-    // Equal lineups on positions: an even match.
+    // Equal lineups on positions, without the home table: an even match.
     expect(forecast.odds.expectedGames).toBeCloseTo(7, 5);
+  });
+
+  it('gives the home side the edge of its own table, except in veteran pools', () => {
+    const lineups = [['h1', 'h2', 'h3', 'h4'], ['a1', 'a2', 'a3', 'a4']];
+    const home = ratingForecast(pool, lineups[0], lineups[1], 265, true)!;
+    const away = ratingForecast(pool, lineups[0], lineups[1], 265, false)!;
+    expect(home.odds.expectedGames).toBeGreaterThan(7.2);
+    expect(home.odds.expectedGames + away.odds.expectedGames).toBeCloseTo(14, 5);
+    expect(home.singles[0][0]).toBeCloseTo(gameChance(1400, 1400, 265, HOME_EDGE), 9);
+    const veteran = { ...pool, pool: { ...pool.pool, ageGroupId: '4010' } };
+    expect(ratingForecast(veteran, lineups[0], lineups[1], 265, true)!.odds.expectedGames).toBeCloseTo(7, 5);
+  });
+});
+
+describe('edges beyond the ratings', () => {
+  const pool = emptyPool();
+  pool.players = [
+    { id: 'h1', name: 'h1', teamId: 'H', rating: 1500 },
+    { id: 'a1', name: 'a1', teamId: 'A', rating: 1500 },
+  ];
+  const chance = (p: PoolData) => ratingForecast(p, ['h1'], ['a1'], 300, true)!.singles[0][0];
+  const withPlayer = (id: string, change: Partial<PoolData['players'][number]>): PoolData => ({
+    ...pool,
+    players: pool.players.map((p) => (p.id === id ? { ...p, ...change } : p)),
+  });
+
+  it('uses 84% of the rating gap, and converts edges to rating points', () => {
+    expect(gameChance(1600, 1500, 300)).toBeCloseTo(winChance(1600, 1500, 300 / CALIBRATION), 12);
+    expect(gameChance(1500, 1500, 300)).toBe(0.5);
+    expect(edgePoints(HOME_EDGE, 300)).toBeCloseTo(22, 0);
+  });
+
+  it('counts a player in form, a youth player and an unrated player', () => {
+    const base = chance(pool);
+    expect(chance(withPlayer('h1', { form: { games: 15, above: 3 } }))).toBeGreaterThan(base);
+    expect(chance(withPlayer('a1', { form: { games: 15, above: 3 } }))).toBeLessThan(base);
+    expect(chance(withPlayer('a1', { form: { games: 0, above: 0, youth: true } }))).toBeLessThan(base);
+    expect(chance(withPlayer('a1', { rating: null }))).toBeGreaterThan(base);
+  });
+
+  it('weighs the ratings three times as much as the common opponents', () => {
+    const odds = (win: number) => ({ win, draw: 0, loss: 1 - win, expectedGames: 10 * win, totalGames: 10, drawPossible: false });
+    expect(matchOdds(odds(0.8), odds(0.4))!.win).toBeCloseTo(0.7, 9);
+    expect(matchOdds(null, odds(0.4))!.win).toBeCloseTo(0.4, 9);
   });
 });
 

@@ -3,7 +3,7 @@
  * data and the forecast model, so the dashboards explain themselves.
  */
 import { count, listNames, oneDecimal, ordinal } from '../lib/text';
-import { forecastMatch, lineupSize, projectTable, ratingForecast, ratingsOf, teamRoster, winChance } from './forecast';
+import { FORM_SPREAD, forecastMatch, lineupSize, projectTable, ratingForecast, ratingsOf, teamRoster, winChance } from './forecast';
 import type { PoolData } from './model';
 import { isHome, playerGames, playersById, scoreFor, teamMatches, teamsById, type GameRecord } from './stats';
 
@@ -45,7 +45,7 @@ export function teamInsights(pool: PoolData, teamId: string, scale: number): Ins
     const singles = match.games.filter((g) => g.kind === 'single');
     const ours = [...new Set(singles.flatMap((g) => (home ? g.home : g.away)))];
     const theirs = [...new Set(singles.flatMap((g) => (home ? g.away : g.home)))];
-    const forecast = ratingForecast(pool, ours, theirs, scale, home);
+    const forecast = ratingForecast(pool, ours, theirs, scale, home, FORM_SPREAD, false);
     if (!forecast) continue;
     expected += forecast.odds.expectedGames;
     actual += score[0];

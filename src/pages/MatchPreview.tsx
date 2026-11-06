@@ -1,10 +1,14 @@
 import { useMemo, useState } from 'react';
 import { OddsBar, oddsSentence } from '../components/Odds';
 import {
-  combineOdds,
   commonOpponentForecast,
   fitScale,
+  forecastPlayers,
+  FORM_SPREAD,
+  homePoints,
   lineupSize,
+  matchOdds,
+  playerAdjustments,
   ratingForecast,
   ratingSummary,
   teamRoster,
@@ -16,7 +20,7 @@ import type { PoolData, TeamMatch } from '../data/model';
 import { playersById, teamsById } from '../data/stats';
 import { readLastTeam } from '../lib/lastTeam';
 import { href } from '../lib/router';
-import { count, oneDecimal, percent } from '../lib/text';
+import { count, listNames, oneDecimal, percent, signed as signedNumber } from '../lib/text';
 import { plannedLineup } from '../lineup/planned';
 
 export function ratingReason(rating: RatingSummary | null, teamName: string, opponentName: string): string {
@@ -35,6 +39,51 @@ export function commonReason(common: CommonForecast, teamName: string): string {
   const m = Math.abs(common.margin);
   const how = m < 0.5 ? 'about as well as them' : `${oneDecimal(m)} ${m === 1 ? 'game' : 'games'} per match ${common.margin > 0 ? 'better' : 'worse'}`;
   return `Based on ${what}, ${teamName} did ${how}. That alone gives ${percent(common.odds.win)} to win.`;
+}
+
+/**
+ * What moves the chances beyond the ratings: the home table, and players playing better or worse than
+ * their rating. `adjusted` and `plain` are the rating odds with and without these.
+ */
+export function formReason(
+  pool: PoolData,
+  scale: number,
+  match: TeamMatch,
+  sides: { teamId: string; lineup?: string[] }[],
+  adjusted: RatingSummary | null,
+  plain: RatingSummary | null,
+  teamName: (id: string) => string,
+  playerName: (id: string) => string,
+): string {
+  const home = homePoints(pool, scale);
+  const parts = [home > 0 ? `${teamName(match.homeTeamId)} plays at home: about +${home} rating points a game.` : 'No home edge in veteran pools.'];
+  const lists = sides.flatMap(({ teamId, lineup }) => {
+    const list = playerAdjustments(pool, forecastPlayers(pool, teamId, lineup), scale, 15).slice(0, 4);
+    const names = list.map((a) => `${playerName(a.id)} ${signedNumber(a.points)}${a.youth ? ' (youth)' : a.unrated ? ' (unrated)' : ''}`);
+    return list.length > 0 ? [`${listNames(names)} for ${teamName(teamId)}`] : [];
+  });
+  parts.push(lists.length > 0 ? `Form against rating: ${lists.join('; ')}.` : 'No player is far from their rating.');
+  if (adjusted && plain) {
+    const [after, before] = [percent(adjusted.odds.win), percent(plain.odds.win)];
+    parts.push(after === before ? 'Together they hardly change the chances.' : `With these, the ratings give ${after} instead of ${before}.`);
+  }
+  return parts.join(' ');
+}
+
+/** How the chances are worked out, for a "How is this worked out?" box. */
+export function HowWorkedOut() {
+  return (
+    <details className="why">
+      <summary>How is this worked out?</summary>
+      <p className="muted small">
+        Each game gets a chance from the rating gap, calibrated on this pool's singles. Then come the things the ratings miss,
+        checked on every match of the last three seasons: each player's singles this season, in every pool, against what their
+        rating expected (last season counts a third as much); youth players, who improve faster than the rating list; unrated
+        players, who are weaker than the pool's median rating they stand in for; and the home table, except in veteran pools. Common
+        opponents count a quarter. Estimates, not certainties.
+      </p>
+    </details>
+  );
 }
 
 type HeatBin = 0 | 1 | 2 | 3 | 4;
@@ -66,16 +115,19 @@ export function MatchPreview({ pool, match }: { pool: PoolData; match: TeamMatch
   const teamId = perspective;
   const opponentId = teamId === match.homeTeamId ? match.awayTeamId : match.homeTeamId;
   const chosen = (id: string) => (lineups[id].ids.length === size ? lineups[id].ids : undefined);
-  const summary = ratingSummary(pool, teamId, opponentId, scale, { team: chosen(teamId), opponent: chosen(opponentId) }, teamId === match.homeTeamId);
+  const home = teamId === match.homeTeamId;
+  const picked = { team: chosen(teamId), opponent: chosen(opponentId) };
+  const summary = ratingSummary(pool, teamId, opponentId, scale, picked, home);
+  const plain = ratingSummary(pool, teamId, opponentId, scale, picked, home, false);
   const common = commonOpponentForecast(pool, teamId, opponentId);
-  const odds = combineOdds([summary?.odds ?? null, common.odds]);
+  const odds = matchOdds(summary?.odds ?? null, common.odds);
 
   const opponentColumns = chosen(opponentId) ?? usualLineup(pool, opponentId, size);
   const shownRating = (id: string) => players.get(id)?.rating ?? null;
   const ourRows = [...teamRoster(pool, teamId)].sort(
     (a, b) => (shownRating(b) ?? -Infinity) - (shownRating(a) ?? -Infinity),
   );
-  const grid = opponentColumns.length > 0 ? ratingForecast(pool, ourRows, opponentColumns, scale) : null;
+  const grid = opponentColumns.length > 0 ? ratingForecast(pool, ourRows, opponentColumns, scale, home, FORM_SPREAD) : null;
 
   const toggle = (side: string, playerId: string) =>
     setLineups((current) => {
@@ -122,16 +174,17 @@ export function MatchPreview({ pool, match }: { pool: PoolData; match: TeamMatch
         )}
         <ul className="reasons">
           <li>
-            <strong>Player ratings.</strong> {ratingReason(summary, teamName(teamId), teamName(opponentId))}
+            <strong>Player ratings.</strong> {ratingReason(plain, teamName(teamId), teamName(opponentId))}
+          </li>
+          <li>
+            <strong>Form and home table.</strong>{' '}
+            {formReason(pool, scale, match, [{ teamId, lineup: picked.team }, { teamId: opponentId, lineup: picked.opponent }], summary, plain, teamName, playerName)}
           </li>
           <li>
             <strong>Common opponents.</strong> {commonReason(common, teamName(teamId))}
           </li>
         </ul>
-        <p className="muted small">
-          Estimates, not certainties. The chances combine both reasons. Each game's chance comes from the rating gap,
-          calibrated on this pool's singles results.
-        </p>
+        <HowWorkedOut />
       </section>
 
       <section className="card">
@@ -166,7 +219,7 @@ export function MatchPreview({ pool, match }: { pool: PoolData; match: TeamMatch
         <section className="card">
           <h2>Your players against theirs</h2>
           <p className="muted">
-            Chance that each {teamName(teamId)} player wins a singles, from the ratings. Columns:{' '}
+            Chance that each {teamName(teamId)} player wins a singles, from the ratings, form and home table. Columns:{' '}
             {chosen(opponentId) ? `the ${teamName(opponentId)} lineup you picked` : `${teamName(opponentId)}'s most-used players`}.
           </p>
           <div className="table-scroll">

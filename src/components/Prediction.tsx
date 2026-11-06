@@ -23,9 +23,9 @@ export function PredictionRecordNote({ matches }: { matches: readonly TeamMatch[
         Predicted before each match: right in {record.right} of {record.matches}
       </summary>
       <p className="muted small">
-        Each played match keeps the prediction made from what was known before its day: the official rating list of that day and
-        the earlier results. “Right” means the likeliest outcome happened. Matches without a prediction were a team's first of
-        the season.
+        Each played match keeps the prediction made from what was known before its day: the official rating list of that day, the
+        earlier results, and each player's form until then. “Right” means the likeliest outcome happened. Matches without a
+        prediction were a team's first of the season.
       </p>
     </details>
   );

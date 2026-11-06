@@ -196,6 +196,20 @@ export interface Player {
   rating: number | null;
   /** Estimated rating once the games played since that list are rated (see src/data/ratings.ts). */
   forecast?: { rating: number; games: PendingRatingGame[] };
+  /** How the player has done against their rating, for the match forecasts (see src/data/form.ts). */
+  form?: PlayerForm;
+}
+
+/** Singles results against the ratings, across every pool of the season. */
+export interface PlayerForm {
+  /** Singles counted this season. */
+  games: number;
+  /** Wins above what the ratings expected (negative: below). */
+  above: number;
+  /** The same for last season. */
+  last?: { games: number; above: number };
+  /** Played in a youth pool this season or last. */
+  youth?: true;
 }
 
 /** A singles game not yet in the official rating, with its estimated rating points. */

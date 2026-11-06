@@ -20,12 +20,14 @@ Other commands:
 - `npm run build`: build the production site into `dist/`
 - `npm run preview`: serve the built site
 - `npm run import`: refresh the data from bordtennisportalen.dk (needs network access to it)
+- `npm run backtest`: score the forecast model on every stored season (see [predictions.md](predictions.md))
 
 The main logic is in pure functions with unit tests:
 
 - `src/lineup/planner.ts`: the lineup planner;
 - `src/data/forecast.ts`: the match odds;
-- `src/data/prematch.ts`: the predictions made before each match;
+- `src/data/form.ts`: what the ratings miss (form, youth players, unrated players, the home table);
+- `src/data/prematch.ts`: the predictions made before each match, and the season replay;
 - `src/data/ratings.ts`: the rating forecast;
 - `scraper/`: reading the portal (`parse.ts`), one pool (`pool.ts`), the season (`import.ts`), past seasons
   (`history.ts`) and when the imports run (`clock.ts`).
@@ -49,14 +51,21 @@ The main logic is in pure functions with unit tests:
   - `insights.ts`: plain-language team and player insights built on the above.
   - `ratings.ts`: the official rating-points table and `forecastRatings`, which replays the games the official list
     does not include yet. The importer runs it over all pools at once, because players appear in several.
-  - `prematch.ts`: the prediction made before each match. `poolBefore(pool, day, timeline)` hides results from that day
-    on and rates players as on the rating list in force then; the format is shared from the whole season
-    (`shareFormat`). The importer stores the result as `match.prediction` (home side); `predictionRecord` scores them.
+  - `form.ts`: edges added to each game's log-odds, read from `player.form` in the pool data: form this season and last,
+    youth players, unrated players, and the home table outside veteran pools. `ratingForecast(..., adjust = false)`
+    leaves them out, for "ratings alone" and for the insights that compare results with the ratings.
+  - `prematch.ts`: the prediction made before each match. `poolBefore(pool, day, timeline, form)` hides results from
+    that day on, rates players as on the rating list in force then, and gives them their form from earlier days; the
+    format is shared from the whole season (`shareFormat`). `replaySeason` replays all pools of a season day by day;
+    the importer stores `match.prediction` (home side) and `player.form`; `predictionRecord` scores them.
   - `forecast.ts` averages match odds over a team's form on the day (`FORM_SPREAD`, 100 rating points, three-point
     Gauss-Hermite). It helped the honest backtest; fresher replayed ratings and other scales did not.
-  - Unrated players get the pool median inside the model, but the UI must show them as "unrated".
+  - Unrated players get the pool median inside the model, less the unrated edge of `form.ts`, but the UI must show them
+    as "unrated".
 - `src/pages/MatchPreview.tsx`: the upcoming-match page.
   - Chances from either side, a lineup picker and a matchup heat table.
+  - The reasons: ratings alone, form and the home table (`formReason`), common opponents. The team page's next match
+    shows the same.
   - It starts from the planner lineup when the captain has answers (`src/lineup/planned.ts`).
 - `src/pages/`: the start page, plus club, team, player, pool and match dashboards.
   - The start page shows followed teams first (`src/lib/follow.ts`, localStorage), then a search across every club,

@@ -9,9 +9,12 @@
  *   count as unrated.
  * - The match format (players per side, order of games) is the league's rules, read from the
  *   whole season.
+ * - Form (src/data/form.ts): each player's singles on earlier days, in every pool of the season,
+ *   so the season is replayed day by day with all its pools together (`replaySeason`).
  */
-import { forecastMatch, shareFormat, type Odds } from './forecast.ts';
-import type { MatchPrediction, PoolData, TeamMatch } from './model.ts';
+import { fitScale, forecastMatch, ratingsOf, shareFormat, winChance, type Odds } from './forecast.ts';
+import { formOf, YOUTH_AGE_GROUPS, type FormTally } from './form.ts';
+import type { MatchPrediction, PlayerForm, PoolData, TeamMatch } from './model.ts';
 
 /** Official ratings by list version: `players[id][i]` belongs to `versions[i]` (oldest first). */
 export interface RatingTimeline {
@@ -32,48 +35,104 @@ export function ratingOn(timeline: RatingTimeline, playerId: string, day: string
   return null;
 }
 
-/** The pool as it was before `day`: matches from that day on have no result yet, and ratings are those in force then. */
-export function poolBefore(pool: PoolData, day: string, timeline: RatingTimeline | null): PoolData {
+/**
+ * The pool as it was before `day`: matches from that day on have no result yet, ratings are those in
+ * force then, and players' form is what `form` says about earlier days (none when not given).
+ */
+export function poolBefore(
+  pool: PoolData,
+  day: string,
+  timeline: RatingTimeline | null,
+  form?: (playerId: string) => PlayerForm | undefined,
+): PoolData {
   const view: PoolData = {
     ...pool,
     matches: pool.matches.map((m) => (m.date.slice(0, 10) < day ? m : { ...m, score: null, points: null, walkover: false, games: null })),
     players: pool.players.map((p) => {
       const rating = timeline ? ratingOn(timeline, p.id, day) : undefined;
-      return { ...p, rating: rating === undefined ? p.rating : rating };
+      const player = { ...p, rating: rating === undefined ? p.rating : rating };
+      const f = form?.(p.id);
+      if (f) player.form = f;
+      else delete player.form;
+      return player;
     }),
   };
   shareFormat(view, pool);
   return view;
 }
 
+/** Last season's tallies by player id, with whether they played in a youth pool (scraper/history.ts). */
+export type LastSeason = Map<string, FormTally & { youth?: boolean }>;
+
+export interface SeasonReplay {
+  /** By pool id and match id: the prediction made before the match day, from the home side. */
+  predictions: Map<string, Map<string, MatchPrediction>>;
+  /** Every player's form after the last day played, for the forecasts of the matches to come. */
+  form: Map<string, PlayerForm>;
+  /** This season's tallies, and the players seen in a youth pool. */
+  tallies: Map<string, FormTally>;
+  youth: Set<string>;
+}
+
 /**
- * The prediction for every match of the pool, from the home side. `scaleFor` gives the rating
- * scale to use on a day, given the pool as it was then.
+ * Replays a season day by day, all its pools together, since players' form counts their singles in
+ * every pool. Each match is predicted from its pool as it was before the match day, with the form
+ * from earlier days. Then the day's singles count: wins above what the plain rating curve expected,
+ * with the ratings in force and the pool's scale on that day.
  */
-export function preMatchPredictions(
-  pool: PoolData,
-  timeline: RatingTimeline | null,
-  scaleFor: (view: PoolData, day: string) => number,
-): Map<string, MatchPrediction> {
-  const predictions = new Map<string, MatchPrediction>();
-  const days = [...new Set(pool.matches.map((m) => m.date.slice(0, 10)))].sort();
-  for (const day of days) {
-    const view = poolBefore(pool, day, timeline);
-    const scale = scaleFor(view, day);
-    for (const match of view.matches) {
-      if (match.date.slice(0, 10) !== day) continue;
-      const odds = forecastMatch(view, match, match.homeTeamId, scale).odds;
-      if (!odds) continue;
-      predictions.set(match.id, {
-        win: round(odds.win, 3),
-        draw: round(odds.draw, 3),
-        loss: round(odds.loss, 3),
-        homeGames: round(odds.expectedGames, 2),
-        totalGames: round(odds.totalGames, 2),
-      });
-    }
+export function replaySeason(pools: PoolData[], timeline: RatingTimeline | null, last: LastSeason | null = null): SeasonReplay {
+  const tallies = new Map<string, FormTally>();
+  const youth = new Set<string>();
+  const formFor = (id: string) => formOf(tallies.get(id), last?.get(id), youth.has(id));
+  const predictions = new Map<string, Map<string, MatchPrediction>>();
+  const byDay = new Map<string, PoolData[]>();
+  for (const pool of pools) {
+    predictions.set(pool.pool.id, new Map());
+    for (const day of new Set(pool.matches.map((m) => m.date.slice(0, 10)))) byDay.set(day, [...(byDay.get(day) ?? []), pool]);
   }
-  return predictions;
+  for (const day of [...byDay.keys()].sort()) {
+    const results: { home: string; away: string; above: number }[] = [];
+    const youthToday: string[] = [];
+    for (const pool of byDay.get(day)!) {
+      const view = poolBefore(pool, day, timeline, formFor);
+      const scale = fitScale(view);
+      const rating = ratingsOf(view);
+      for (const match of pool.matches) {
+        if (match.date.slice(0, 10) !== day) continue;
+        const odds = forecastMatch(view, match, match.homeTeamId, scale).odds;
+        if (odds) {
+          predictions.get(pool.pool.id)!.set(match.id, {
+            win: round(odds.win, 3),
+            draw: round(odds.draw, 3),
+            loss: round(odds.loss, 3),
+            homeGames: round(odds.expectedGames, 2),
+            totalGames: round(odds.totalGames, 2),
+          });
+        }
+        if (!match.score || match.walkover) continue;
+        for (const g of match.games ?? []) {
+          if (YOUTH_AGE_GROUPS.has(pool.pool.ageGroupId)) youthToday.push(...g.home, ...g.away);
+          if (g.kind !== 'single' || g.walkover || !g.winner || g.home.length !== 1 || g.away.length !== 1) continue;
+          const expected = winChance(rating(g.home[0]), rating(g.away[0]), scale);
+          results.push({ home: g.home[0], away: g.away[0], above: (g.winner === 'home' ? 1 : 0) - expected });
+        }
+      }
+    }
+    // Only now: a day's results count from the next day on.
+    for (const { home, away, above } of results) {
+      for (const [id, sign] of [[home, 1], [away, -1]] as const) {
+        const t = tallies.get(id) ?? { games: 0, above: 0 };
+        tallies.set(id, { games: t.games + 1, above: t.above + sign * above });
+      }
+    }
+    for (const id of youthToday) youth.add(id);
+  }
+  const form = new Map<string, PlayerForm>();
+  for (const id of new Set([...pools.flatMap((p) => p.players.map((x) => x.id)), ...tallies.keys()])) {
+    const f = formFor(id);
+    if (f) form.set(id, f);
+  }
+  return { predictions, form, tallies, youth };
 }
 
 /** A match's stored prediction as odds for one of its teams. */

@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { fitScale } from './forecast';
 import type { Game, PoolData, TeamMatch } from './model';
-import { homeOutcome, likeliest, poolBefore, preMatchPredictions, predictionRecord, ratingOn, type RatingTimeline } from './prematch';
+import { homeOutcome, likeliest, poolBefore, predictionRecord, ratingOn, replaySeason, type RatingTimeline } from './prematch';
 
 // A made-up pool: teams H, A and B, three players each, a match every week.
 const single = (label: string, home: string, away: string, homeWins: boolean): Game => ({
@@ -14,9 +13,9 @@ const play = (id: string, date: string, home: string, away: string, homeWins: nu
   const games = pairs.map(([i, j], k) => single(`A${i + 1}/B${j + 1}`, h[i], a[j], k < homeWins));
   return { id, date: `${date}T19:00`, homeTeamId: home, awayTeamId: away, venue: '', score: [homeWins, 9 - homeWins], points: null, walkover: false, games };
 };
-const pool = (matches: TeamMatch[]): PoolData => ({
+const pool = (matches: TeamMatch[], id = 'p', ageGroupId = 'g'): PoolData => ({
   version: 1,
-  pool: { id: 'p', seasonId: '42026', season: '2026/2027', regionId: 'r', ageGroupId: 'g', league: 'L', name: 'P', updatedAt: '' },
+  pool: { id, seasonId: '42026', season: '2026/2027', regionId: 'r', ageGroupId, league: 'L', name: 'P', updatedAt: '' },
   teams: [{ id: 'H', name: 'H' }, { id: 'A', name: 'A' }, { id: 'B', name: 'B' }],
   standings: [],
   matches,
@@ -51,15 +50,16 @@ describe('poolBefore', () => {
   });
 });
 
-describe('preMatchPredictions', () => {
+describe('replaySeason', () => {
   const matches = [
     play('m1', '2026-09-10', 'H', 'A', 6),
     play('m2', '2026-09-17', 'B', 'A', 4),
     play('m3', '2026-09-24', 'H', 'B', 5),
   ];
+  const predictionsOf = (p: PoolData) => replaySeason([p], timeline).predictions.get(p.pool.id)!;
 
   it('predicts only once both teams have played, from earlier results only', () => {
-    const predictions = preMatchPredictions(pool(matches), timeline, (view) => fitScale(view));
+    const predictions = predictionsOf(pool(matches));
     expect(predictions.has('m1')).toBe(false); // nobody had played yet
     expect(predictions.has('m2')).toBe(false); // B's first match
     const m3 = predictions.get('m3')!;
@@ -67,8 +67,43 @@ describe('preMatchPredictions', () => {
     expect(m3.win).toBeGreaterThan(m3.loss); // H rated higher
     // Changing the result of m3 itself, or adding a later match, does not change its prediction.
     const changed = [...matches.slice(0, 2), play('m3', '2026-09-24', 'H', 'B', 0), play('m4', '2026-10-01', 'A', 'H', 9)];
-    expect(preMatchPredictions(pool(changed), timeline, (view) => fitScale(view)).get('m3')).toEqual(m3);
+    expect(predictionsOf(pool(changed)).get('m3')).toEqual(m3);
   });
+
+  it('counts every pool for a player, from the next day on', () => {
+    // h1 also plays for team H in a second pool, and wins everything there on 13 September.
+    const other = pool([play('x1', '2026-09-13', 'H', 'B', 9)], 'q');
+    const replay = replaySeason([pool(matches), other], timeline);
+    const h1 = replay.form.get('h1')!;
+    expect(h1.games).toBe(3 + 3 + 3); // three singles in each of m1, x1 and m3
+    expect(h1.above).toBeGreaterThan(0);
+    // The day's own results never count for that day: m1's prediction would not exist anyway, and
+    // the form used for m3 (24 September) includes x1 (13 September) but not m3.
+    const withoutOther = replaySeason([pool(matches)], timeline).predictions.get('p')!.get('m3')!;
+    expect(replay.predictions.get('p')!.get('m3')!.win).not.toBe(withoutOther.win);
+  });
+
+  it('adds last season and youth pools to the final form', () => {
+    const youthPool = pool([play('y1', '2026-09-12', 'H', 'A', 5)], 'y', '4004');
+    const last = new Map([['b1', { games: 40, above: 3, youth: false }]]);
+    const replay = replaySeason([pool(matches), youthPool], timeline, last);
+    expect(replay.form.get('h2')!.youth).toBe(true);
+    expect(replay.form.get('b1')!.last).toEqual({ games: 40, above: 3 });
+    expect(replay.youth.has('a3')).toBe(true);
+  });
+});
+
+describe('poolBefore and form', () => {
+  it('drops the form stored in the pool unless given for that day', () => {
+    const p = pool(matches());
+    p.players[0].form = { games: 30, above: 5 };
+    expect(poolBefore(p, '2026-09-17', timeline).players[0].form).toBeUndefined();
+    const view = poolBefore(p, '2026-09-17', timeline, (id) => (id === 'h1' ? { games: 3, above: 1 } : undefined));
+    expect(view.players[0].form).toEqual({ games: 3, above: 1 });
+  });
+  function matches() {
+    return [play('m1', '2026-09-10', 'H', 'A', 6)];
+  }
 });
 
 describe('predictionRecord', () => {

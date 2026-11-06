@@ -46,7 +46,8 @@ It is built for any team. Vallensbæk BTK 3 is the first test team.
   - Chances from either team's side.
   - A lineup picker for both teams that updates the chances immediately.
   - Every one of your players against their regular lineup.
-  - Results against common opponents.
+  - Why: the ratings alone, players' form against their rating and the home table, and results against common
+    opponents.
 - **Match page.** All games of a played team match, with players and sets.
   - The prediction made before the match, next to how it ended.
   - Until the official rating list includes the match, each player's estimated rating points.

@@ -90,6 +90,17 @@ jobs:
           mkdir -p public/data
           if git fetch --depth 1 origin data; then git archive FETCH_HEAD | tar -x -C public/data; fi
           find public/data -type f -print0 | sort -z | xargs -0 -r sha1sum | sha1sum > "$RUNNER_TEMP/before.sha"
+      # Finished seasons' form (history.ts writes form/<season>.json), so last season counts in the forecasts.
+      - name: Fetch last season's form
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p history/form
+          names=$(gh api "repos/$GITHUB_REPOSITORY/contents/form?ref=history" -q '.[].name' 2>/dev/null || true)
+          for name in $names; do
+            gh api "repos/$GITHUB_REPOSITORY/contents/form/$name?ref=history" -H 'Accept: application/vnd.github.raw' > "history/form/$name"
+          done
+          echo "Form files: ${names:-none}"
       - run: npm run import
       - name: Publish the data branch
         id: publish

@@ -20,13 +20,13 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { clubOf, clubSlug } from '../src/data/clubs.ts';
 import type { ClubRef, DataIndex, NamedId, PlayerIndex, PoolData, PoolRef, RatingStatus } from '../src/data/model.ts';
-import { fitScale } from '../src/data/forecast.ts';
-import { preMatchPredictions, predictionRecord, ratingOn } from '../src/data/prematch.ts';
+import { predictionRecord, ratingOn, replaySeason } from '../src/data/prematch.ts';
 import { forecastRatings, ratingPoints, type RatingForecast } from '../src/data/ratings.ts';
 import { parseDropdowns, parseRatingLinks, parseRegionPools, seasonName, type PoolLink } from './parse.ts';
 import { careerShards } from './careers.ts';
 import { importPool, loadClubs, message, playersOf, readJson, toRef, writeJson, type Context } from './pool.ts';
 import { PortalClient } from './portal.ts';
+import { readLastSeason } from './seasonform.ts';
 import {
   addVersion,
   chooseVersions,
@@ -70,6 +70,8 @@ const option = (name: string, fallback: string) => {
 };
 const configPath = option('--config', join(repoRoot, 'scraper/config.json'));
 const outDir = option('--out', join(repoRoot, 'public/data'));
+/** Finished seasons' form (history.ts writes it; the data workflow copies it from the history branch). */
+const formDir = option('--history-form', join(repoRoot, 'history/form'));
 const poolsDir = join(outDir, 'pools');
 
 async function main() {
@@ -205,15 +207,25 @@ async function main() {
     console.log(`Rating forecasts: ${forecasts.size} players, ${games} singles played after ${ratings.ratedThrough}.`);
   }
 
-  // Predictions made before each match, from the rating list in force on its day and earlier results.
+  // Predictions made before each match, from the rating list in force on its day, earlier results
+  // and players' form on earlier days; and every player's form now, for the forecasts to come.
+  // Form spans pools, so the whole season is replayed at once.
   const timeline = ratingList ? await seasonTimeline(client, ratingList, all.filter((d) => d.pool.seasonId === ratingList.seasonId)) : null;
+  const lastSeason = ratingList ? await readLastSeason(formDir, ratingList.seasonId) : null;
+  const replay = timeline && ratingList ? replaySeason(all.filter((d) => d.pool.seasonId === ratingList.seasonId), timeline, lastSeason) : null;
+  if (replay) console.log(`Form: ${replay.form.size} players${lastSeason ? `, with last season for ${lastSeason.size}` : ' (no file for last season)'}.`);
   for (const { previous, data } of imported) {
-    if (timeline && data.pool.seasonId === ratingList?.seasonId) {
-      const predictions = preMatchPredictions(data, timeline, (view) => fitScale(view));
+    if (replay && data.pool.seasonId === ratingList?.seasonId) {
+      const predictions = replay.predictions.get(data.pool.id) ?? new Map();
       for (const m of data.matches) {
         const prediction = predictions.get(m.id);
         if (prediction) m.prediction = prediction;
         else delete m.prediction;
+      }
+      for (const p of data.players) {
+        const form = replay.form.get(p.id);
+        if (form) p.form = form;
+        else delete p.form;
       }
     } else {
       // Without the season's rating lists, keep what was predicted before.
@@ -221,6 +233,11 @@ async function main() {
       for (const m of data.matches) {
         const prediction = before.get(m.id);
         if (prediction) m.prediction = prediction;
+      }
+      const forms = new Map((previous?.players ?? []).map((p) => [p.id, p.form]));
+      for (const p of data.players) {
+        const form = forms.get(p.id);
+        if (form) p.form = form;
       }
     }
   }

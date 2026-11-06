@@ -79,8 +79,11 @@ GitHub's own schedule stays in the import workflows as a backup:
 6. **Rating forecasts.** Every singles game after that day is replayed with the official points table
    (`src/data/ratings.ts`), across all pools.
 7. **The season's rating lists.** Every list version in force on a match day is kept (about 50 requests per new list).
-8. **Predictions.** Every match gets the prediction made from what was known before its day: the rating list of that
-   day and the earlier results (`src/data/prematch.ts`). The season's record goes in the index.
+8. **Predictions and form.** The season is replayed day by day, all pools together (`replaySeason` in
+   `src/data/prematch.ts`). Every match gets the prediction made from what was known before its day: the rating list of
+   that day, the earlier results and each player's form until then. The season's record goes in the index, and each
+   player's form now goes in the pool files, for the forecasts of the matches to come. Last season's form comes from the
+   history branch (`form/<season>.json`).
 9. **Files.** Pool files are written only when their content changed, then the index, the player list and this
    season's player lines (`careers/`).
 
@@ -95,7 +98,7 @@ On the `data` branch, copied into the site as `data/`:
 | File | What is in it |
 | --- | --- |
 | `index.json` | The season, regions, age groups and clubs; every pool with its teams, places and points; the rating list in use; how the predictions did this season. |
-| `pools/<poolId>.json` | One pool: its teams, standings, matches (results, games and the prediction made before each match) and players (official rating and rating forecast). |
+| `pools/<poolId>.json` | One pool: its teams, standings, matches (results, games and the prediction made before each match) and players (official rating, rating forecast, and form against their rating). |
 | `players.json` | Every player with their official rating and the teams they played for, for the player search. |
 | `ratings/<seasonId>.json` | The season's official rating lists: every player's rating in each version in force on a match day. |
 | `careers/<last three digits of the player id>.json` | This season's line for every player and team (matches, singles, doubles, rating when the pool started), for the player's History tab. |
@@ -112,8 +115,13 @@ On the `history` branch, one folder per past season (for example `42025/`):
 | `ratings.json` | Official ratings from up to 12 rating lists spread over the season's match days. |
 | `index.json` | The season's pools, and whether the season is complete. |
 
-And at the top of the branch, `players/<last three digits of the player id>.json`: every player's past seasons (team,
-pool, matches, singles and doubles, rating at the time), for the player page.
+And at the top of the branch:
+
+- `players/<last three digits of the player id>.json`: every player's past seasons (team, pool, matches, singles and
+  doubles, rating at the time), for the player page.
+- `form/<season>.json`: a complete season's form, every player's singles against their rating and whether they played
+  in a youth pool, for the next season's forecasts (`scraper/seasonform.ts`). Written once, when the season is
+  complete.
 
 Past seasons do not change, so each pool and rating list is read once. The whole backfill takes about two weeks of
 nights, with requests one second apart. Once a season's rating lists are in, its pool files get each player's official
@@ -165,7 +173,8 @@ imports a small part of a past season into `history/` (also ignored by git).
   - When nothing matches, the tag and the trailing team number are dropped instead.
 - Data lives on the `data` branch, never on `main` (`public/data/` is gitignored):
   - `data.yml` (see "When it runs": started by `clock.yml`, with GitHub's schedule as a backup, and at most one import
-    per 50 minutes) restores it, imports, force-pushes a single new commit when anything changed, and then triggers
+    per 50 minutes) restores it, copies the history branch's `form/` files into `history/form/` (through the contents
+    API, so not the whole branch), imports, force-pushes a single new commit when anything changed, and then triggers
     `site.yml`. Pushes made with the workflow token don't trigger workflows by themselves.
   - `site.yml` copies the branch into `public/data` before building.
   - Locally, run `npm run data:pull`.
@@ -173,12 +182,17 @@ imports a small part of a past season into `history/` (also ignored by git).
   - `data/players.json`: every player with their teams, for the player search.
   - `data/ratings/<season>.json`: every rating-list version in force on a match day of the season (`seasonTimeline`).
   - `match.prediction` in every pool of the season, and the season's record as `index.predictions`.
+  - `player.form` in every pool of the season: singles this season and wins above expectation, last season's, and
+    `youth` (see [predictions.md](predictions.md)). The importer reads last season's from `history/form/<season>.json`
+    (`--history-form` to change the folder); without the file, last season counts as nothing.
 - Past seasons: `scraper/history.ts` and `.github/workflows/history.yml` (nightly at 00:41 UTC from the clock, four
   hours, requests one second apart) write `history/<season>/` on the `history` branch, newest season first:
   - `targets.json` (the season's pools, discovered once), `pools/<pool>.json` (same format as the current season),
     `ratings.json` (up to 12 versions spread over the match days, `chooseVersions`) and `index.json` (`complete`).
   - Also `players/<shard>.json` (`scraper/careers.ts`, rebuilt from every stored pool at the end of each run). A
     complete season's pools get the ratings at the time (`applyRatings`).
+  - And `form/<season>.json` for every complete season that has none yet (`writeSeasonForms`: the season replayed with
+    `replaySeason`).
   - The branch gets one ordinary commit per night, and then the workflow starts `site.yml`, which copies it in with
     `scripts/pull-history.sh` (`npm run history:pull` locally).
 - The clock (`clock.yml`): its only job sleeps until the next time in `scraper/clock.ts` (`nextRun`), starts that
