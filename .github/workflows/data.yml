@@ -91,16 +91,20 @@ jobs:
           if git fetch --depth 1 origin data; then git archive FETCH_HEAD | tar -x -C public/data; fi
           find public/data -type f -print0 | sort -z | xargs -0 -r sha1sum | sha1sum > "$RUNNER_TEMP/before.sha"
       # Finished seasons' form (history.ts writes form/<season>.json), so last season counts in the forecasts.
+      # Optional: without the files, last season counts as nothing, so a failure here never stops the import.
       - name: Fetch last season's form
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p history/form
-          names=$(gh api "repos/$GITHUB_REPOSITORY/contents/form?ref=history" -q '.[].name' 2>/dev/null || true)
-          for name in $names; do
-            gh api "repos/$GITHUB_REPOSITORY/contents/form/$name?ref=history" -H 'Accept: application/vnd.github.raw' > "history/form/$name"
-          done
-          echo "Form files: ${names:-none}"
+          if names=$(gh api "repos/$GITHUB_REPOSITORY/contents/form?ref=history" -q '.[] | select(.type == "file") | .name' 2>/dev/null); then
+            for name in $names; do
+              case "$name" in 4[0-9][0-9][0-9][0-9].json) ;; *) continue ;; esac
+              gh api "repos/$GITHUB_REPOSITORY/contents/form/$name?ref=history" -H 'Accept: application/vnd.github.raw' > "history/form/$name"
+            done
+          fi
+          echo "Form files: $(ls history/form | tr '\n' ' ')"
       - run: npm run import
       - name: Publish the data branch
         id: publish
