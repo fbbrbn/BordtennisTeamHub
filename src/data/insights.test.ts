@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { setLang } from '../i18n';
 import { playerInsights, teamInsights } from './insights';
 import type { Game, PoolData } from './model';
@@ -38,6 +38,9 @@ const pool: PoolData = {
 };
 
 describe('insights', () => {
+  beforeEach(() => setLang('en', false));
+  afterEach(() => setLang('da', false));
+
   it('describes a team: table, form, close games, doubles and outlook', () => {
     const insights = teamInsights(pool, 'A', 265);
     const byTopic = Object.fromEntries(insights.map((i) => [i.topic, i.text]));
@@ -45,7 +48,7 @@ describe('insights', () => {
     expect(byTopic.Form).toMatch(/^In 1 match the team won 3 games; the players' ratings predicted \d/);
     expect(byTopic['Close games']).toBe('Singles that went to a fifth set: won 1, lost 0.');
     expect(byTopic.Doubles).toBe('Doubles won: 1 of 1. Best pair: Al and Ann (1–0).');
-    expect(byTopic.Outlook).toMatch(/of the 1 remaining match\. Projected finish: about \d+ points/);
+    expect(byTopic.Outlook).toMatch(/favourite in the last match\. Projected finish: about \d+ points?, \d+(st|nd|rd|th) place/);
   });
 
   it('describes a player: form, fifth sets, best win and doubles partner', () => {
@@ -64,18 +67,16 @@ describe('insights', () => {
 });
 
 describe('insights in Danish', () => {
-  afterEach(() => setLang('en', false));
-
   it('builds the same insights, with Danish words and numbers', () => {
-    setLang('da', false);
     const team = Object.fromEntries(teamInsights(pool, 'A', 265).map((i) => [i.id, i]));
     expect(team.table.topic).toBe('Stilling');
     expect(team.table.text).toBe('Nr. 1 af 3 med 2 point. Fører puljen. 2 point foran Beta.');
-    expect(team.form.text).toMatch(/^I 1 holdkamp vandt holdet 3 kampe; spillernes rating forudsagde \d/);
+    expect(team.form.text).toMatch(/^I 1 holdkamp vandt holdet 3 kampe; ratingerne forudsagde \d/);
+    expect(team.outlook.text).toMatch(/favorit i den sidste kamp\. Forventet slutplacering: nr\. \d med omkring \d+ point/);
     expect(team.doubles.text).toBe('Doubler vundet: 1 af 1. Bedste par: Al og Ann (1–0).');
     const player = Object.fromEntries(playerInsights(pool, 'ann', 265).map((i) => [i.id, i.text]));
-    expect(player.form).toBe('Vandt 2 af 2 singler; ratingen forudsagde 1. Det er 1 sejr mere end ventet: spiller over sin rating.');
-    expect(player.bestWin).toBe('Bo (1300), 3–2. En overraskelse: 100 ratingpoint højere.');
+    expect(player.form).toBe('Vandt 2 af 2 singler; ratingen forudsagde 1. Det er 1 sejr mere end ventet: Spilleren præsterer over sin rating.');
+    expect(player.bestWin).toBe('Bo (1300), 3–2. En overraskelse: Modstanderen havde 100 ratingpoint mere.');
   });
 });
 

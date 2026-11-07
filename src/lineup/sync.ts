@@ -1,4 +1,5 @@
 import type { PoolData } from '../data/model';
+import { t } from '../i18n';
 import { lineupSize } from '../data/forecast';
 import { isHome, opponentOf, teamMatches } from '../data/stats';
 import { newId } from './storage';
@@ -42,7 +43,7 @@ export function syncWithPool(state: PlannerState, pool: PoolData, teamId: string
     }
     const player: RosterPlayer = {
       id: newId(next.players.map((p) => p.id)),
-      name: known?.name ?? 'Player',
+      name: known?.name ?? t.common.player,
       active: true,
       portalId,
     };

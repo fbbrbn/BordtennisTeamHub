@@ -153,7 +153,7 @@ function PlayerView({ pool, player, tab }: { pool: PoolData; player: Player; tab
                       <div className="muted small">{teams.get(r.opponentTeamId)?.name}</div>
                       {r.game.kind === 'double' && (
                         <div className="muted small">
-                          {t.common.doubles}
+                          {t.player.doubleGame}
                           {r.partners.length > 0 && t.player.doublesWith(r.partners.map(nameOf).join(t.common.andJoin))}
                         </div>
                       )}

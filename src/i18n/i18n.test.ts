@@ -5,17 +5,14 @@ import { en } from './en';
 import { decimal, list, longDate, ordinal, percent, plural, shortDate, signed, weekdayDate } from './format';
 import { detectLang, lang, setLang, t } from '.';
 
-afterEach(() => setLang('en', false));
+afterEach(() => setLang('da', false));
 
 describe('choosing the language', () => {
-  it('takes the saved choice, then the first device language the site has, then English', () => {
-    expect(detectLang('da', ['en-GB'])).toBe('da');
-    expect(detectLang('en', ['da-DK'])).toBe('en');
-    expect(detectLang(null, ['da-DK', 'en'])).toBe('da');
-    expect(detectLang(null, ['it-IT', 'da'])).toBe('da');
-    expect(detectLang(null, ['en-US', 'da-DK'])).toBe('en');
-    expect(detectLang(null, ['de-DE', 'sv-SE'])).toBe('en');
-    expect(detectLang('fr', [])).toBe('en');
+  it('is Danish unless the visitor chose English', () => {
+    expect(detectLang(null)).toBe('da');
+    expect(detectLang('en')).toBe('en');
+    expect(detectLang('da')).toBe('da');
+    expect(detectLang('fr')).toBe('da');
   });
 
   it('switches every text and number at once', () => {

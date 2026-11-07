@@ -1,7 +1,8 @@
 {
-  "name": "Team Hub: table tennis teams",
+  "name": "Team Hub: bordtennishold",
   "short_name": "Team Hub",
-  "description": "Lineups, results and chances for the Danish table tennis team tournament.",
+  "description": "Opstillinger, resultater og chancer for Holdturneringen i bordtennis.",
+  "lang": "da",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

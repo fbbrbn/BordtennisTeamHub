@@ -27,7 +27,7 @@ import { plannedLineup } from '../lineup/planned';
 export function ratingReason(rating: RatingSummary | null, teamName: string, opponentName: string): string {
   if (!rating) return t.reasons.noRatings;
   const diff = Math.round(rating.teamAverage - rating.opponentAverage);
-  const balance = Math.abs(diff) < 25 ? t.reasons.aboutEven : diff > 0 ? t.reasons.stronger(diff) : t.reasons.weaker(-diff);
+  const balance = Math.abs(diff) < 25 ? t.reasons.aboutEven : diff > 0 ? t.reasons.stronger(teamName, diff) : t.reasons.weaker(teamName, -diff);
   const side = (name: string, lineups: number, avg: number) =>
     lineups === 1 ? t.reasons.lineupAverage(name, Math.round(avg)) : t.reasons.lineupsAverage(name, Math.round(avg));
   return t.reasons.ratings(

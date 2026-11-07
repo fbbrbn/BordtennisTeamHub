@@ -12,8 +12,8 @@ It is built for any team. Vallensbæk BTK 3 is the first test team.
 
 **Live site:** https://fbbrbn.github.io/BordtennisTeamHub/
 
-- **In Danish or English.** The phone's language decides; the switch at the bottom of every page changes it, and the
-  choice is remembered on the device.
+- **In Danish, with English as an option.** The site opens in Danish; the switch at the bottom of every page changes
+  it to English, and the choice is remembered on the device.
 - **Install it on your phone.** "Add to Home screen" gives it its own app icon, in light and dark mode.
 - **Follow your team.** Tap ☆ Follow on a team page. Followed teams come first on the start page, with their next
   match, your chance to win and a button to plan the lineup.
@@ -96,7 +96,8 @@ Results are refreshed by a GitHub Action every morning, at midday and every hour
 The plan, with the steps and decisions for each, is in [docs/roadmap.md](docs/roadmap.md):
 
 1. **Own domain** on Cloudflare.
-2. **Danish:** done; a Danish-speaking club member should review the texts (`src/i18n/da.tsx`).
+2. **Danish:** done. Danish is the site's first language; a Danish-speaking club member can still review the texts
+   (`src/i18n/da.tsx`).
 3. **A legal home** for the project: you personally, or a small association.
 4. **Shared login** for teams and clubs, so every player answers in the app.
 5. **Donations**, within the Danish rules for fundraising and tax.

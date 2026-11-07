@@ -1,6 +1,7 @@
 /**
- * Every text of the site in English. da.tsx has the same entries in Danish: keep them in step.
- * Plain strings where nothing varies; functions where numbers, names or links go in.
+ * Every text of the site in English, the second language (Danish, in da.tsx, is the first). This file
+ * sets the shape both follow: keep them in step. Plain strings where nothing varies; functions where
+ * numbers, names or links go in.
  */
 import type { ReactNode } from 'react';
 import { decimal, list, ordinal, percent, plural } from './format.ts';
@@ -270,6 +271,8 @@ export const en = {
     unratedNotShown: (n: number) => ` ${n} game${n === 1 ? '' : 's'} against unrated opponents not shown.`,
     games: 'Games',
     noGames: 'No games recorded in this pool.',
+    /** One doubles game, in a list of games. */
+    doubleGame: 'Doubles',
     doublesWith: (partners: string) => ` with ${partners}`,
   },
 
@@ -370,8 +373,8 @@ export const en = {
   reasons: {
     noRatings: 'Not enough games yet to compare the players.',
     aboutEven: 'about even',
-    stronger: (points: number) => `${points} points stronger`,
-    weaker: (points: number) => `${points} points weaker`,
+    stronger: (_team: string, points: number) => `${points} points stronger`,
+    weaker: (_team: string, points: number) => `${points} points weaker`,
     lineupAverage: (team: string, average: number) => `${team}'s lineup averages ${average}`,
     lineupsAverage: (team: string, average: number) => `${team}'s lineups this season average ${average}`,
     ratings: (ours: string, theirs: string, balance: string, win: number) => `${ours}; ${theirs}: ${balance}. Ratings alone give ${pct(win)} to win.`,
@@ -423,9 +426,17 @@ export const en = {
     standout: (name: string, won: number, singles: number, above: number) =>
       `${name} has won ${won} of ${plural(singles, 'single', 'singles')}, ${dec(above)} more than the rating predicts.`,
     outlook: (favourite: number, remaining: number, projected: number, rank: number) =>
-      `Favourite in ${favourite} of the ${plural(remaining, 'remaining match', 'remaining matches')}. Projected finish: about ${projected} points, ${ord(rank)} place (assuming each team fields lineups it has used this season).`,
+      `${
+        remaining === 1
+          ? favourite === 1
+            ? 'Favourite in the last match.'
+            : 'Not favourite in the last match.'
+          : `Favourite in ${favourite} of the ${remaining} remaining matches.`
+      } Projected finish: about ${plural(projected, 'point', 'points')}, ${ord(rank)} place (assuming each team fields lineups it has used this season).`,
     bestLineup: (size: number, players: readonly string[], favourite: number, remaining: number) =>
-      `With its ${plural(size, 'highest-rated player', 'highest-rated players')} (${names(players)}), the team would be favourite in ${favourite} of the ${remaining}.`,
+      `With its ${plural(size, 'highest-rated player', 'highest-rated players')} (${names(players)}), the team would ${
+        remaining === 1 ? (favourite === 1 ? 'be favourite in the last match' : 'not be favourite in the last match') : `be favourite in ${favourite} of the ${remaining}`
+      }.`,
     playerForm: (won: number, singles: number, expected: number) =>
       `Won ${won} of ${plural(singles, 'single', 'singles')}; the ratings predicted ${dec(expected)}.`,
     playerFifthSets: (won: number, played: number) => `Fifth sets: won ${won} of ${played}.`,

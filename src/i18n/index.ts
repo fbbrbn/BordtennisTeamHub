@@ -1,8 +1,9 @@
 /**
- * The site's two languages. Every text is in en.ts and da.ts (da.ts must have every entry of en.ts).
+ * The site's two languages: Danish first, English second. Every text is in da.tsx and en.tsx (da.tsx
+ * must have every entry of en.tsx).
  *
- * - The language is the visitor's saved choice, otherwise the first of the device's languages that
- *   the site has (a Danish phone gets Danish), otherwise English.
+ * - The language is the visitor's saved choice, otherwise Danish: the site is for Danish clubs, and
+ *   many Danes keep their phones in English. The switch in the footer offers English.
  * - `t` and `lang` are live bindings: after `setLang`, every module reads the new language. The app
  *   is rendered again from the root (see main.tsx), so nothing keeps texts in the old language.
  */
@@ -12,18 +13,14 @@ import { en, type Texts } from './en.tsx';
 export type Lang = 'en' | 'da';
 export type { Texts };
 
-export const LANGS: readonly Lang[] = ['en', 'da'];
+/** In the order the switch shows them: Danish first. */
+export const LANGS: readonly Lang[] = ['da', 'en'];
 const DICTIONARIES: Record<Lang, Texts> = { en, da };
 const STORAGE_KEY = 'lang';
 
-/** The saved choice if valid, else the first device language the site has, else English. */
-export function detectLang(saved: string | null, languages: readonly string[]): Lang {
-  if (saved === 'en' || saved === 'da') return saved;
-  for (const tag of languages) {
-    const base = tag.toLowerCase().split('-')[0];
-    if (base === 'da' || base === 'en') return base;
-  }
-  return 'en';
+/** The saved choice if valid, else Danish. */
+export function detectLang(saved: string | null): Lang {
+  return saved === 'en' || saved === 'da' ? saved : 'da';
 }
 
 function readSaved(): string | null {
@@ -34,12 +31,7 @@ function readSaved(): string | null {
   }
 }
 
-function deviceLanguages(): readonly string[] {
-  if (typeof navigator === 'undefined') return [];
-  return navigator.languages?.length ? navigator.languages : navigator.language ? [navigator.language] : [];
-}
-
-export let lang: Lang = detectLang(readSaved(), deviceLanguages());
+export let lang: Lang = detectLang(readSaved());
 export let t: Texts = DICTIONARIES[lang];
 
 const listeners = new Set<() => void>();

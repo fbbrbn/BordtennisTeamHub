@@ -36,13 +36,15 @@ The main logic is in pure functions with unit tests:
 
 - Vite + React + TypeScript (strict). The app uses a hash router (`src/lib/router.ts`), so GitHub Pages needs no
   server config.
-- `src/i18n/`: the site's two languages.
-  - `en.tsx` and `da.tsx`: every text the site shows, in English and Danish. `da` is typed as `Texts` (the shape of
+- `src/i18n/`: the site's two languages, Danish first and English second.
+  - `da.tsx` and `en.tsx`: every text the site shows, in Danish and English. `da` is typed as `Texts` (the shape of
     `en`), so a missing Danish entry fails the typecheck; a test checks that lists have the same length.
-    Plain strings where nothing varies, functions where numbers, names or links go in.
-  - `index.ts`: the language is the saved choice (localStorage `lang`), otherwise the first of the device's languages
-    the site has, otherwise English. `t` and `lang` are live bindings; `setLang` switches them, and `main.tsx` renders
-    the app afresh, so nothing keeps the old language. `components/LanguageSwitch.tsx` is the switch in the footer.
+    Plain strings where nothing varies, functions where numbers, names or links go in. The top of `da.tsx` has the
+    house style for Danish: the terms of the sport, commas, capitals after a colon, quotes.
+  - `index.ts`: the language is the saved choice (localStorage `lang`), otherwise Danish, whatever the phone's
+    language. `t` and `lang` are live bindings; `setLang` switches them, and `main.tsx` renders the app afresh, so
+    nothing keeps the old language. `components/LanguageSwitch.tsx` is the switch in the footer (Dansk · English).
+    Tests that check English texts call `setLang('en', false)` first.
   - `format.ts`: dates, decimals, percentages, ordinals, lists and plurals in either language ("ons. 4. nov.",
     "5,6", "62 %", "3.", "A, B og C"). `lib/text.ts` and the dates in `components/ui.tsx` use the current language.
 - `src/lineup/`: the lineup planner.
@@ -108,10 +110,10 @@ The main logic is in pure functions with unit tests:
 
 ## Conventions
 
-- Two languages, English and Danish. Every text the site shows goes in both `src/i18n/en.tsx` and `src/i18n/da.tsx`;
-  never write a text in a component. Danish uses the usual terms of the sport: holdkamp, pulje, række, single, double,
-  sæt, rating, opstilling, hjemme/ude, uafgjort. Names from the portal (teams, clubs, pools, age groups) stay as they
-  are.
+- Two languages: Danish first, English second. Every text the site shows goes in both `src/i18n/da.tsx` and
+  `src/i18n/en.tsx`; never write a text in a component. Write the Danish first and to the house style at the top of
+  `da.tsx` (the usual terms of the sport: holdkamp, pulje, række, single, double, sæt, rating, opstilling, hjemme/ude,
+  uafgjort). Names from the portal (teams, clubs, pools, age groups) stay as they are.
 - Mobile first: captains and players use phones. Check 390px width in both languages (Danish words are longer); there
   must be no horizontal page scroll.
 - Charts follow the dataviz skill's rules:

@@ -1,4 +1,5 @@
 import type { Availability, Fixture, Override, PlannerState, RosterPlayer } from './types';
+import { t } from '../i18n';
 
 const PREFIX = 'teamhub:lineup:';
 const ANSWERS: readonly Availability[] = ['yes', 'maybe', 'no', 'unknown'];
@@ -123,7 +124,7 @@ export function normalizeState(input: unknown): PlannerState | null {
   const playerIds = new Set<string>();
   for (const raw of asArray(input.players)) {
     if (!isRecord(raw) || !isId(raw.id) || playerIds.has(raw.id)) continue;
-    const player: RosterPlayer = { id: raw.id, name: text(raw.name, 80) || 'Player', active: raw.active !== false };
+    const player: RosterPlayer = { id: raw.id, name: text(raw.name, 80) || t.common.player, active: raw.active !== false };
     if (typeof raw.rating === 'number' && Number.isFinite(raw.rating)) player.rating = raw.rating;
     if (isId(raw.portalId)) player.portalId = raw.portalId;
     playerIds.add(player.id);
