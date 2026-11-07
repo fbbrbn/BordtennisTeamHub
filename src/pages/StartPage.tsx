@@ -9,8 +9,9 @@ import type { DataIndex, IndexTeam, PlayerEntry, PoolData, PoolRef } from '../da
 import { isHome, opponentOf, teamMatches, teamsById } from '../data/stats';
 import { useFollowing, type FollowedTeam } from '../lib/follow';
 import { readLastTeam } from '../lib/lastTeam';
+import { t } from '../i18n';
 import { href } from '../lib/router';
-import { count, ordinal, percent } from '../lib/text';
+import { ordinal, percent } from '../lib/text';
 import { plannedLineup } from '../lineup/planned';
 import { listSavedPlanners, newId } from '../lineup/storage';
 
@@ -80,13 +81,13 @@ export function StartPage() {
   return (
     <>
       <section className="hero">
-        <h1>{following.length > 0 ? 'Welcome back' : 'Find your team'}</h1>
-        <p>Results, chances and lineup planning for every team in the Danish table tennis team tournament.</p>
+        <h1>{following.length > 0 ? t.start.welcomeBack : t.start.findTeam}</h1>
+        <p>{t.start.intro}</p>
       </section>
 
       {following.length > 0 && (
         <section className="stack" aria-labelledby="my-teams">
-          <h2 id="my-teams">My teams</h2>
+          <h2 id="my-teams">{t.start.myTeams}</h2>
           {following.map((team) => (
             <MyTeamCard key={`${team.poolId}-${team.teamId}`} team={team} />
           ))}
@@ -95,10 +96,8 @@ export function StartPage() {
 
       {following.length === 0 && lastNotFollowed && (
         <section className="card suggestion">
-          <p>
-            Continue with <a href={href('team', lastNotFollowed.poolId, lastNotFollowed.teamId)}>{lastNotFollowed.name}</a>
-          </p>
-          <p className="muted small">Follow it to keep it at the top of this page, with its next match.</p>
+          <p>{t.start.continueWith(<a href={href('team', lastNotFollowed.poolId, lastNotFollowed.teamId)}>{lastNotFollowed.name}</a>)}</p>
+          <p className="muted small">{t.start.followHint}</p>
           <div className="button-row">
             <FollowButton team={lastNotFollowed} />
           </div>
@@ -107,17 +106,11 @@ export function StartPage() {
 
       {following.length === 0 && !last && (
         <section className="card how-it-works">
-          <h2>How it works</h2>
+          <h2>{t.start.howItWorks}</h2>
           <ol className="steps">
-            <li>
-              <strong>Find your team</strong> by club, team or player name below.
-            </li>
-            <li>
-              <strong>Follow it</strong> with ☆ so it is always here, with its next match and your chances.
-            </li>
-            <li>
-              <strong>Plan your lineup</strong>: mark who can play, and the planner keeps the matches fair for everyone.
-            </li>
+            {t.start.steps.map((step, i) => (
+              <li key={i}>{step}</li>
+            ))}
           </ol>
         </section>
       )}
@@ -126,25 +119,25 @@ export function StartPage() {
         <ClubSearch index={index.data} />
       ) : (
         <section className="card">
-          <h2>Find a club, team or player</h2>
-          <p className="muted">{index.status === 'loading' ? 'Loading clubs…' : 'Club data is not available right now.'}</p>
+          <h2>{t.start.findHeading}</h2>
+          <p className="muted">{index.status === 'loading' ? t.start.loadingClubs : t.start.clubsUnavailable}</p>
         </section>
       )}
 
       <section className="card compact">
-        <h2>Planning for a team that is not listed?</h2>
-        <p className="muted small">The lineup planner also works by hand: add your players and matches yourself.</p>
+        <h2>{t.start.notListed}</h2>
+        <p className="muted small">{t.start.notListedNote}</p>
         {saved.length > 0 && (
           <ul className="saved-list">
             {saved.map((s) => (
               <li key={s.key}>
-                <a href={href('lineup', s.key)}>{s.teamName || 'Unnamed team'}</a>
+                <a href={href('lineup', s.key)}>{s.teamName || t.start.unnamedTeam}</a>
               </li>
             ))}
           </ul>
         )}
         <a className="button" href={href('lineup', newKey)}>
-          {saved.length === 0 ? 'Plan by hand' : 'Plan another team by hand'}
+          {saved.length === 0 ? t.start.planByHand : t.start.planAnother}
         </a>
       </section>
     </>
@@ -158,7 +151,7 @@ function MyTeamCard({ team }: { team: FollowedTeam }) {
     return (
       <a className="card my-team" href={base}>
         <strong>{team.name}</strong>
-        <span className="muted small">{loaded.status === 'loading' ? 'Loading…' : 'Not available right now'}</span>
+        <span className="muted small">{loaded.status === 'loading' ? t.states.loadingShort : t.states.unavailable}</span>
       </a>
     );
   }
@@ -185,36 +178,34 @@ function MyTeamSummary({ pool, team }: { pool: PoolData; team: FollowedTeam }) {
         </a>
         <span className="muted small">
           {pool.pool.name}
-          {standing && standing.played > 0 && ` · ${ordinal(standing.position)} of ${pool.standings.length}, ${count(standing.points, 'point')}`}
+          {standing && standing.played > 0 && t.start.standing(standing.position, pool.standings.length, standing.points)}
         </span>
       </div>
       {next ? (
         <a className="my-team-next" href={href('match', pool.pool.id, next.id)}>
-          <span className="my-team-when muted small">
-            Next: {matchDay(next.date)} · {matchTime(next.date)}
-          </span>
+          <span className="my-team-when muted small">{t.start.next(matchDay(next.date), matchTime(next.date))}</span>
           <span className="my-team-vs">
-            vs {teams.get(opponentOf(next, team.teamId))?.name ?? 'opponent'}{' '}
-            <span className="tag">{isHome(next, team.teamId) ? 'Home' : 'Away'}</span>
+            {t.common.vs} {teams.get(opponentOf(next, team.teamId))?.name ?? t.start.opponent}{' '}
+            <span className="tag">{isHome(next, team.teamId) ? t.common.home : t.common.away}</span>
           </span>
           {forecast?.odds && (
             <span className="my-team-odds">
               <span>
-                <strong>{percent(forecast.odds.win)}</strong> chance to win
+                <strong>{percent(forecast.odds.win)}</strong> {t.odds.chanceToWin}
               </span>
               <ThinOdds odds={forecast.odds} />
             </span>
           )}
         </a>
       ) : (
-        <p className="muted small">No more matches this season.</p>
+        <p className="muted small">{t.start.noMoreMatches}</p>
       )}
       <div className="button-row">
         <a className="button" href={base}>
-          Team page
+          {t.start.teamPage}
         </a>
         <a className="button primary" href={href('lineup', `team-${pool.pool.id}-${team.teamId}`)}>
-          Plan lineup
+          {t.common.planLineup}
         </a>
       </div>
     </article>
@@ -266,23 +257,23 @@ function ClubSearch({ index }: { index: DataIndex }) {
   const status =
     results.length === 0 && playerResults.length === 0
       ? wantPlayers && !players
-        ? 'Searching…'
-        : `Nothing matches “${query.trim()}”. Try part of a club, team or player name.`
+        ? t.start.searching
+        : t.start.nothingMatches(query.trim())
       : [
-          results.length > 0 ? `${count(results.length, 'club')}, ${count(teamCount, 'team')}` : '',
-          playerResults.length > 0 ? count(playerResults.length, 'player') : '',
+          results.length > 0 ? `${t.n.clubs(results.length)}, ${t.n.teams(teamCount)}` : '',
+          playerResults.length > 0 ? t.n.players(playerResults.length) : '',
         ]
           .filter(Boolean)
           .join(' · ');
 
   return (
     <section className="card picker">
-      <h2>Find a club, team or player</h2>
+      <h2>{t.start.findHeading}</h2>
       <label className="field search-field">
-        <span className="sr-only">Club, team or player</span>
+        <span className="sr-only">{t.start.searchLabel}</span>
         <input
           type="search"
-          placeholder="Club, team or player, e.g. Vallensbæk"
+          placeholder={t.start.searchPlaceholder}
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -292,7 +283,7 @@ function ClubSearch({ index }: { index: DataIndex }) {
       </label>
       <div className="filter-row">
         <label className="field">
-          <span>Region</span>
+          <span>{t.start.region}</span>
           <select
             value={region}
             onChange={(e) => {
@@ -300,7 +291,7 @@ function ClubSearch({ index }: { index: DataIndex }) {
               reset();
             }}
           >
-            <option value="">All regions</option>
+            <option value="">{t.start.allRegions}</option>
             {(index.regions ?? []).map((r) => (
               <option key={r.id} value={r.id}>
                 {r.name}
@@ -309,7 +300,7 @@ function ClubSearch({ index }: { index: DataIndex }) {
           </select>
         </label>
         <label className="field">
-          <span>Age group</span>
+          <span>{t.start.ageGroup}</span>
           <select
             value={ageGroup}
             onChange={(e) => {
@@ -317,7 +308,7 @@ function ClubSearch({ index }: { index: DataIndex }) {
               reset();
             }}
           >
-            <option value="">All age groups</option>
+            <option value="">{t.start.allAgeGroups}</option>
             {(index.ageGroups ?? []).map((a) => (
               <option key={a.id} value={a.id}>
                 {a.name}
@@ -358,12 +349,12 @@ function ClubSearch({ index }: { index: DataIndex }) {
           )}
           {results.length > shown && (
             <button type="button" className="button" onClick={() => setShown((n) => n + RESULTS_PAGE)}>
-              Show more ({results.length - shown} left)
+              {t.start.showMore(results.length - shown)}
             </button>
           )}
           {playerResults.length > 0 && (
             <>
-              <h3 className={results.length > 0 ? 'results-head after-clubs' : 'results-head'}>Players</h3>
+              <h3 className={results.length > 0 ? 'results-head after-clubs' : 'results-head'}>{t.common.players}</h3>
               <ul className="club-list">
                 {playerResults.slice(0, shownPlayers).map(({ player, teams }) => (
                   <li key={player.id} className="club-item">
@@ -371,7 +362,7 @@ function ClubSearch({ index }: { index: DataIndex }) {
                       <a className="club-name" href={href('player', teams[0].pool.id, player.id)}>
                         {player.name}
                       </a>
-                      <span className="muted small"> {player.rating === null ? 'unrated' : `rating ${player.rating}`}</span>
+                      <span className="muted small"> {player.rating === null ? t.common.unrated : t.common.ratingOf(player.rating)}</span>
                     </span>
                     <ul className="club-teams">
                       {teams.map(({ team, pool }) => {
@@ -395,7 +386,7 @@ function ClubSearch({ index }: { index: DataIndex }) {
               </ul>
               {playerResults.length > shownPlayers && (
                 <button type="button" className="button" onClick={() => setShownPlayers((n) => n + RESULTS_PAGE)}>
-                  Show more players ({playerResults.length - shownPlayers} left)
+                  {t.start.showMorePlayers(playerResults.length - shownPlayers)}
                 </button>
               )}
             </>
@@ -404,22 +395,22 @@ function ClubSearch({ index }: { index: DataIndex }) {
       ) : (
         <>
           <p className="muted small" role="status">
-            {count(allClubs.length, 'club')} · {count(pools.length, 'pool')}
-            {index.season ? ` · season ${index.season.name}` : ''}
+            {t.n.clubs(allClubs.length)} · {t.n.pools(pools.length)}
+            {index.season ? t.start.season(index.season.name) : ''}
           </p>
           <ul className="browse-list">
             {browse.map((club) => (
               <li key={club.slug}>
                 <a href={href('club', club.slug)}>
                   <span className="browse-name">{club.name}</span>
-                  <span className="muted small">{count(club.teams.length, 'team')}</span>
+                  <span className="muted small">{t.n.teams(club.teams.length)}</span>
                 </a>
               </li>
             ))}
           </ul>
           {allClubs.length > BROWSE_PAGE && (
             <button type="button" className="button" onClick={() => setBrowseAll((v) => !v)}>
-              {browseAll ? 'Show fewer clubs' : `Show all ${allClubs.length} clubs`}
+              {browseAll ? t.start.showFewerClubs : t.start.showAllClubs(allClubs.length)}
             </button>
           )}
         </>

@@ -3,6 +3,7 @@ import { fitScale, projectTable } from '../data/forecast';
 import { loadPool, useLoaded } from '../data/load';
 import type { PoolData, TeamMatch } from '../data/model';
 import { playerGames, summarize, teamsById, winRate } from '../data/stats';
+import { t } from '../i18n';
 import { href } from '../lib/router';
 import { PastSeasonTag } from '../components/PlayerHistory';
 import { PredictionRecordNote } from '../components/Prediction';
@@ -10,14 +11,14 @@ import { matchDay, matchTime, ordinal, PageState, percent, portalUrl } from '../
 
 export function PoolPage({ poolId }: { poolId: string }) {
   const loaded = useLoaded(() => loadPool(poolId), poolId);
-  if (loaded.status !== 'ready') return <PageState state={loaded} what="this pool" />;
+  if (loaded.status !== 'ready') return <PageState state={loaded} what="pool" />;
   return <PoolView pool={loaded.data} />;
 }
 
 function PoolView({ pool }: { pool: PoolData }) {
   const [showAll, setShowAll] = useState(false);
   const teams = teamsById(pool);
-  const teamName = (id: string) => teams.get(id)?.name ?? 'Unknown team';
+  const teamName = (id: string) => teams.get(id)?.name ?? t.common.unknownTeam;
   const played = pool.matches.filter((m) => m.score).reverse();
   const upcoming = pool.matches.filter((m) => !m.score);
   const shownPlayed = showAll ? played : played.slice(0, 10);
@@ -70,34 +71,36 @@ function PoolView({ pool }: { pool: PoolData }) {
         <h1>{pool.pool.name}</h1>
         <div className="button-row">
           <a className="button" href={portalUrl(pool.pool, 2)} target="_blank" rel="noreferrer">
-            Open on bordtennisportalen.dk
+            {t.common.openOnPortal}
           </a>
         </div>
       </header>
 
       <section className="card">
-        <h2>Standings</h2>
+        <h2>{t.pool.standings}</h2>
         <div className="table-scroll">
           <table className="data-table">
             <thead>
               <tr>
                 <th scope="col" className="num">#</th>
-                <th scope="col">Team</th>
-                <th scope="col" className="num" title="Matches">M</th>
-                <th scope="col" className="num wide-only" title="Won">
-                  W
+                <th scope="col">{t.common.team}</th>
+                <th scope="col" className="num" title={t.pool.columns.matches[1]}>
+                  {t.pool.columns.matches[0]}
                 </th>
-                <th scope="col" className="num wide-only" title="Drawn">
-                  D
+                <th scope="col" className="num wide-only" title={t.pool.columns.won[1]}>
+                  {t.pool.columns.won[0]}
                 </th>
-                <th scope="col" className="num wide-only" title="Lost">
-                  L
+                <th scope="col" className="num wide-only" title={t.pool.columns.drawn[1]}>
+                  {t.pool.columns.drawn[0]}
                 </th>
-                <th scope="col" className="num">Games</th>
-                <th scope="col" className="num">Points</th>
+                <th scope="col" className="num wide-only" title={t.pool.columns.lost[1]}>
+                  {t.pool.columns.lost[0]}
+                </th>
+                <th scope="col" className="num">{t.pool.columns.games}</th>
+                <th scope="col" className="num">{t.pool.columns.points}</th>
                 {hasRemaining && (
-                  <th scope="col" className="num" title="Projected final points">
-                    Proj.
+                  <th scope="col" className="num" title={t.pool.columns.projected[1]}>
+                    {t.pool.columns.projected[0]}
                   </th>
                 )}
               </tr>
@@ -129,49 +132,44 @@ function PoolView({ pool }: { pool: PoolData }) {
           </table>
         </div>
         {hasRemaining && (
-          <p className="muted small">
-            Proj.: projected final points, with the projected position under them. It adds up the win and draw chances of
-            every remaining match, assuming each team fields lineups it has used this season.
-          </p>
+          <p className="muted small">{t.pool.projectedNote}</p>
         )}
       </section>
 
       <section className="card">
         <div className="section-head">
-          <h2>Results</h2>
-          <span className="muted">
-            {played.length} of {pool.matches.length} matches played
-          </span>
+          <h2>{t.common.results}</h2>
+          <span className="muted">{t.pool.playedOf(played.length, pool.matches.length)}</span>
         </div>
         <PredictionRecordNote matches={played} />
         <ul className="result-list">{shownPlayed.map(matchRow)}</ul>
         {played.length > 10 && (
           <button type="button" className="button" onClick={() => setShowAll((v) => !v)}>
-            {showAll ? 'Show fewer' : `Show all ${played.length} results`}
+            {showAll ? t.pool.showFewer : t.pool.showAllResults(played.length)}
           </button>
         )}
       </section>
 
       {upcoming.length > 0 && (
         <section className="card">
-          <h2>Next matches</h2>
+          <h2>{t.pool.nextMatches}</h2>
           <ul className="result-list">{upcoming.slice(0, 8).map(matchRow)}</ul>
         </section>
       )}
 
       <section className="card">
         <div className="section-head">
-          <h2>Players</h2>
-          <span className="muted">Sorted by singles won</span>
+          <h2>{t.common.players}</h2>
+          <span className="muted">{t.pool.sortedBySingles}</span>
         </div>
         <div className="table-scroll">
           <table className="data-table">
             <thead>
               <tr>
-                <th scope="col">Player</th>
-                <th scope="col" className="num">Rating</th>
-                <th scope="col" className="num">Singles</th>
-                <th scope="col" className="num">Won</th>
+                <th scope="col">{t.common.player}</th>
+                <th scope="col" className="num">{t.common.rating}</th>
+                <th scope="col" className="num">{t.common.singles}</th>
+                <th scope="col" className="num">{t.pool.wonColumn}</th>
               </tr>
             </thead>
             <tbody>

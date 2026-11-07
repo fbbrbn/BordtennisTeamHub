@@ -1,13 +1,13 @@
 import { RatingHistory, type RatingPoint } from '../charts/RatingHistory';
 import { loadHistory, useLoaded } from '../data/load';
 import type { CareerEntry, Player, PoolData, PoolInfo } from '../data/model';
+import { t } from '../i18n';
 import { href } from '../lib/router';
-import { count, percent } from '../lib/text';
 import { StatTile } from './ui';
 
 /** "Past season" next to a page's heading, for pools of earlier seasons. */
 export function PastSeasonTag({ pool }: { pool: PoolInfo }) {
-  return pool.past ? <span className="tag">Past season</span> : null;
+  return pool.past ? <span className="tag">{t.common.pastSeason}</span> : null;
 }
 
 /** "2015/2016" -> "15/16" */
@@ -22,7 +22,7 @@ export function HistoryLink({ playerId, href: to }: { playerId: string; href: st
   return (
     <a className="card history-link" href={to}>
       <span>
-        <strong>History</strong> <span className="muted">· {count(seasons.length, 'season')} since {seasons[seasons.length - 1]}</span>
+        <strong>{t.history.tab}</strong> <span className="muted">{t.history.linkSummary(seasons.length, seasons[seasons.length - 1])}</span>
       </span>
       <span aria-hidden="true">→</span>
     </a>
@@ -32,12 +32,12 @@ export function HistoryLink({ playerId, href: to }: { playerId: string; href: st
 /** Everything the player has played: totals, rating over the seasons, and every season and team. */
 export function PlayerHistory({ pool, player }: { pool: PoolData; player: Player }) {
   const loaded = useLoaded(() => loadHistory(player.id), player.id);
-  if (loaded.status === 'loading') return <p className="page-state">Loading the history…</p>;
+  if (loaded.status === 'loading') return <p className="page-state">{t.history.loading}</p>;
   const entries = loaded.status === 'ready' ? loaded.data : [];
   if (entries.length === 0) {
     return (
       <section className="card">
-        <p className="muted">No seasons found yet. Past seasons are added as the import works back to 2011/2012.</p>
+        <p className="muted">{t.history.empty}</p>
       </section>
     );
   }
@@ -52,47 +52,44 @@ export function PlayerHistory({ pool, player }: { pool: PoolData; player: Player
   const points: RatingPoint[] = [];
   for (const season of [...seasons].reverse()) {
     const first = entries.filter((e) => e.season === season && e.rating !== null).sort((a, b) => a.from.localeCompare(b.from))[0];
-    if (first?.rating != null) points.push({ label: shortSeason(season), title: `Start of ${season}`, rating: first.rating });
+    if (first?.rating != null) points.push({ label: shortSeason(season), title: t.history.startOf(season), rating: first.rating });
   }
   if (!pool.pool.past && player.rating !== null) {
-    points.push({ label: 'Now', title: 'Official rating now', rating: player.rating });
-    if (player.forecast) points.push({ label: 'Next', title: 'Forecast, once the games played are rated', rating: player.forecast.rating, estimate: true });
+    points.push({ label: t.history.now, title: t.history.nowTitle, rating: player.rating });
+    if (player.forecast) points.push({ label: t.history.next, title: t.history.nextTitle, rating: player.forecast.rating, estimate: true });
   }
 
   return (
     <>
       <div className="tiles">
-        <StatTile label="Seasons" value={seasons.length} detail={`since ${seasons[seasons.length - 1]}`} />
-        <StatTile label="Singles won and lost" value={`${won}–${lost}`} detail={won + lost > 0 ? `${percent(won / (won + lost))} won` : undefined} />
-        <StatTile label="Team matches" value={matches} />
-        <StatTile label={clubs.length === 1 ? 'Club' : 'Clubs'} value={clubs.length} detail={clubs.slice(0, 2).join(', ') + (clubs.length > 2 ? '…' : '')} />
+        <StatTile label={t.history.seasons} value={seasons.length} detail={t.history.since(seasons[seasons.length - 1])} />
+        <StatTile label={t.history.singlesWonLost} value={`${won}–${lost}`} detail={won + lost > 0 ? t.common.wonShare(won / (won + lost)) : undefined} />
+        <StatTile label={t.history.teamMatches} value={matches} />
+        <StatTile label={t.history.clubs(clubs.length)} value={clubs.length} detail={clubs.slice(0, 2).join(', ') + (clubs.length > 2 ? '…' : '')} />
       </div>
 
       {points.length >= 2 && (
         <section className="card">
-          <h2>Rating over the seasons</h2>
-          <p className="muted small">The official rating when each season started{!pool.pool.past && player.rating !== null ? ', then today' : ''}.</p>
+          <h2>{t.history.overSeasons}</h2>
+          <p className="muted small">{t.history.overSeasonsNote(!pool.pool.past && player.rating !== null)}</p>
           <RatingHistory points={points} />
         </section>
       )}
 
       <section className="card">
         <div className="section-head">
-          <h2>Every season</h2>
-          <span className="muted">{count(entries.length, 'team')}</span>
+          <h2>{t.history.everySeason}</h2>
+          <span className="muted">{t.n.teams(entries.length)}</span>
         </div>
-        <p className="muted small">Tap a score for the games of that season.</p>
+        <p className="muted small">{t.history.tapScore}</p>
         <ul className="result-list">
           {entries.map((e) => (
             <SeasonRow key={`${e.poolId}-${e.teamId}`} entry={e} playerId={player.id} current={e.poolId === pool.pool.id} />
           ))}
         </ul>
         <details className="why">
-          <summary>About these numbers</summary>
-          <p className="muted small">
-            Team-tournament matches only, from bordtennisportalen.dk; tournaments are not included. The rating is the official
-            one when the pool started. Earlier seasons are added as the import works back in time, to 2011/2012.
-          </p>
+          <summary>{t.history.about}</summary>
+          <p className="muted small">{t.history.aboutNote}</p>
         </details>
       </section>
     </>
@@ -105,21 +102,21 @@ function SeasonRow({ entry: e, playerId, current }: { entry: CareerEntry; player
       <div className="result-main">
         <span className="result-when">
           {e.season}
-          {current && ' · this page'}
+          {current && t.history.thisPage}
         </span>
         <span className="result-vs">
           <a href={href('team', e.poolId, e.teamId)}>{e.team}</a>
         </span>
         <span className="result-note">
           {e.pool}
-          {e.rating !== null && ` · rating ${e.rating}`}
+          {e.rating !== null && ` · ${t.common.ratingOf(e.rating)}`}
         </span>
       </div>
       <div className="result-side">
-        <a className="result-score" href={href('player', e.poolId, playerId)} aria-label={`Games in ${e.season}: singles ${e.singles[0]} won, ${e.singles[1]} lost`}>
+        <a className="result-score" href={href('player', e.poolId, playerId)} aria-label={t.history.scoreLabel(e.season, e.singles[0], e.singles[1])}>
           {e.singles[0]}–{e.singles[1]}
         </a>
-        <span className="muted small">singles</span>
+        <span className="muted small">{t.history.singles}</span>
       </div>
     </li>
   );

@@ -2,19 +2,17 @@ import type { ReactNode } from 'react';
 import type { Loaded } from '../data/load';
 import type { PoolInfo } from '../data/model';
 import type { Outcome } from '../data/stats';
-import { parseLocal } from '../lineup/format';
+import { lang, t } from '../i18n';
+import type { Thing } from '../i18n/en';
+import { longDate, shortDate, weekdayDate } from '../i18n/format';
 
-const dayFormat = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-const longFormat = new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-const shortFormat = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' });
-
-export const matchDay = (date: string) => dayFormat.format(parseLocal(date));
-export const matchDayLong = (date: string) => longFormat.format(parseLocal(date));
+/** "Sat 7 Nov" and "lør. 7. nov." */
+export const matchDay = (date: string) => weekdayDate(date, lang);
+export const matchDayLong = (date: string) => longDate(date, lang);
 export const matchTime = (date: string) => date.split('T')[1] ?? '';
-/** "23 Oct" */
-export const shortDay = (date: string) => shortFormat.format(parseLocal(date));
+/** "23 Oct" and "23. okt." */
+export const shortDay = (date: string) => shortDate(date, lang);
 
-import { percent } from '../lib/text';
 export { ordinal, percent, signed } from '../lib/text';
 
 /** Link to the same page on bordtennisportalen.dk (its URL hash: subPage,season,pool,age,region,team,match,club,player). */
@@ -37,37 +35,36 @@ export function StatTile({ label, value, detail }: { label: string; value: React
 export function WinMeter({ rate, label }: { rate: number | null; label: string }) {
   if (rate === null) return null;
   return (
-    <span className="meter" role="img" aria-label={`${label}: ${percent(rate)} won`}>
+    <span className="meter" role="img" aria-label={t.common.meterLabel(label, rate)}>
       <span className="meter-fill" style={{ width: `${rate * 100}%` }} />
     </span>
   );
 }
 
-const OUTCOME_LABEL: Record<Outcome, string> = { won: 'Won', drawn: 'Draw', lost: 'Lost' };
-
 export function OutcomeBadge({ outcome }: { outcome: Outcome | 'single-won' | 'single-lost' }) {
   const kind = outcome === 'single-won' ? 'won' : outcome === 'single-lost' ? 'lost' : outcome;
-  return <span className={`badge badge-${kind}`}>{OUTCOME_LABEL[kind]}</span>;
+  const label = kind === 'won' ? t.common.won : kind === 'lost' ? t.common.lost : t.common.draw;
+  return <span className={`badge badge-${kind}`}>{label}</span>;
 }
 
-export function PageState({ state, what }: { state: Exclude<Loaded<unknown>, { status: 'ready' }>; what: string }) {
-  if (state.status === 'loading') return <p className="page-state">Loading {what}…</p>;
+export function PageState({ state, what }: { state: Exclude<Loaded<unknown>, { status: 'ready' }>; what: Thing }) {
+  if (state.status === 'loading') return <p className="page-state">{t.states.loading(what)}</p>;
   if (state.error === 'not-found') return <NotFound what={what} />;
   return (
     <div className="page-state">
-      <p>Could not load {what}. Check your connection and try again.</p>
+      <p>{t.states.failed(what)}</p>
       <p className="muted">{state.error}</p>
     </div>
   );
 }
 
-export function NotFound({ what }: { what: string }) {
+export function NotFound({ what }: { what: Thing }) {
   return (
     <div className="page-state">
-      <h1>Not found</h1>
-      <p className="muted">There is no data for {what} yet. Only imported pools are available.</p>
+      <h1>{t.states.notFound}</h1>
+      <p className="muted">{t.states.noData(what)}</p>
       <a className="button" href="#/">
-        Back to start
+        {t.states.backToStart}
       </a>
     </div>
   );

@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { formatShare } from './format';
 import type { Plan, PlannerState } from './types';
 
@@ -13,22 +14,18 @@ export function BalanceTable({ state, plan }: { state: PlannerState; plan: Plan 
   return (
     <section className="card">
       <div className="section-head">
-        <h2>Season balance</h2>
-        {fair !== null && (
-          <span className="muted">
-            {fair > 0 ? `Even share so far: ${formatShare(fair)} matches each` : 'No matches played yet'}
-          </span>
-        )}
+        <h2>{t.planner.balance}</h2>
+        {fair !== null && <span className="muted">{fair > 0 ? t.planner.evenShare(formatShare(fair)) : t.planner.noneYet}</span>}
       </div>
       <table className="balance">
         <thead>
           <tr>
-            <th scope="col">Player</th>
-            <th scope="col" className="num">Played</th>
-            <th scope="col" className="num">Planned</th>
-            <th scope="col" className="num">Total</th>
+            <th scope="col">{t.common.player}</th>
+            <th scope="col" className="num">{t.planner.playedColumn}</th>
+            <th scope="col" className="num">{t.planner.plannedColumn}</th>
+            <th scope="col" className="num">{t.planner.total}</th>
             <th scope="col" className="bar-cell">
-              <span className="sr-only">Total compared with the even share</span>
+              <span className="sr-only">{t.planner.barLabel}</span>
             </th>
           </tr>
         </thead>
@@ -37,7 +34,7 @@ export function BalanceTable({ state, plan }: { state: PlannerState; plan: Plan 
             <tr key={player.id} className={player.active ? undefined : 'inactive'}>
               <th scope="row">
                 {player.name}
-                {!player.active && <span className="muted"> · inactive</span>}
+                {!player.active && <span className="muted">{t.planner.inactive}</span>}
               </th>
               <td className="num">{tally.played}</td>
               <td className="num">{tally.planned}</td>
@@ -50,9 +47,9 @@ export function BalanceTable({ state, plan }: { state: PlannerState; plan: Plan 
         </tbody>
       </table>
       <div className="legend" aria-hidden="true">
-        <span><i className="swatch swatch-played" /> Played</span>
-        <span><i className="swatch swatch-planned" /> Planned</span>
-        {fair !== null && fair > 0 && <span><i className="swatch-tick" /> Even share so far</span>}
+        <span><i className="swatch swatch-played" /> {t.planner.playedColumn}</span>
+        <span><i className="swatch swatch-planned" /> {t.planner.plannedColumn}</span>
+        {fair !== null && fair > 0 && <span><i className="swatch-tick" /> {t.planner.evenShareLegend}</span>}
       </div>
     </section>
   );

@@ -1,4 +1,5 @@
 import { useState, type Dispatch } from 'react';
+import { t } from '../i18n';
 import type { Action } from './state';
 import type { PlannerState } from './types';
 
@@ -10,14 +11,12 @@ export function RosterEditor({ state, dispatch, bare = false }: { state: Planner
     <section className={bare ? 'roster-editor' : 'card roster-editor'}>
       {!bare && (
         <div className="section-head">
-          <h2>Players</h2>
-          {!empty && <span className="muted">{state.players.filter((p) => p.active).length} active</span>}
+          <h2>{t.planner.players}</h2>
+          {!empty && <span className="muted">{t.planner.active(state.players.filter((p) => p.active).length)}</span>}
         </div>
       )}
       {empty && (
-        <p className="muted">
-          Start with your team's players. Ratings are optional: they only decide the order of names in a lineup.
-        </p>
+        <p className="muted">{t.planner.rosterIntro}</p>
       )}
       {!empty && (
         <ul className="roster">
@@ -25,15 +24,15 @@ export function RosterEditor({ state, dispatch, bare = false }: { state: Planner
             <li key={p.id} className={p.active ? 'roster-row' : 'roster-row inactive'}>
               <input
                 className="roster-name"
-                aria-label="Player name"
+                aria-label={t.planner.playerName}
                 value={p.name}
                 onChange={(e) => dispatch({ type: 'updatePlayer', id: p.id, patch: { name: e.target.value } })}
               />
               <input
                 className="roster-rating"
-                aria-label={`Rating for ${p.name}`}
+                aria-label={t.planner.ratingFor(p.name)}
                 inputMode="numeric"
-                placeholder="Rating"
+                placeholder={t.common.rating}
                 value={p.rating ?? ''}
                 onChange={(e) => {
                   const value = e.target.value.trim();
@@ -49,20 +48,18 @@ export function RosterEditor({ state, dispatch, bare = false }: { state: Planner
                   checked={p.active}
                   onChange={(e) => dispatch({ type: 'updatePlayer', id: p.id, patch: { active: e.target.checked } })}
                 />
-                Active
+                {t.planner.activeLabel}
               </label>
               <button
                 type="button"
                 className="link-button"
-                aria-label={`Remove ${p.name}`}
+                aria-label={t.planner.removeLabel(p.name)}
                 onClick={() => {
-                  const ok = window.confirm(
-                    `Remove ${p.name}? Their answers and played matches in this plan are removed too. To keep their history, untick Active instead.`,
-                  );
+                  const ok = window.confirm(t.planner.removeConfirm(p.name));
                   if (ok) dispatch({ type: 'removePlayer', id: p.id });
                 }}
               >
-                Remove
+                {t.planner.remove}
               </button>
             </li>
           ))}
@@ -77,9 +74,9 @@ export function RosterEditor({ state, dispatch, bare = false }: { state: Planner
           setName('');
         }}
       >
-        <input aria-label="New player name" placeholder="Player name" value={name} onChange={(e) => setName(e.target.value)} />
+        <input aria-label={t.planner.newPlayer} placeholder={t.planner.playerName} value={name} onChange={(e) => setName(e.target.value)} />
         <button type="submit" className="button primary">
-          Add player
+          {t.planner.addPlayer}
         </button>
       </form>
     </section>

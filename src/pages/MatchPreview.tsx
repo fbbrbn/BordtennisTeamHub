@@ -20,25 +20,31 @@ import type { PoolData, TeamMatch } from '../data/model';
 import { playersById, teamsById } from '../data/stats';
 import { readLastTeam } from '../lib/lastTeam';
 import { href } from '../lib/router';
-import { count, listNames, oneDecimal, percent, signed as signedNumber } from '../lib/text';
+import { t } from '../i18n';
+import { listNames, oneDecimal, percent, signed as signedNumber } from '../lib/text';
 import { plannedLineup } from '../lineup/planned';
 
 export function ratingReason(rating: RatingSummary | null, teamName: string, opponentName: string): string {
-  if (!rating) return 'Not enough games yet to compare the players.';
+  if (!rating) return t.reasons.noRatings;
   const diff = Math.round(rating.teamAverage - rating.opponentAverage);
-  const balance = Math.abs(diff) < 25 ? 'about even' : diff > 0 ? `${diff} points stronger` : `${-diff} points weaker`;
+  const balance = Math.abs(diff) < 25 ? t.reasons.aboutEven : diff > 0 ? t.reasons.stronger(diff) : t.reasons.weaker(-diff);
   const side = (name: string, lineups: number, avg: number) =>
-    lineups === 1 ? `${name}'s lineup averages ${Math.round(avg)}` : `${name}'s lineups this season average ${Math.round(avg)}`;
-  return `${side(teamName, rating.teamLineups, rating.teamAverage)}; ${side(opponentName, rating.opponentLineups, rating.opponentAverage)}: ${balance}. Ratings alone give ${percent(rating.odds.win)} to win.`;
+    lineups === 1 ? t.reasons.lineupAverage(name, Math.round(avg)) : t.reasons.lineupsAverage(name, Math.round(avg));
+  return t.reasons.ratings(
+    side(teamName, rating.teamLineups, rating.teamAverage),
+    side(opponentName, rating.opponentLineups, rating.opponentAverage),
+    balance,
+    rating.odds.win,
+  );
 }
 
 export function commonReason(common: CommonForecast, teamName: string): string {
-  if (common.margin === null || !common.odds) return 'No common opponents yet, so this part is left out.';
+  if (common.margin === null || !common.odds) return t.reasons.noCommon;
   const n = common.rows.length;
-  const what = [n > 0 ? count(n, 'common opponent') : '', common.direct.length > 0 ? 'their earlier meeting' : ''].filter(Boolean).join(' and ');
+  const what = listNames([n > 0 ? t.reasons.commonOpponents(n) : '', common.direct.length > 0 ? t.reasons.earlierMeeting : ''].filter(Boolean));
   const m = Math.abs(common.margin);
-  const how = m < 0.5 ? 'about as well as them' : `${oneDecimal(m)} ${m === 1 ? 'game' : 'games'} per match ${common.margin > 0 ? 'better' : 'worse'}`;
-  return `Based on ${what}, ${teamName} did ${how}. That alone gives ${percent(common.odds.win)} to win.`;
+  const how = m < 0.5 ? t.reasons.asWell : common.margin > 0 ? t.reasons.better(m) : t.reasons.worse(m);
+  return t.reasons.common(what, teamName, how, common.odds.win);
 }
 
 /**
@@ -56,16 +62,16 @@ export function formReason(
   playerName: (id: string) => string,
 ): string {
   const home = homePoints(pool, scale);
-  const parts = [home > 0 ? `${teamName(match.homeTeamId)} plays at home: about +${home} rating points a game.` : 'No home edge in veteran pools.'];
+  const parts = [home > 0 ? t.reasons.atHome(teamName(match.homeTeamId), home) : t.reasons.noHomeEdge];
   const lists = sides.flatMap(({ teamId, lineup }) => {
     const list = playerAdjustments(pool, forecastPlayers(pool, teamId, lineup), scale, 15).slice(0, 4);
-    const names = list.map((a) => `${playerName(a.id)} ${signedNumber(a.points)}${a.youth ? ' (youth)' : a.unrated ? ' (unrated)' : ''}`);
-    return list.length > 0 ? [`${listNames(names)} for ${teamName(teamId)}`] : [];
+    const names = list.map((a) => `${playerName(a.id)} ${signedNumber(a.points)}${a.youth ? t.reasons.youth : a.unrated ? t.reasons.unrated : ''}`);
+    return list.length > 0 ? [t.reasons.forTeam(listNames(names), teamName(teamId))] : [];
   });
-  parts.push(lists.length > 0 ? `Form against rating: ${lists.join('; ')}.` : 'No player is far from their rating.');
+  parts.push(lists.length > 0 ? t.reasons.formList(lists.join('; ')) : t.reasons.noForm);
   if (adjusted && plain) {
-    const [after, before] = [percent(adjusted.odds.win), percent(plain.odds.win)];
-    parts.push(after === before ? 'Together they hardly change the chances.' : `With these, the ratings give ${after} instead of ${before}.`);
+    const same = percent(adjusted.odds.win) === percent(plain.odds.win);
+    parts.push(same ? t.reasons.hardlyChange : t.reasons.withThese(adjusted.odds.win, plain.odds.win));
   }
   return parts.join(' ');
 }
@@ -74,14 +80,8 @@ export function formReason(
 export function HowWorkedOut() {
   return (
     <details className="why">
-      <summary>How is this worked out?</summary>
-      <p className="muted small">
-        Each game gets a chance from the rating gap, calibrated on this pool's singles. Then come the things the ratings miss,
-        checked on every match of the last three seasons: each player's singles this season, in every pool, against what their
-        rating expected (last season counts a third as much); youth players, who improve faster than the rating list; unrated
-        players, who are weaker than the pool's median rating they stand in for; and the home table, except in veteran pools. Common
-        opponents count a quarter. Estimates, not certainties.
-      </p>
+      <summary>{t.common.howWorkedOut}</summary>
+      <p className="muted small">{t.preview.howWorkedOut}</p>
     </details>
   );
 }
@@ -94,8 +94,8 @@ export function MatchPreview({ pool, match }: { pool: PoolData; match: TeamMatch
   const size = lineupSize(pool);
   const teams = teamsById(pool);
   const players = playersById(pool);
-  const teamName = (id: string) => teams.get(id)?.name ?? 'Team';
-  const playerName = (id: string) => players.get(id)?.name ?? 'Unknown player';
+  const teamName = (id: string) => teams.get(id)?.name ?? t.common.team;
+  const playerName = (id: string) => players.get(id)?.name ?? t.common.unknownPlayer;
 
   const [perspective, setPerspective] = useState(() => {
     const last = readLastTeam();
@@ -143,17 +143,17 @@ export function MatchPreview({ pool, match }: { pool: PoolData; match: TeamMatch
 
   const status = (side: string) => {
     const { ids, planned } = lineups[side];
-    if (ids.length === 0) return 'Using the lineups from this season. Tap players to pick your own.';
-    if (ids.length < size) return `Pick ${size - ids.length} more. Until then, the lineups from this season are used.`;
-    return planned ? 'Lineup from your planner.' : 'Your lineup.';
+    if (ids.length === 0) return t.preview.statusSeason;
+    if (ids.length < size) return t.preview.statusPickMore(size - ids.length);
+    return planned ? t.preview.statusPlanned : t.preview.statusYours;
   };
 
   return (
     <>
       <section className="card">
         <div className="section-head">
-          <h2>Chances</h2>
-          <div className="segmented" role="group" aria-label="Show chances for">
+          <h2>{t.preview.chances}</h2>
+          <div className="segmented" role="group" aria-label={t.preview.showFor}>
             {[match.homeTeamId, match.awayTeamId].map((id) => (
               <button key={id} type="button" aria-pressed={perspective === id} onClick={() => setPerspective(id)}>
                 {teamName(id)}
@@ -164,32 +164,36 @@ export function MatchPreview({ pool, match }: { pool: PoolData; match: TeamMatch
         {odds ? (
           <>
             <p className="odds-headline">
-              {teamName(teamId)}: <strong>{percent(odds.win)}</strong> {oddsSentence(odds)} Expected score{' '}
-              {oneDecimal(odds.expectedGames)}–{oneDecimal(odds.totalGames - odds.expectedGames)}.
+              {t.preview.headline(
+                teamName(teamId),
+                <strong>{percent(odds.win)}</strong>,
+                oddsSentence(odds),
+                `${oneDecimal(odds.expectedGames)}–${oneDecimal(odds.totalGames - odds.expectedGames)}`,
+              )}
             </p>
             <OddsBar odds={odds} />
           </>
         ) : (
-          <p className="muted">Not enough results yet to estimate this match.</p>
+          <p className="muted">{t.preview.notEnough}</p>
         )}
         <ul className="reasons">
           <li>
-            <strong>Player ratings.</strong> {ratingReason(plain, teamName(teamId), teamName(opponentId))}
+            <strong>{t.preview.reasonRatings}</strong> {ratingReason(plain, teamName(teamId), teamName(opponentId))}
           </li>
           <li>
-            <strong>Form and home table.</strong>{' '}
+            <strong>{t.preview.reasonForm}</strong>{' '}
             {formReason(pool, scale, match, [{ teamId, lineup: picked.team }, { teamId: opponentId, lineup: picked.opponent }], summary, plain, teamName, playerName)}
           </li>
           <li>
-            <strong>Common opponents.</strong> {commonReason(common, teamName(teamId))}
+            <strong>{t.preview.reasonCommon}</strong> {commonReason(common, teamName(teamId))}
           </li>
         </ul>
         <HowWorkedOut />
       </section>
 
       <section className="card">
-        <h2>Lineups</h2>
-        <p className="muted">Try a lineup: the chances above update straight away.</p>
+        <h2>{t.preview.lineups}</h2>
+        <p className="muted">{t.preview.tryLineup}</p>
         {[teamId, opponentId].map((side) => {
           const selected = lineups[side].ids;
           return (
@@ -199,14 +203,14 @@ export function MatchPreview({ pool, match }: { pool: PoolData; match: TeamMatch
                 {status(side)}{' '}
                 {selected.length > 0 && (
                   <button type="button" className="link-button" onClick={() => reset(side)}>
-                    Back to this season's lineups
+                    {t.preview.backToSeason}
                   </button>
                 )}
               </p>
               <div className="chips">
                 {teamRoster(pool, side).map((id) => (
                   <button key={id} type="button" className="chip" aria-pressed={selected.includes(id)} onClick={() => toggle(side, id)}>
-                    {playerName(id)} <span className="chip-meta">{players.get(id)?.rating ?? 'unrated'}</span>
+                    {playerName(id)} <span className="chip-meta">{players.get(id)?.rating ?? t.common.unrated}</span>
                   </button>
                 ))}
               </div>
@@ -217,22 +221,24 @@ export function MatchPreview({ pool, match }: { pool: PoolData; match: TeamMatch
 
       {grid && (
         <section className="card">
-          <h2>Your players against theirs</h2>
+          <h2>{t.preview.grid}</h2>
           <p className="muted">
-            Chance that each {teamName(teamId)} player wins a singles, from the ratings, form and home table. Columns:{' '}
-            {chosen(opponentId) ? `the ${teamName(opponentId)} lineup you picked` : `${teamName(opponentId)}'s most-used players`}.
+            {t.preview.gridNote(
+              teamName(teamId),
+              chosen(opponentId) ? t.preview.columnsPicked(teamName(opponentId)) : t.preview.columnsUsual(teamName(opponentId)),
+            )}
           </p>
           <div className="table-scroll">
             <table className="heat-table">
               <thead>
                 <tr>
                   <th scope="col">
-                    <span className="sr-only">{teamName(teamId)} player</span>
+                    <span className="sr-only">{t.preview.gridPlayer(teamName(teamId))}</span>
                   </th>
                   {grid.opponent.map((id) => (
                     <th key={id} scope="col">
                       <a href={href('player', pool.pool.id, id)}>{playerName(id)}</a>
-                      <span className="muted small"> {shownRating(id) ?? 'unrated'}</span>
+                      <span className="muted small"> {shownRating(id) ?? t.common.unrated}</span>
                     </th>
                   ))}
                 </tr>
@@ -242,7 +248,7 @@ export function MatchPreview({ pool, match }: { pool: PoolData; match: TeamMatch
                   <tr key={id} className={lineups[teamId].ids.includes(id) ? 'is-picked' : undefined}>
                     <th scope="row">
                       <a href={href('player', pool.pool.id, id)}>{playerName(id)}</a>
-                      <span className="muted small"> {shownRating(id) ?? 'unrated'}</span>
+                      <span className="muted small"> {shownRating(id) ?? t.common.unrated}</span>
                     </th>
                     {grid.singles[i].map((p, j) => (
                       <td key={grid.opponent[j]} className={`heat heat-${heat(p)}`}>
@@ -255,33 +261,33 @@ export function MatchPreview({ pool, match }: { pool: PoolData; match: TeamMatch
             </table>
           </div>
           <div className="legend" aria-hidden="true">
-            <span><i className="swatch heat heat-4" /> Clear favourite</span>
-            <span><i className="swatch heat heat-3" /> Favourite</span>
-            <span><i className="swatch heat heat-2" /> Even</span>
-            <span><i className="swatch heat heat-1" /> Underdog</span>
-            <span><i className="swatch heat heat-0" /> Clear underdog</span>
+            {[4, 3, 2, 1, 0].map((bin) => (
+              <span key={bin}>
+                <i className={`swatch heat heat-${bin}`} /> {t.preview.heat[bin]}
+              </span>
+            ))}
           </div>
         </section>
       )}
 
       {(common.rows.length > 0 || common.direct.length > 0) && (
         <section className="card">
-          <h2>Common opponents</h2>
-          <p className="muted">How both teams did against the same teams. Difference: games per match, from {teamName(teamId)}'s side.</p>
+          <h2>{t.preview.commonTitle}</h2>
+          <p className="muted">{t.preview.commonNote(teamName(teamId))}</p>
           <div className="table-scroll">
             <table className="data-table wrap-head">
               <thead>
                 <tr>
-                  <th scope="col">Against</th>
+                  <th scope="col">{t.common.against}</th>
                   <th scope="col" className="num">{teamName(teamId)}</th>
                   <th scope="col" className="num">{teamName(opponentId)}</th>
-                  <th scope="col" className="num">Difference</th>
+                  <th scope="col" className="num">{t.preview.difference}</th>
                 </tr>
               </thead>
               <tbody>
                 {common.direct.length > 0 && (
                   <tr>
-                    <th scope="row">Each other</th>
+                    <th scope="row">{t.preview.eachOther}</th>
                     <td className="num">{common.direct.map((s) => s.join('–')).join(', ')}</td>
                     <td className="num">{common.direct.map((s) => [...s].reverse().join('–')).join(', ')}</td>
                     <td className="num strong">{signed(common.direct.reduce((a, [f, x]) => a + f - x, 0) / common.direct.length)}</td>

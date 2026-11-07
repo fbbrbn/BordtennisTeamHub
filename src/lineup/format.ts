@@ -1,17 +1,12 @@
+import { lang, t } from '../i18n';
+import { decimal, parseLocal, weekdayDate } from '../i18n/format';
 import type { Plan, PlannerState } from './types';
 
-const dayFormat = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+export { parseLocal };
 
-/** Parses `YYYY-MM-DD` or `YYYY-MM-DDTHH:mm` as a local date. */
-export function parseLocal(date: string): Date {
-  const [day, time = '00:00'] = date.split('T');
-  const [y, m, d] = day.split('-').map(Number);
-  const [hh, mm] = time.split(':').map(Number);
-  return new Date(y, m - 1, d, hh, mm);
-}
-
+/** "Sat 7 Nov" and "lør. 7. nov." */
 export function formatDay(date: string): string {
-  return dayFormat.format(parseLocal(date));
+  return weekdayDate(date, lang);
 }
 
 export function formatTime(date: string): string | null {
@@ -27,7 +22,7 @@ export function isPast(date: string, now = new Date()): boolean {
 
 export function formatShare(value: number | null): string {
   if (value === null) return '–';
-  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+  return decimal(value, lang);
 }
 
 /** Plain-text summary to paste into the team chat. */
@@ -35,30 +30,29 @@ export function lineupMessage(state: PlannerState, plan: Plan, maxMatches = 5): 
   const name = (id: string) => state.players.find((p) => p.id === id)?.name ?? '?';
   const upcoming = plan.fixtures.filter((f) => f.status === 'planned').slice(0, maxMatches);
   const activeCount = state.players.filter((p) => p.active).length;
-  const lines = [`${state.teamName || 'Our team'}: lineup plan`];
+  const m = t.planner.message;
+  const lines = [m.title(state.teamName || m.ourTeam)];
 
   for (const f of upcoming) {
     const time = formatTime(f.fixture.date);
     const when = `${formatDay(f.fixture.date)}${time ? ` ${time}` : ''}`;
-    const where = f.fixture.home ? 'home' : 'away';
+    const where = f.fixture.home ? m.home : m.away;
     const nobodyAnswered = f.lineup.length === 0 && f.unanswered.length === activeCount;
-    const players = nobodyAnswered ? 'no answers yet' : f.lineup.map(name).join(', ') || 'no lineup yet';
+    const players = nobodyAnswered ? m.noAnswers : f.lineup.map(name).join(', ') || m.noLineup;
     let open = '';
     if (f.missing > 0 && !nobodyAnswered) {
-      open = f.unanswered.length > 0
-        ? ` (${f.missing} more needed, waiting for ${f.unanswered.map(name).join(', ')})`
-        : ` (${f.missing} more needed)`;
+      open = f.unanswered.length > 0 ? m.moreNeededWaiting(f.missing, f.unanswered.map(name).join(', ')) : m.moreNeeded(f.missing);
     }
-    const reserve = f.reserves.length > 0 ? `, reserve: ${name(f.reserves[0])}` : '';
-    lines.push(`• ${when} vs ${f.fixture.opponent || '?'} (${where}): ${players}${open}${reserve}`);
+    const reserve = f.reserves.length > 0 ? m.reserve(name(f.reserves[0])) : '';
+    lines.push(`• ${when} ${t.common.vs} ${f.fixture.opponent || '?'} (${where}): ${players}${open}${reserve}`);
   }
-  if (upcoming.length === 0) lines.push('No upcoming matches planned.');
+  if (upcoming.length === 0) lines.push(m.noUpcoming);
 
   const played = plan.tallies
     .filter((t) => t.played > 0)
     .map((t) => `${name(t.playerId)} ${t.played}`)
     .join(' · ');
-  if (played) lines.push(`Matches played so far: ${played}`);
-  lines.push("For every match, tell the captain: I can, Maybe or I can't.");
+  if (played) lines.push(m.playedSoFar(played));
+  lines.push(m.ask);
   return lines.join('\n');
 }

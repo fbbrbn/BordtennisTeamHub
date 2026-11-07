@@ -7,6 +7,8 @@ import { StartPage } from './pages/StartPage';
 import { TeamPage } from './pages/TeamPage';
 import { Logo } from './components/Logo';
 import { Nav } from './components/Nav';
+import { LanguageSwitch } from './components/LanguageSwitch';
+import { t } from './i18n';
 import { goBack, useRoute, type Route } from './lib/router';
 
 const KEY_PATTERN = /^[A-Za-z0-9_-]{1,40}$/;
@@ -41,7 +43,7 @@ export default function App() {
       <header className="topbar">
         <div className="topbar-start">
           {!atHome && (
-            <button type="button" className="back-button" onClick={goBack} aria-label="Back">
+            <button type="button" className="back-button" onClick={goBack} aria-label={t.app.back}>
               <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M15 5 8 12l7 7" />
               </svg>
@@ -58,8 +60,8 @@ export default function App() {
         <Page route={route} />
       </main>
       <footer className="footer">
-        Unofficial tool, not affiliated with DBTU or bordtennisportalen.dk. Results come from bordtennisportalen.dk and are
-        refreshed several times a day, hourly on match evenings. Lineup plans and followed teams are saved in your browser.
+        <LanguageSwitch />
+        <p>{t.app.footer}</p>
       </footer>
       <Nav route={route} variant="bottom" />
     </div>

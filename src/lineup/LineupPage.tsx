@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { loadPool } from '../data/load';
+import { t } from '../i18n';
 import { copyText } from '../lib/clipboard';
 import { href, replaceHash } from '../lib/router';
 import { BalanceTable } from './BalanceTable';
@@ -40,7 +41,7 @@ export function LineupPage({
   // Save on every change, but don't create a stored plan just by opening an empty page.
   useEffect(() => {
     if (isBlank(state) && !loadState(storageKey)) return;
-    if (!saveState(storageKey, state)) setNotice('This browser blocks saving. Download a backup to keep your plan.');
+    if (!saveState(storageKey, state)) setNotice(t.planner.savingBlocked);
   }, [storageKey, state]);
 
   // A shared link carries a whole plan in the address: offer it, never silently overwrite.
@@ -51,7 +52,7 @@ export function LineupPage({
       if (cancelled) return;
       replaceHash(href('lineup', storageKey));
       if (!decoded) {
-        setNotice('That share link is incomplete or broken.');
+        setNotice(t.planner.brokenLink);
         return;
       }
       const current = loadState(storageKey);
@@ -87,13 +88,13 @@ export function LineupPage({
   }, [notice]);
 
   const names = useMemo(() => new Map(state.players.map((p) => [p.id, p.name])), [state.players]);
-  const nameOf = (id: string) => names.get(id) ?? 'Former player';
+  const nameOf = (id: string) => names.get(id) ?? t.planner.formerPlayer;
   const planned = plan.fixtures.filter((f) => f.status === 'planned');
   const played = plan.fixtures.filter((f) => f.status === 'played').reverse();
 
   const playersPerMatchField = (
     <label className="field inline">
-      <span>Players per match</span>
+      <span>{t.planner.playersPerMatch}</span>
       <select
         value={state.settings.playersPerMatch}
         onChange={(e) => dispatch({ type: 'settings', patch: { playersPerMatch: Number(e.target.value) } })}
@@ -117,7 +118,7 @@ export function LineupPage({
     }
     if (await copyText(text)) {
       setManualCopy(null);
-      setNotice(kind === 'link' ? 'Share link copied' : 'Message copied');
+      setNotice(kind === 'link' ? t.planner.linkCopied : t.planner.messageCopied);
     } else {
       setManualCopy(text);
     }
@@ -138,27 +139,27 @@ export function LineupPage({
     try {
       const restored = normalizeState(JSON.parse(await file.text()));
       if (!restored) {
-        setNotice('That file is not a lineup backup.');
+        setNotice(t.planner.notBackup);
         return;
       }
-      if (isBlank(state) || window.confirm('Replace the current plan with this backup?')) {
+      if (isBlank(state) || window.confirm(t.planner.replaceConfirm)) {
         dispatch({ type: 'replace', state: restored });
-        setNotice('Backup restored');
+        setNotice(t.planner.restored);
       }
     } catch {
-      setNotice('That file could not be read.');
+      setNotice(t.planner.unreadable);
     }
   }
 
   return (
     <div className="planner">
       <div className="page-head">
-        <h1>Lineup planner</h1>
+        <h1>{t.planner.title}</h1>
         <label className="field team-field">
-          <span>Team</span>
+          <span>{t.planner.team}</span>
           <input
             value={state.teamName}
-            placeholder="Team name, e.g. Vallensbæk BTK 3"
+            placeholder={t.planner.teamPlaceholder}
             onChange={(e) => dispatch({ type: 'teamName', name: e.target.value })}
           />
         </label>
@@ -167,17 +168,14 @@ export function LineupPage({
       {link && (
         <p className={linked === 'failed' ? 'linked-note is-failed' : 'linked-note'}>
           {linked === 'failed'
-            ? 'Could not load the latest results. The plan below is the last saved version.'
-            : <>Linked to <a href={href('team', link.poolId, link.teamId)}>{state.teamName || 'your team'}</a>: players, matches and results update by themselves. Just mark who can play.</>}
+            ? t.planner.loadFailed
+            : t.planner.linked(<a href={href('team', link.poolId, link.teamId)}>{state.teamName || t.planner.yourTeam}</a>)}
         </p>
       )}
 
       {incoming && (
         <div className="banner" role="status">
-          <p>
-            This link holds a plan for <strong>{incoming.teamName || 'a team'}</strong> that differs from the one
-            saved on this device.
-          </p>
+          <p>{t.planner.incoming(<strong>{incoming.teamName || t.planner.aTeam}</strong>)}</p>
           <div className="button-row">
             <button
               type="button"
@@ -187,10 +185,10 @@ export function LineupPage({
                 setIncoming(null);
               }}
             >
-              Use the shared plan
+              {t.planner.useShared}
             </button>
             <button type="button" className="button" onClick={() => setIncoming(null)}>
-              Keep mine
+              {t.planner.keepMine}
             </button>
           </div>
         </div>
@@ -199,17 +197,9 @@ export function LineupPage({
       <section className="card settings">
         {!link && playersPerMatchField}
         <details className="explain">
-          <summary>How the plan is made</summary>
-          <p>
-            Nobody is planned on guesses. For each match, mark who said <em>I can</em>, <em>Maybe</em> or{' '}
-            <em>I can't</em>. Only players who said <em>I can</em> or <em>Maybe</em> are picked, and <em>I can</em> goes
-            first.
-          </p>
-          <p>
-            Among them, the planner picks whoever has played the fewest matches so far. Matches already played count,
-            and so do the upcoming matches a player is already picked for. Use <em>Must play</em> or <em>Rest</em> to
-            overrule it for one match.
-          </p>
+          <summary>{t.planner.howMade}</summary>
+          <p>{t.planner.howMade1}</p>
+          <p>{t.planner.howMade2}</p>
           {link && playersPerMatchField}
         </details>
       </section>
@@ -220,10 +210,10 @@ export function LineupPage({
 
       <section className="stack">
         <div className="section-head">
-          <h2>Upcoming matches</h2>
+          <h2>{t.planner.upcoming}</h2>
           {!adding && (
             <button type="button" className="button" onClick={() => setAdding(true)}>
-              Add match
+              {t.planner.addMatch}
             </button>
           )}
         </div>
@@ -231,18 +221,18 @@ export function LineupPage({
           <div className="card">
             <FixtureForm
               key={formKey}
-              cancelLabel="Done"
+              cancelLabel={t.planner.done}
               onSubmit={(value) => {
                 dispatch({ type: 'addFixture', ...value });
                 setFormKey((k) => k + 1);
-                setNotice('Match added');
+                setNotice(t.planner.matchAdded);
               }}
               onCancel={() => setAdding(false)}
             />
           </div>
         )}
         {planned.length === 0 && !adding && (
-          <p className="empty">No upcoming matches yet. Add them from your team's schedule.</p>
+          <p className="empty">{t.planner.noUpcoming}</p>
         )}
         {planned.map((item, i) => (
           <PlannedMatch
@@ -259,7 +249,7 @@ export function LineupPage({
       {played.length > 0 && (
         <details className="card fold">
           <summary>
-            <h2>Played matches</h2>
+            <h2>{t.planner.playedMatches}</h2>
             <span className="muted small">{played.length}</span>
           </summary>
           <ul className="played-list">
@@ -274,10 +264,10 @@ export function LineupPage({
         (link ? (
           <details className="card fold">
             <summary>
-              <h2>Players</h2>
-              <span className="muted small">{state.players.filter((p) => p.active).length} active · edit</span>
+              <h2>{t.planner.players}</h2>
+              <span className="muted small">{t.planner.activeEdit(state.players.filter((p) => p.active).length)}</span>
             </summary>
-            <p className="muted small">Untick Active for anyone who should not be planned, for example a reserve.</p>
+            <p className="muted small">{t.planner.untickNote}</p>
             <RosterEditor state={state} dispatch={dispatch} bare />
           </details>
         ) : (
@@ -285,23 +275,20 @@ export function LineupPage({
         ))}
 
       <section className="card">
-        <h2>Share and back up</h2>
-        <p className="muted">
-          The plan is saved in this browser only. Send the link in your team chat: whoever opens it gets their own
-          copy.
-        </p>
+        <h2>{t.planner.share}</h2>
+        <p className="muted">{t.planner.shareNote}</p>
         <div className="button-row">
           <button type="button" className="button primary" onClick={() => void share('link')}>
-            Copy share link
+            {t.planner.copyLink}
           </button>
           <button type="button" className="button" onClick={() => void share('message')}>
-            Copy message for the team chat
+            {t.planner.copyMessage}
           </button>
           <button type="button" className="button" onClick={download}>
-            Download backup
+            {t.planner.download}
           </button>
           <button type="button" className="button" onClick={() => fileInput.current?.click()}>
-            Restore backup
+            {t.planner.restore}
           </button>
           <input
             ref={fileInput}
@@ -317,7 +304,7 @@ export function LineupPage({
         </div>
         {manualCopy && (
           <label className="field manual-copy">
-            <span>Copying is blocked here. Select the text and copy it yourself:</span>
+            <span>{t.planner.copyBlocked}</span>
             <textarea readOnly rows={4} value={manualCopy} onFocus={(e) => e.target.select()} />
           </label>
         )}

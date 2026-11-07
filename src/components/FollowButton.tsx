@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { useFollowing, type FollowedTeam } from '../lib/follow';
 
 export function FollowButton({ team }: { team: FollowedTeam }) {
@@ -8,10 +9,10 @@ export function FollowButton({ team }: { team: FollowedTeam }) {
       type="button"
       className={on ? 'button follow is-on' : 'button follow'}
       aria-pressed={on}
-      title={on ? 'Shown first on the start page. Tap to stop following.' : 'Show this team first on the start page'}
+      title={on ? t.follow.titleOn : t.follow.titleOff}
       onClick={() => setFollow(team, !on)}
     >
-      <span aria-hidden="true">{on ? '★' : '☆'}</span> {on ? 'Following' : 'Follow'}
+      <span aria-hidden="true">{on ? '★' : '☆'}</span> {on ? t.follow.following : t.follow.follow}
     </button>
   );
 }

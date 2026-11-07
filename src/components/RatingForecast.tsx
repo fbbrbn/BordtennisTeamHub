@@ -1,12 +1,12 @@
 import type { Player, PoolData, RatingStatus } from '../data/model';
 import { ratingTable } from '../data/ratings';
-import { count } from '../lib/text';
+import { t } from '../i18n';
 import { href } from '../lib/router';
 import { OutcomeBadge, shortDay, signed } from './ui';
 
 /** "list of 23 Oct, which includes games up to 14 Oct" */
 export function listNote(status: RatingStatus): string {
-  return `list of ${shortDay(status.listDate)}, which includes games up to ${shortDay(status.ratedThrough)}`;
+  return t.ratings.listNote(shortDay(status.listDate), shortDay(status.ratedThrough));
 }
 
 /** A player's forecast rating and the singles it comes from. Nothing when there are no new games. */
@@ -16,22 +16,17 @@ export function RatingForecastCard({ pool, player }: { pool: PoolData; player: P
   if (!status || !forecast || player.rating === null) return null;
   return (
     <section className="card">
-      <h2>Rating forecast</h2>
-      <p className="forecast-headline">
-        <strong>{forecast.rating}</strong> ({signed(forecast.rating - player.rating)}) once {count(forecast.games.length, 'singles game')} since
-        the official list are rated.
-      </p>
-      <p className="muted small">
-        Official rating {player.rating}, from the {listNote(status)}.
-      </p>
+      <h2>{t.ratings.forecastTitle}</h2>
+      <p className="forecast-headline">{t.ratings.forecastHeadline(forecast.rating, signed(forecast.rating - player.rating), forecast.games.length)}</p>
+      <p className="muted small">{t.ratings.official(player.rating, listNote(status))}</p>
       <div className="table-scroll">
         <table className="data-table">
           <thead>
             <tr>
-              <th scope="col">Date</th>
-              <th scope="col">Against</th>
-              <th scope="col">Result</th>
-              <th scope="col" className="num">Points</th>
+              <th scope="col">{t.common.date}</th>
+              <th scope="col">{t.common.against}</th>
+              <th scope="col">{t.common.result}</th>
+              <th scope="col" className="num">{t.common.points}</th>
             </tr>
           </thead>
           <tbody>
@@ -41,8 +36,8 @@ export function RatingForecastCard({ pool, player }: { pool: PoolData; player: P
                   <a href={href('match', g.poolId, g.matchId)}>{shortDay(g.date)}</a>
                 </td>
                 <td>
-                  <a href={href('player', g.poolId, g.opponentId)}>{g.opponentName || 'Unknown player'}</a>
-                  <div className="muted small">Rated {g.opp}</div>
+                  <a href={href('player', g.poolId, g.opponentId)}>{g.opponentName || t.common.unknownPlayer}</a>
+                  <div className="muted small">{t.ratings.ratedAt(g.opp)}</div>
                 </td>
                 <td>
                   <OutcomeBadge outcome={g.won ? 'single-won' : 'single-lost'} />
@@ -62,45 +57,39 @@ export function RatingForecastCard({ pool, player }: { pool: PoolData; player: P
 export function RatingRules() {
   return (
     <details className="why">
-      <summary>How is this worked out?</summary>
+      <summary>{t.common.howWorkedOut}</summary>
       <ul className="reasons">
-        <li>
-          Each singles game moves both players' ratings by a set number of points, from the rating gap and who won. Beating a
-          higher-rated player earns the most.
-        </li>
-        <li>All games of a match day use the ratings from before that day.</li>
-        <li>
-          Doubles and walkovers do not count. Tournament games and games against unrated players are not included here, so the
-          official rating can differ.
-        </li>
+        {t.ratings.rules.map((rule) => (
+          <li key={rule}>{rule}</li>
+        ))}
       </ul>
       <div className="table-scroll">
         <table className="data-table rating-table">
-          <caption>Points by rating gap</caption>
+          <caption>{t.ratings.tableCaption}</caption>
           <thead>
             <tr>
               <th scope="col" rowSpan={2}>
-                Gap
+                {t.ratings.gap}
               </th>
               <th scope="colgroup" colSpan={2}>
-                Higher rated
+                {t.ratings.higherRated}
               </th>
               <th scope="colgroup" colSpan={2}>
-                Lower rated
+                {t.ratings.lowerRated}
               </th>
             </tr>
             <tr>
               <th scope="col" className="num">
-                wins
+                {t.ratings.wins}
               </th>
               <th scope="col" className="num">
-                loses
+                {t.ratings.loses}
               </th>
               <th scope="col" className="num">
-                wins
+                {t.ratings.wins}
               </th>
               <th scope="col" className="num">
-                loses
+                {t.ratings.loses}
               </th>
             </tr>
           </thead>
@@ -117,7 +106,7 @@ export function RatingRules() {
           </tbody>
         </table>
       </div>
-      <p className="muted small">Read from rated games on bordtennisportalen.dk. This is an estimate, not the official calculation.</p>
+      <p className="muted small">{t.ratings.rulesNote}</p>
     </details>
   );
 }

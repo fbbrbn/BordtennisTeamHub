@@ -1,11 +1,9 @@
 import type { Odds } from '../data/forecast';
+import { t } from '../i18n';
 import { percent } from '../lib/text';
 
-const PARTS = [
-  { key: 'win', label: 'Win' },
-  { key: 'draw', label: 'Draw' },
-  { key: 'loss', label: 'Loss' },
-] as const;
+const KEYS = ['win', 'draw', 'loss'] as const;
+const parts = () => KEYS.map((key) => ({ key, label: t.odds[key] }));
 
 /** With an odd number of games a team match cannot end level. */
 export function drawsPossible(odds: Odds): boolean {
@@ -13,14 +11,12 @@ export function drawsPossible(odds: Odds): boolean {
 }
 
 export function oddsSummary(odds: Odds): string {
-  return drawsPossible(odds)
-    ? `Win ${percent(odds.win)}, draw ${percent(odds.draw)}, loss ${percent(odds.loss)}`
-    : `Win ${percent(odds.win)}, loss ${percent(odds.loss)}`;
+  return t.odds.summary(odds.win, odds.draw, odds.loss, drawsPossible(odds));
 }
 
-/** "45% chance to win, 22% to draw." (no draw part when a draw is impossible) */
+/** "45% chance to win, 22% to draw." after the bold share (no draw part when a draw is impossible). */
 export function oddsSentence(odds: Odds): string {
-  return drawsPossible(odds) ? `chance to win, ${percent(odds.draw)} to draw.` : 'chance to win.';
+  return t.odds.sentence(odds.draw, drawsPossible(odds));
 }
 
 /** Tall segmented bar: one whole (100%) split into win, draw and loss, shares printed where they fit. */
@@ -29,7 +25,7 @@ export function OddsBar({ odds }: { odds: Odds }) {
   return (
     <figure className="odds">
       <div className="odds-bar" role="img" aria-label={oddsSummary(odds)}>
-        {PARTS.map(({ key, label }) =>
+        {parts().map(({ key, label }) =>
           odds[key] >= 0.005 ? (
             <span key={key} className={`odds-part odds-${key}`} style={{ flexGrow: odds[key] }} title={`${label} ${percent(odds[key])}`}>
               {fits(odds[key]) && <span className="odds-label">{percent(odds[key])}</span>}
@@ -38,7 +34,7 @@ export function OddsBar({ odds }: { odds: Odds }) {
         )}
       </div>
       <figcaption className="legend">
-        {PARTS.filter(({ key }) => key !== 'draw' || drawsPossible(odds)).map(({ key, label }) => (
+        {parts().filter(({ key }) => key !== 'draw' || drawsPossible(odds)).map(({ key, label }) => (
           <span key={key}>
             <i className={`swatch odds-swatch-${key}`} /> {label}
             {!fits(odds[key]) && ` ${percent(odds[key])}`}
@@ -53,7 +49,7 @@ export function OddsBar({ odds }: { odds: Odds }) {
 export function ThinOdds({ odds }: { odds: Odds }) {
   return (
     <span className="odds-thin" role="img" aria-label={oddsSummary(odds)}>
-      {PARTS.map(({ key }) =>
+      {KEYS.map((key) =>
         odds[key] >= 0.005 ? <span key={key} className={`odds-part odds-${key}`} style={{ flexGrow: odds[key] }} /> : null,
       )}
     </span>

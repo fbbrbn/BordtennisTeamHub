@@ -1,4 +1,5 @@
 import { useId, useState, type Dispatch } from 'react';
+import { t } from '../i18n';
 import { formatDay, formatTime, isPast } from './format';
 import { availabilityOf } from './planner';
 import type { Action } from './state';
@@ -12,19 +13,7 @@ interface MatchProps {
 }
 
 type RowStatus = 'plays' | 'reserve' | 'rest' | 'out' | 'waiting';
-const STATUS_LABEL: Record<RowStatus, string> = {
-  plays: 'Plays',
-  reserve: 'Reserve',
-  rest: 'Resting',
-  out: "Can't play",
-  waiting: 'No answer',
-};
-
-const ANSWERS: { value: Exclude<Availability, 'unknown'>; label: string }[] = [
-  { value: 'yes', label: 'I can' },
-  { value: 'maybe', label: 'Maybe' },
-  { value: 'no', label: "I can't" },
-];
+const ANSWERS: Exclude<Availability, 'unknown'>[] = ['yes', 'maybe', 'no'];
 
 export function PlannedMatch({ item, state, dispatch, nameOf, startOpen = true }: MatchProps & { startOpen?: boolean }) {
   const f = item.fixture;
@@ -47,19 +36,19 @@ export function PlannedMatch({ item, state, dispatch, nameOf, startOpen = true }
           }}
           onCancel={() => setEditing(false)}
           onDelete={() => {
-            if (window.confirm('Delete this match from the plan?')) dispatch({ type: 'removeFixture', id: f.id });
+            if (window.confirm(t.planner.deleteConfirm)) dispatch({ type: 'removeFixture', id: f.id });
           }}
         />
       )}
 
       <p className="match-lineup">
-        <span className="label">Lineup</span>
+        <span className="label">{t.planner.lineup}</span>
         <span>
           {item.lineup.length > 0
             ? item.lineup.map(nameOf).join(' · ')
             : item.unanswered.length > 0
-              ? 'Waiting for answers'
-              : 'Nobody can play'}
+              ? t.planner.waitingAnswers
+              : t.planner.nobodyCan}
         </span>
       </p>
 
@@ -67,11 +56,11 @@ export function PlannedMatch({ item, state, dispatch, nameOf, startOpen = true }
 
       {!open && (
         <button type="button" className="link-button match-toggle" aria-expanded={false} onClick={() => setOpen(true)}>
-          Who can play?
+          {t.planner.whoCanPlay}
         </button>
       )}
 
-      {open && active.length === 0 && <p className="muted">Add players to the roster to plan this match.</p>}
+      {open && active.length === 0 && <p className="muted">{t.planner.addPlayersFirst}</p>}
       {open && active.length > 0 && (
         <ul className="player-rows">
           {active.map((p) => {
@@ -90,8 +79,8 @@ export function PlannedMatch({ item, state, dispatch, nameOf, startOpen = true }
               <li key={p.id} className="player-row">
                 <span className="player-name">{p.name}</span>
                 <span className={`status status-${status}`}>
-                  {STATUS_LABEL[status]}
-                  {override === 'in' && <span className="sr-only"> (set by captain)</span>}
+                  {t.planner.status[status]}
+                  {override === 'in' && <span className="sr-only">{t.planner.setByCaptain}</span>}
                 </span>
                 <AnswerButtons
                   name={p.name}
@@ -100,7 +89,7 @@ export function PlannedMatch({ item, state, dispatch, nameOf, startOpen = true }
                 />
                 <select
                   className="pick"
-                  aria-label={`Selection for ${p.name}`}
+                  aria-label={t.planner.selectionFor(p.name)}
                   value={override ?? 'auto'}
                   onChange={(e) =>
                     dispatch({
@@ -111,9 +100,9 @@ export function PlannedMatch({ item, state, dispatch, nameOf, startOpen = true }
                     })
                   }
                 >
-                  <option value="auto">Auto</option>
-                  <option value="in">Must play</option>
-                  <option value="out">Rest</option>
+                  <option value="auto">{t.planner.auto}</option>
+                  <option value="in">{t.planner.mustPlay}</option>
+                  <option value="out">{t.planner.rest}</option>
                 </select>
               </li>
             );
@@ -129,7 +118,7 @@ export function PlannedMatch({ item, state, dispatch, nameOf, startOpen = true }
           disabled={item.lineup.length === 0}
           onClick={() => dispatch({ type: 'markPlayed', fixtureId: f.id, playerIds: item.lineup })}
         >
-          Mark as played
+          {t.planner.markPlayed}
         </button>
       </div>
       )}
@@ -151,9 +140,9 @@ export function PlayedMatch({ item, state, dispatch, nameOf }: MatchProps) {
           {time && <span className="muted"> {time}</span>}
         </span>
         <span className="played-vs">
-          vs {f.opponent || 'opponent not set'} <span className="tag">{f.home ? 'Home' : 'Away'}</span>
+          {t.common.vs} {f.opponent || t.planner.noOpponent} <span className="tag">{f.home ? t.common.home : t.common.away}</span>
         </span>
-        <span className="played-by">{item.lineup.length > 0 ? item.lineup.map(nameOf).join(', ') : 'Nobody recorded'}</span>
+        <span className="played-by">{item.lineup.length > 0 ? item.lineup.map(nameOf).join(', ') : t.planner.nobodyRecorded}</span>
         <button
           type="button"
           className="link-button"
@@ -163,13 +152,13 @@ export function PlayedMatch({ item, state, dispatch, nameOf }: MatchProps) {
             setEditing((v) => !v);
           }}
         >
-          Edit
+          {t.planner.edit}
         </button>
       </div>
       {editing && (
         <div className="played-edit">
           <fieldset>
-            <legend>Who played?</legend>
+            <legend>{t.planner.whoPlayed}</legend>
             <div className="check-grid">
               {state.players.map((p) => (
                 <label key={p.id} className="check">
@@ -194,10 +183,10 @@ export function PlayedMatch({ item, state, dispatch, nameOf }: MatchProps) {
                 setEditing(false);
               }}
             >
-              Save
+              {t.planner.save}
             </button>
             <button type="button" className="button" onClick={() => setEditing(false)}>
-              Cancel
+              {t.planner.cancel}
             </button>
             <button
               type="button"
@@ -207,7 +196,7 @@ export function PlayedMatch({ item, state, dispatch, nameOf }: MatchProps) {
                 setEditing(false);
               }}
             >
-              Not played yet
+              {t.planner.notPlayedYet}
             </button>
           </div>
         </div>
@@ -226,12 +215,12 @@ function MatchHeading({ fixture, editing, onEdit }: { fixture: Fixture; editing:
           {time && <span className="muted"> · {time}</span>}
         </div>
         <h3 className="match-vs">
-          vs {fixture.opponent || 'opponent not set'}{' '}
-          <span className={`tag ${fixture.home ? 'tag-home' : ''}`}>{fixture.home ? 'Home' : 'Away'}</span>
+          {t.common.vs} {fixture.opponent || t.planner.noOpponent}{' '}
+          <span className={`tag ${fixture.home ? 'tag-home' : ''}`}>{fixture.home ? t.common.home : t.common.away}</span>
         </h3>
       </div>
       <button type="button" className="link-button" aria-expanded={editing} onClick={onEdit}>
-        Edit
+        {t.planner.edit}
       </button>
     </header>
   );
@@ -247,26 +236,25 @@ function MatchNotices({
   activeCount: number;
 }) {
   const notes: { tone: 'warn' | 'info'; text: string }[] = [];
-  const places = (n: number) => `${n} ${n === 1 ? 'place' : 'places'}`;
   if (item.missing > 0 && item.unanswered.length > 0) {
     notes.push({
       tone: 'info',
       text:
         item.unanswered.length === activeCount
-          ? 'No answers yet. Ask the team who can play.'
-          : `${places(item.missing)} open. Still to answer: ${item.unanswered.map(nameOf).join(', ')}.`,
+          ? t.planner.noAnswersYet
+          : t.planner.stillToAnswer(item.missing, item.unanswered.map(nameOf).join(', ')),
     });
   } else if (item.missing > 0) {
-    notes.push({ tone: 'warn', text: `${places(item.missing)} open, and everyone has answered.` });
+    notes.push({ tone: 'warn', text: t.planner.everyoneAnswered(item.missing) });
   }
   if (item.surplus > 0) {
-    notes.push({ tone: 'warn', text: `${item.surplus} more ${item.surplus === 1 ? 'player is' : 'players are'} set to "Must play" than there are places.` });
+    notes.push({ tone: 'warn', text: t.planner.surplus(item.surplus) });
   }
   if (item.conflicts.length > 0) {
-    notes.push({ tone: 'warn', text: `${item.conflicts.map(nameOf).join(', ')} set to "Must play" but said "I can't".` });
+    notes.push({ tone: 'warn', text: t.planner.conflicts(item.conflicts.map(nameOf).join(', ')) });
   }
   if (isPast(item.fixture.date)) {
-    notes.push({ tone: 'info', text: 'This date has passed. Mark the match as played to keep the count right.' });
+    notes.push({ tone: 'info', text: t.planner.datePassed });
   }
   if (notes.length === 0) return null;
   return (
@@ -274,7 +262,7 @@ function MatchNotices({
       {notes.map((n) => (
         <li key={n.text} className={`notice notice-${n.tone}`}>
           <span className="notice-icon" aria-hidden="true">{n.tone === 'warn' ? '!' : 'i'}</span>
-          <span className="sr-only">{n.tone === 'warn' ? 'Warning: ' : 'Note: '}</span>
+          <span className="sr-only">{n.tone === 'warn' ? t.planner.warning : t.planner.note}</span>
           {n.text}
         </li>
       ))}
@@ -284,16 +272,16 @@ function MatchNotices({
 
 function AnswerButtons({ name, value, onChange }: { name: string; value: Availability; onChange: (v: Availability) => void }) {
   return (
-    <div className="answers" role="group" aria-label={`Can ${name} play?`}>
+    <div className="answers" role="group" aria-label={t.planner.canPlay(name)}>
       {ANSWERS.map((a) => (
         <button
-          key={a.value}
+          key={a}
           type="button"
-          className={`answer answer-${a.value}`}
-          aria-pressed={value === a.value}
-          onClick={() => onChange(value === a.value ? 'unknown' : a.value)}
+          className={`answer answer-${a}`}
+          aria-pressed={value === a}
+          onClick={() => onChange(value === a ? 'unknown' : a)}
         >
-          {a.label}
+          {t.planner.answers[a]}
         </button>
       ))}
     </div>
@@ -311,7 +299,7 @@ export function FixtureForm({
   onSubmit,
   onCancel,
   onDelete,
-  cancelLabel = 'Cancel',
+  cancelLabel = t.planner.cancel,
 }: {
   initial?: Fixture;
   onSubmit: (value: FixtureInput) => void;
@@ -335,38 +323,38 @@ export function FixtureForm({
       }}
     >
       <label className="field">
-        <span>Date</span>
+        <span>{t.planner.date}</span>
         <input type="date" required value={day} onChange={(e) => setDay(e.target.value)} />
       </label>
       <label className="field">
-        <span>Time</span>
+        <span>{t.planner.time}</span>
         <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
       </label>
       <label className="field grow">
-        <span>Opponent</span>
-        <input value={opponent} placeholder="Club and team number" onChange={(e) => setOpponent(e.target.value)} />
+        <span>{t.planner.opponent}</span>
+        <input value={opponent} placeholder={t.planner.opponentPlaceholder} onChange={(e) => setOpponent(e.target.value)} />
       </label>
       <fieldset className="field">
-        <legend>Venue</legend>
+        <legend>{t.planner.venue}</legend>
         <div className="radio-row">
           <label className="check">
-            <input type="radio" name={`${id}-venue`} checked={home} onChange={() => setHome(true)} /> Home
+            <input type="radio" name={`${id}-venue`} checked={home} onChange={() => setHome(true)} /> {t.common.home}
           </label>
           <label className="check">
-            <input type="radio" name={`${id}-venue`} checked={!home} onChange={() => setHome(false)} /> Away
+            <input type="radio" name={`${id}-venue`} checked={!home} onChange={() => setHome(false)} /> {t.common.away}
           </label>
         </div>
       </fieldset>
       <div className="button-row">
         <button type="submit" className="button primary">
-          {initial ? 'Save match' : 'Add match'}
+          {initial ? t.planner.saveMatch : t.planner.addMatch}
         </button>
         <button type="button" className="button" onClick={onCancel}>
           {cancelLabel}
         </button>
         {onDelete && (
           <button type="button" className="button quiet" onClick={onDelete}>
-            Delete match
+            {t.planner.deleteMatch}
           </button>
         )}
       </div>

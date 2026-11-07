@@ -12,6 +12,8 @@ It is built for any team. Vallensbæk BTK 3 is the first test team.
 
 **Live site:** https://fbbrbn.github.io/BordtennisTeamHub/
 
+- **In Danish or English.** The phone's language decides; the switch at the bottom of every page changes it, and the
+  choice is remembered on the device.
 - **Install it on your phone.** "Add to Home screen" gives it its own app icon, in light and dark mode.
 - **Follow your team.** Tap ☆ Follow on a team page. Followed teams come first on the start page, with their next
   match, your chance to win and a button to plan the lineup.
@@ -87,14 +89,14 @@ Results are refreshed by a GitHub Action every morning, at midday and every hour
 | [docs/data-pipeline.md](docs/data-pipeline.md) | How the data gets from bordtennisportalen.dk to the site, and what is in each file. |
 | [docs/portal-api.md](docs/portal-api.md) | The portal's web service: the calls, their parameters and answers. |
 | [docs/development.md](docs/development.md) | Setting up, commands, how the code is organised, conventions and deployment. |
-| [docs/roadmap.md](docs/roadmap.md) | The next steps: domain, Danish, shared login, donations and taxes. |
+| [docs/roadmap.md](docs/roadmap.md) | The next steps: domain, a review of the Danish texts, shared login, donations and taxes. |
 
 ## What's next
 
 The plan, with the steps and decisions for each, is in [docs/roadmap.md](docs/roadmap.md):
 
 1. **Own domain** on Cloudflare.
-2. **Danish** as a second language.
+2. **Danish:** done; a Danish-speaking club member should review the texts (`src/i18n/da.tsx`).
 3. **A legal home** for the project: you personally, or a small association.
 4. **Shared login** for teams and clubs, so every player answers in the app.
 5. **Donations**, within the Danish rules for fundraising and tax.

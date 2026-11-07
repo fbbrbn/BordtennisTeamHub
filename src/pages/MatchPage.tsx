@@ -6,6 +6,7 @@ import type { PoolData, TeamMatch } from '../data/model';
 import { homeOutcome, likeliest, predictionOdds } from '../data/prematch';
 import { matchRatingPoints } from '../data/ratings';
 import { playersById, teamsById } from '../data/stats';
+import { t } from '../i18n';
 import { href } from '../lib/router';
 import { matchDayLong, matchTime, NotFound, PageState, percent, portalUrl, signed } from '../components/ui';
 import { oneDecimal } from '../lib/text';
@@ -13,9 +14,9 @@ import { MatchPreview } from './MatchPreview';
 
 export function MatchPage({ poolId, matchId }: { poolId: string; matchId: string }) {
   const loaded = useLoaded(() => loadPool(poolId), poolId);
-  if (loaded.status !== 'ready') return <PageState state={loaded} what="this match" />;
+  if (loaded.status !== 'ready') return <PageState state={loaded} what="match" />;
   const match = loaded.data.matches.find((m) => m.id === matchId);
-  if (!match) return <NotFound what="this match" />;
+  if (!match) return <NotFound what="match" />;
   return <MatchView pool={loaded.data} match={match} />;
 }
 
@@ -27,12 +28,12 @@ function MatchView({ pool, match }: { pool: PoolData; match: TeamMatch }) {
   const ratingLines = matchRatingPoints(pool, match);
   const names = (ids: string[]) =>
     ids.length === 0 ? (
-      <span className="muted">No player</span>
+      <span className="muted">{t.match.noPlayer}</span>
     ) : (
       ids.map((id, i) => (
         <span key={id}>
-          {i > 0 && ' & '}
-          <a href={href('player', pool.pool.id, id)}>{players.get(id)?.name ?? 'Unknown player'}</a>
+          {i > 0 && t.common.andJoin}
+          <a href={href('player', pool.pool.id, id)}>{players.get(id)?.name ?? t.common.unknownPlayer}</a>
         </span>
       ))
     );
@@ -41,20 +42,20 @@ function MatchView({ pool, match }: { pool: PoolData; match: TeamMatch }) {
     <div className="dash">
       <header className="dash-head">
         <p className="eyebrow">
-          <a href={href('pool', pool.pool.id)}>{pool.pool.name}</a> · Match {match.id} <PastSeasonTag pool={pool.pool} />
+          <a href={href('pool', pool.pool.id)}>{pool.pool.name}</a> · {t.match.eyebrow(match.id)} <PastSeasonTag pool={pool.pool} />
         </p>
         <h1 className="match-title">
-          <a href={href('team', pool.pool.id, match.homeTeamId)}>{home?.name ?? 'Home'}</a>
-          <span className="match-score">{match.score ? match.score.join('–') : 'vs'}</span>
-          <a href={href('team', pool.pool.id, match.awayTeamId)}>{away?.name ?? 'Away'}</a>
+          <a href={href('team', pool.pool.id, match.homeTeamId)}>{home?.name ?? t.common.home}</a>
+          <span className="match-score">{match.score ? match.score.join('–') : t.common.vs}</span>
+          <a href={href('team', pool.pool.id, match.awayTeamId)}>{away?.name ?? t.common.away}</a>
         </h1>
         <p className="muted">
           {matchDayLong(match.date)} · {matchTime(match.date)} · {match.venue}
-          {match.walkover && ' · walkover'}
+          {match.walkover && t.match.walkover}
         </p>
         <div className="button-row">
           <a className="button" href={portalUrl(pool.pool, 5, { matchId: match.id })} target="_blank" rel="noreferrer">
-            Open on bordtennisportalen.dk
+            {t.common.openOnPortal}
           </a>
         </div>
       </header>
@@ -63,17 +64,17 @@ function MatchView({ pool, match }: { pool: PoolData; match: TeamMatch }) {
 
       {match.score && (
       <section className="card">
-        <h2>Games</h2>
-        {match.score && !match.games && <p className="muted">The games of this match are not available yet.</p>}
+        <h2>{t.match.games}</h2>
+        {match.score && !match.games && <p className="muted">{t.match.gamesUnavailable}</p>}
         {match.games && (
           <div className="table-scroll">
             <table className="data-table games-table wrap-head">
               <thead>
                 <tr>
-                  <th scope="col">Game</th>
-                  <th scope="col">{home?.name ?? 'Home'}</th>
-                  <th scope="col" className="num">Sets</th>
-                  <th scope="col">{away?.name ?? 'Away'}</th>
+                  <th scope="col">{t.match.game}</th>
+                  <th scope="col">{home?.name ?? t.common.home}</th>
+                  <th scope="col" className="num">{t.common.sets}</th>
+                  <th scope="col">{away?.name ?? t.common.away}</th>
                 </tr>
               </thead>
               <tbody>
@@ -81,18 +82,18 @@ function MatchView({ pool, match }: { pool: PoolData; match: TeamMatch }) {
                   <tr key={g.label}>
                     <td className="muted">
                       {g.label}
-                      {g.walkover && ' (w.o.)'}
+                      {g.walkover && t.match.wo}
                     </td>
                     <td className={g.winner === 'home' ? 'winner' : undefined}>
                       {names(g.home)}
-                      {g.winner === 'home' && <span className="sr-only"> (won)</span>}
+                      {g.winner === 'home' && <span className="sr-only">{t.match.wonSr}</span>}
                     </td>
                     <td className="num strong">
                       {g.sets[0]}–{g.sets[1]}
                     </td>
                     <td className={g.winner === 'away' ? 'winner' : undefined}>
                       {names(g.away)}
-                      {g.winner === 'away' && <span className="sr-only"> (won)</span>}
+                      {g.winner === 'away' && <span className="sr-only">{t.match.wonSr}</span>}
                     </td>
                   </tr>
                 ))}
@@ -103,25 +104,22 @@ function MatchView({ pool, match }: { pool: PoolData; match: TeamMatch }) {
       </section>
       )}
 
-      {match.score && match.prediction && <PredictionCard match={match} homeName={home?.name ?? 'Home'} awayName={away?.name ?? 'Away'} />}
+      {match.score && match.prediction && <PredictionCard match={match} homeName={home?.name ?? t.common.home} awayName={away?.name ?? t.common.away} />}
 
       {pool.pool.ratings && ratingLines.length > 0 && (
         <section className="card">
-          <h2>Rating points</h2>
-          <p className="muted">
-            Estimated: this match is not in the official ratings yet ({listNote(pool.pool.ratings)}). Before is the rating
-            going into the match, after any earlier games the list does not include.
-          </p>
+          <h2>{t.match.ratingPoints}</h2>
+          <p className="muted">{t.match.ratingPointsNote(listNote(pool.pool.ratings))}</p>
           <div className="table-scroll">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th scope="col">Player</th>
+                  <th scope="col">{t.common.player}</th>
                   <th scope="col" className="num">
-                    Before
+                    {t.match.before}
                   </th>
                   <th scope="col" className="num">
-                    Points
+                    {t.common.points}
                   </th>
                 </tr>
               </thead>
@@ -129,7 +127,7 @@ function MatchView({ pool, match }: { pool: PoolData; match: TeamMatch }) {
                 {ratingLines.map((line) => (
                   <tr key={line.playerId}>
                     <th scope="row">
-                      <a href={href('player', pool.pool.id, line.playerId)}>{players.get(line.playerId)?.name ?? 'Unknown player'}</a>
+                      <a href={href('player', pool.pool.id, line.playerId)}>{players.get(line.playerId)?.name ?? t.common.unknownPlayer}</a>
                       <div className="muted small">{(line.side === 'home' ? home : away)?.name}</div>
                     </th>
                     <td className="num">{line.before}</td>
@@ -153,29 +151,21 @@ function PredictionCard({ match, homeName, awayName }: { match: TeamMatch; homeN
   if (!odds || !match.prediction || !match.score) return null;
   const expected = `${oneDecimal(odds.expectedGames)}–${oneDecimal(odds.totalGames - odds.expectedGames)}`;
   const favourite = likeliest(match.prediction);
-  const favouriteText = favourite === 'win' ? `a win for ${homeName}` : favourite === 'loss' ? `a win for ${awayName}` : 'a draw';
+  const favouriteText = favourite === 'win' ? t.match.winFor(homeName) : favourite === 'loss' ? t.match.winFor(awayName) : t.match.aDraw;
   return (
     <section className="card">
-      <h2>Prediction and result</h2>
+      <h2>{t.match.predictionTitle}</h2>
       <p className="odds-headline">
-        <strong>{percent(odds.win)}</strong> chance for {homeName} to win{odds.drawPossible ? `, ${percent(odds.draw)} to draw` : ''}, before the
-        match.
+        {t.match.predictionHeadline(<strong>{percent(odds.win)}</strong>, homeName, odds.drawPossible ? percent(odds.draw) : null)}
       </p>
       <OddsBar odds={odds} />
       <p>
-        Expected score <strong>{expected}</strong>; it ended <strong>{match.score.join('–')}</strong>.{' '}
-        {outcome === null
-          ? ''
-          : outcome === favourite
-            ? `The likeliest outcome, ${favouriteText}, happened.`
-            : `Not the likeliest outcome: the prediction favoured ${favouriteText}.`}
+        {t.match.expectedEnded(<strong>{expected}</strong>, <strong>{match.score.join('–')}</strong>)}{' '}
+        {outcome === null ? '' : outcome === favourite ? t.match.likeliestHappened(favouriteText) : t.match.notLikeliest(favouriteText)}
       </p>
       <details className="why">
-        <summary>How was this predicted?</summary>
-        <p className="muted small">
-          From what was known before the match day: the official rating list in force that day, and the results of earlier
-          matches, for the lineups both teams had used and for common opponents. Win, draw and loss are from {homeName}'s side.
-        </p>
+        <summary>{t.match.howPredicted}</summary>
+        <p className="muted small">{t.match.howPredictedNote(homeName)}</p>
       </details>
     </section>
   );

@@ -1,4 +1,5 @@
 import { useState, type KeyboardEvent, type PointerEvent } from 'react';
+import { t } from '../i18n';
 import { niceTicks, useWidth } from './useWidth';
 
 export interface RaceSeries {
@@ -61,7 +62,7 @@ export function PointsRace({ series, highlightId }: { series: RaceSeries[]; high
           width={width}
           height={HEIGHT}
           role="img"
-          aria-label={`Points after each match. ${highlight ? `${highlight.name} has ${highlight.points[highlight.points.length - 1]} points.` : ''} Use the arrow keys to step through matches.`}
+          aria-label={t.charts.raceLabel(highlight?.name ?? null, highlight ? highlight.points[highlight.points.length - 1] : null)}
           tabIndex={0}
           onKeyDown={onKey}
           onBlur={() => setHover(null)}
@@ -95,7 +96,7 @@ export function PointsRace({ series, highlightId }: { series: RaceSeries[]; high
                 y={y(highlight.points[highlight.points.length - 1])}
                 dy="0.32em"
               >
-                {highlight.points[highlight.points.length - 1]} pts
+                {t.charts.pts(highlight.points[highlight.points.length - 1])}
               </text>
             </>
           )}
@@ -113,7 +114,7 @@ export function PointsRace({ series, highlightId }: { series: RaceSeries[]; high
         </svg>
         {hover !== null && (
           <div className="tooltip" style={{ left: tipLeft, top: 8 }} role="status">
-            <div className="tooltip-title">After match {hover}</div>
+            <div className="tooltip-title">{t.charts.afterMatch(hover)}</div>
             {rows.map(({ s, value }) => (
               <div key={s.id} className={s.id === highlightId ? 'tooltip-row is-highlight' : 'tooltip-row'}>
                 <span className={s.id === highlightId ? 'key key-accent' : 'key key-muted'} />
@@ -126,20 +127,20 @@ export function PointsRace({ series, highlightId }: { series: RaceSeries[]; high
       </div>
       <figcaption className="legend">
         <span>
-          <i className="key key-accent" /> {highlight?.name ?? 'Team'}
+          <i className="key key-accent" /> {highlight?.name ?? t.common.team}
         </span>
         <span>
-          <i className="key key-muted" /> Other teams in the pool
+          <i className="key key-muted" /> {t.charts.otherTeams}
         </span>
-        <span className="muted">Horizontal axis: matches played</span>
+        <span className="muted">{t.charts.xAxisMatches}</span>
       </figcaption>
       <details className="table-view">
-        <summary>Show as table</summary>
+        <summary>{t.common.showAsTable}</summary>
         <div className="table-scroll">
           <table className="data-table">
             <thead>
               <tr>
-                <th scope="col">Team</th>
+                <th scope="col">{t.common.team}</th>
                 {Array.from({ length: maxX }, (_, i) => (
                   <th key={i} scope="col" className="num">
                     {i + 1}

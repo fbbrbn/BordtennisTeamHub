@@ -6,7 +6,7 @@ owner has to do (accounts, payments, legal), and what can be built in the code.
 | Order | Step | Who | Depends on |
 | --- | --- | --- | --- |
 | 1 | Buy the domain and move its DNS to Cloudflare | Owner, then a small code change | The name |
-| 2 | Danish as a second language | Code, then a Danish-speaking reviewer | Nothing |
+| 2 | Danish as a second language: built, the texts to be reviewed | A Danish-speaking reviewer | Nothing |
 | 3 | Decide the project's legal home: you personally, or a small association | Owner | Nothing |
 | 4 | Shared login for teams and clubs (a backend) | Code, plus a privacy policy | Steps 1 and 3 |
 | 5 | Donations, legally, with the tax rules | Owner, with advice | Step 3 |
@@ -43,6 +43,10 @@ public repository.
 
 ## 2. Danish as a second language
 
+**Status:** built (November 2026). Every page is in Danish or English. What is left is step 3 below: a review of the
+Danish texts by a Danish-speaking club member. They are all in one file, [`src/i18n/da.tsx`](../src/i18n/da.tsx), next
+to the English ones in [`src/i18n/en.tsx`](../src/i18n/en.tsx).
+
 **Goal:** every page in Danish or English. The phone's language decides by default, a switch in the footer changes
 it, and the choice is remembered on the device.
 
@@ -56,10 +60,10 @@ it, and the choice is remembered on the device.
 
 **Steps:**
 
-1. Move every text into the dictionary.
-2. Draft the Danish texts.
-3. Have them reviewed by a Danish-speaking club member.
-4. Check every page at 390 px, since Danish words are often longer.
+1. Move every text into the dictionary. Done.
+2. Draft the Danish texts. Done.
+3. Have them reviewed by a Danish-speaking club member. To do.
+4. Check every page at 390 px, since Danish words are often longer. Done: no page scrolls sideways in either language.
 
 ## 3. The project's legal home
 

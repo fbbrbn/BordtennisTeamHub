@@ -1,19 +1,20 @@
 import { NotFound, PageState } from '../components/ui';
 import { loadIndex, useLoaded } from '../data/load';
 import type { DataIndex } from '../data/model';
+import { t } from '../i18n';
 import { href } from '../lib/router';
-import { count, ordinal } from '../lib/text';
+import { ordinal } from '../lib/text';
 import { groupByClub } from './StartPage';
 
 export function ClubPage({ slug }: { slug: string }) {
   const index = useLoaded(loadIndex, 'index');
-  if (index.status !== 'ready') return <PageState state={index} what="this club" />;
+  if (index.status !== 'ready') return <PageState state={index} what="club" />;
   return <ClubView index={index.data} slug={slug} />;
 }
 
 function ClubView({ index, slug }: { index: DataIndex; slug: string }) {
   const club = groupByClub(index.pools).find((c) => c.slug === slug);
-  if (!club) return <NotFound what="this club" />;
+  if (!club) return <NotFound what="club" />;
   const portalId = index.clubs?.find((c) => c.slug === slug)?.id ?? null;
   const pools = new Set(club.teams.map((t) => t.pool.id));
 
@@ -27,11 +28,9 @@ function ClubView({ index, slug }: { index: DataIndex; slug: string }) {
   return (
     <div className="dash">
       <header className="dash-head">
-        <p className="eyebrow">Club{index.season ? ` · ${index.season.name}` : ''}</p>
+        <p className="eyebrow">{t.club.eyebrow(index.season?.name ?? null)}</p>
         <h1>{club.name}</h1>
-        <p className="muted">
-          {count(club.teams.length, 'team')} in {count(pools.size, 'pool')}
-        </p>
+        <p className="muted">{t.club.teamsInPools(club.teams.length, pools.size)}</p>
         {portalId && index.season && (
           <div className="button-row">
             <a
@@ -40,7 +39,7 @@ function ClubView({ index, slug }: { index: DataIndex; slug: string }) {
               target="_blank"
               rel="noreferrer"
             >
-              Open on bordtennisportalen.dk
+              {t.common.openOnPortal}
             </a>
           </div>
         )}
@@ -64,13 +63,10 @@ function ClubView({ index, slug }: { index: DataIndex; slug: string }) {
                   {team.position ? (
                     <span>
                       <strong>{ordinal(team.position)}</strong>
-                      <span className="muted small">
-                        {' '}
-                        of {pool.teams.length} · {count(team.points ?? 0, 'pt')}
-                      </span>
+                      <span className="muted small">{t.club.of(pool.teams.length, team.points ?? 0)}</span>
                     </span>
                   ) : (
-                    <span className="muted small">Not started</span>
+                    <span className="muted small">{t.club.notStarted}</span>
                   )}
                 </div>
               </li>

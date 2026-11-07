@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { t } from '../i18n';
 import { useMyTeam } from '../lib/follow';
 import { href, type Route } from '../lib/router';
 
@@ -29,26 +30,28 @@ export function Nav({ route, variant }: { route: Route; variant: 'top' | 'bottom
   const [section, a, b] = route.path;
   const onMyTeam = section === 'team' && myTeam !== null && a === myTeam.poolId && b === myTeam.teamId;
   const items = [
-    { label: 'Home', to: '#/', icon: HOME, active: !section },
+    { id: 'home', label: t.nav.home, to: '#/', icon: HOME, active: !section },
     {
-      label: 'My team',
+      id: 'team',
+      label: t.nav.myTeam,
       to: myTeam ? href('team', myTeam.poolId, myTeam.teamId) : '#/',
       icon: TEAM,
       active: onMyTeam,
-      title: myTeam ? myTeam.name : 'Find and follow your team first',
+      title: myTeam ? myTeam.name : t.nav.followFirst,
     },
     {
-      label: 'Lineup',
+      id: 'lineup',
+      label: t.nav.lineup,
       to: myTeam ? href('lineup', `team-${myTeam.poolId}-${myTeam.teamId}`) : href('lineup', 'my-team'),
       icon: LINEUP,
       active: section === 'lineup',
-      title: myTeam ? `Lineup planner for ${myTeam.name}` : 'Lineup planner',
+      title: myTeam ? t.nav.plannerFor(myTeam.name) : t.nav.planner,
     },
   ];
   return (
-    <nav className={variant === 'top' ? 'nav-top' : 'nav-bottom'} aria-label="Main">
+    <nav className={variant === 'top' ? 'nav-top' : 'nav-bottom'} aria-label={t.nav.main}>
       {items.map((item) => (
-        <a key={item.label} href={item.to} className="nav-link" aria-current={item.active ? 'page' : undefined} title={item.title}>
+        <a key={item.id} href={item.to} className="nav-link" aria-current={item.active ? 'page' : undefined} title={item.title}>
           {variant === 'bottom' && item.icon}
           <span>{item.label}</span>
         </a>

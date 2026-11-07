@@ -1,4 +1,5 @@
 import { useState, type KeyboardEvent, type PointerEvent } from 'react';
+import { t } from '../i18n';
 import { niceTicks, useWidth } from './useWidth';
 
 export interface RatingPoint {
@@ -64,7 +65,7 @@ export function RatingHistory({ points }: { points: RatingPoint[] }) {
           width={width}
           height={HEIGHT}
           role="img"
-          aria-label={`Rating over time, from ${points[0].rating} to ${points[points.length - 1].rating}. Use the arrow keys to step through the points.`}
+          aria-label={t.charts.historyLabel(points[0].rating, points[points.length - 1].rating)}
           tabIndex={0}
           onKeyDown={onKey}
           onBlur={() => setHover(null)}
@@ -107,7 +108,7 @@ export function RatingHistory({ points }: { points: RatingPoint[] }) {
             <div className="tooltip-row is-highlight">
               <span className={tip.estimate ? 'key key-estimate' : 'key key-accent'} />
               <strong>{tip.rating}</strong>
-              <span>{tip.estimate ? 'forecast' : 'rating'}</span>
+              <span>{tip.estimate ? t.charts.forecast : t.charts.rating}</span>
             </div>
           </div>
         )}
@@ -115,12 +116,12 @@ export function RatingHistory({ points }: { points: RatingPoint[] }) {
       {points.some((p) => p.estimate) && (
         <figcaption className="legend">
           <span>
-            <i className="key key-estimate" /> Forecast: once the games already played are rated
+            <i className="key key-estimate" /> {t.charts.forecastLegend}
           </span>
         </figcaption>
       )}
       <details className="table-view">
-        <summary>Show as table</summary>
+        <summary>{t.common.showAsTable}</summary>
         <div className="table-scroll">
           <table className="data-table">
             <tbody>
@@ -129,7 +130,7 @@ export function RatingHistory({ points }: { points: RatingPoint[] }) {
                   <th scope="row">{p.title}</th>
                   <td className="num">
                     {p.rating}
-                    {p.estimate ? ' (forecast)' : ''}
+                    {p.estimate ? t.charts.forecastSuffix : ''}
                   </td>
                 </tr>
               ))}

@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import { setLang } from '../i18n';
 import { playerInsights, teamInsights } from './insights';
 import type { Game, PoolData } from './model';
 
@@ -59,6 +60,22 @@ describe('insights', () => {
   it('points out an upset loss', () => {
     const byTopic = Object.fromEntries(playerInsights(pool, 'al', 265).map((i) => [i.topic, i.text]));
     expect(byTopic['Upset loss']).toBe('Bea (1100), 1–3: rated 50 lower.');
+  });
+});
+
+describe('insights in Danish', () => {
+  afterEach(() => setLang('en', false));
+
+  it('builds the same insights, with Danish words and numbers', () => {
+    setLang('da', false);
+    const team = Object.fromEntries(teamInsights(pool, 'A', 265).map((i) => [i.id, i]));
+    expect(team.table.topic).toBe('Stilling');
+    expect(team.table.text).toBe('Nr. 1 af 3 med 2 point. Fører puljen. 2 point foran Beta.');
+    expect(team.form.text).toMatch(/^I 1 holdkamp vandt holdet 3 kampe; spillernes rating forudsagde \d/);
+    expect(team.doubles.text).toBe('Doubler vundet: 1 af 1. Bedste par: Al og Ann (1–0).');
+    const player = Object.fromEntries(playerInsights(pool, 'ann', 265).map((i) => [i.id, i.text]));
+    expect(player.form).toBe('Vandt 2 af 2 singler; ratingen forudsagde 1. Det er 1 sejr mere end ventet: spiller over sin rating.');
+    expect(player.bestWin).toBe('Bo (1300), 3–2. En overraskelse: 100 ratingpoint højere.');
   });
 });
 

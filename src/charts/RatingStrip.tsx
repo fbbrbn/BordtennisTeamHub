@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { t } from '../i18n';
 import { niceTicks, useWidth } from './useWidth';
 
 export interface StripPoint {
@@ -34,7 +35,7 @@ export function RatingStrip({ points, ownRating }: { points: StripPoint[]; ownRa
   return (
     <figure className="chart">
       <div className="chart-plot" ref={ref}>
-        <svg width={width} height={HEIGHT} role="group" aria-label="Singles results by opponent rating">
+        <svg width={width} height={HEIGHT} role="group" aria-label={t.charts.stripLabel}>
           {ticks.map((t) => (
             <g key={t}>
               <line className="grid" x1={x(t)} x2={x(t)} y1={M.top} y2={HEIGHT - M.bottom} />
@@ -44,10 +45,10 @@ export function RatingStrip({ points, ownRating }: { points: StripPoint[]; ownRa
             </g>
           ))}
           <text className="row-label" x={M.left - 12} y={rowY.won} dy="0.32em" textAnchor="end">
-            Won
+            {t.common.won}
           </text>
           <text className="row-label" x={M.left - 12} y={rowY.lost} dy="0.32em" textAnchor="end">
-            Lost
+            {t.common.lost}
           </text>
           <line className="axis" x1={M.left} x2={M.left + plotW} y1={rowY.won} y2={rowY.won} />
           <line className="axis" x1={M.left} x2={M.left + plotW} y1={rowY.lost} y2={rowY.lost} />
@@ -55,7 +56,7 @@ export function RatingStrip({ points, ownRating }: { points: StripPoint[]; ownRa
             <g>
               <line className="reference" x1={x(ownRating)} x2={x(ownRating)} y1={M.top - 6} y2={HEIGHT - M.bottom} />
               <text className="reference-label" x={x(ownRating)} y={M.top - 10} textAnchor="middle">
-                Own rating {ownRating}
+                {t.charts.ownRating(ownRating)}
               </text>
             </g>
           )}
@@ -95,7 +96,7 @@ export function RatingStrip({ points, ownRating }: { points: StripPoint[]; ownRa
         )}
       </div>
       <figcaption className="legend">
-        <span className="muted">Each dot is one singles game, placed by the opponent's rating. The game list below has every value.</span>
+        <span className="muted">{t.charts.stripNote}</span>
       </figcaption>
     </figure>
   );

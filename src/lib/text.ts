@@ -1,29 +1,24 @@
+/** Number and list formatting in the site's current language (src/i18n). */
+import { decimal, list, ordinal as ordinalIn, percent as percentIn } from '../i18n/format';
+import { lang } from '../i18n';
+
+export { signed } from '../i18n/format';
+
+/** "1st" and "1." */
 export function ordinal(n: number): string {
-  const tail = n % 100 >= 11 && n % 100 <= 13 ? 'th' : (['th', 'st', 'nd', 'rd'][n % 10] ?? 'th');
-  return `${n}${tail}`;
+  return ordinalIn(n, lang);
 }
 
-/** "1 match", "3 matches" */
-export function count(n: number, singular: string, plural = `${singular}s`): string {
-  return `${n} ${n === 1 ? singular : plural}`;
-}
-
-/** One decimal, without a trailing ".0". */
+/** One decimal, without a trailing ".0": "5.6" and "5,6". */
 export function oneDecimal(n: number): string {
-  const rounded = Math.round(n * 10) / 10;
-  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+  return decimal(n, lang);
 }
 
 export function percent(rate: number | null): string {
-  return rate === null ? '–' : `${Math.round(rate * 100)}%`;
+  return percentIn(rate, lang);
 }
 
+/** "A, B and C" and "A, B og C". */
 export function listNames(names: string[]): string {
-  if (names.length <= 1) return names.join('');
-  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
-}
-
-/** "+12", "−5" (with a real minus sign), "±0". */
-export function signed(n: number): string {
-  return n > 0 ? `+${n}` : n < 0 ? `−${Math.abs(n)}` : '±0';
+  return list(names, lang);
 }
