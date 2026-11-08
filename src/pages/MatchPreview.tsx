@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { OddsBar, oddsSentence } from '../components/Odds';
+import { dayWithYear } from '../components/ui';
 import {
   commonOpponentForecast,
   fitScale,
@@ -17,7 +18,8 @@ import {
   type CommonForecast,
   type RatingSummary,
 } from '../data/forecast';
-import type { PoolData, TeamMatch } from '../data/model';
+import { loadHeadToHead, useLoaded } from '../data/load';
+import type { HeadToHead, PoolData, TeamMatch } from '../data/model';
 import { playersById, teamsById } from '../data/stats';
 import { readLastTeam } from '../lib/lastTeam';
 import { href } from '../lib/router';
@@ -133,6 +135,18 @@ export function MatchPreview({ pool, match }: { pool: PoolData; match: TeamMatch
     (a, b) => (shownRating(b) ?? -Infinity) - (shownRating(a) ?? -Infinity),
   );
   const grid = opponentColumns.length > 0 ? ratingForecast(pool, ourRows, opponentColumns, scale, home, FORM_SPREAD) : null;
+
+  // Singles between our players and theirs, this season and before (src/data/headtohead.ts).
+  const h2hState = useLoaded(() => loadHeadToHead(ourRows), `h2h:${ourRows.join(',')}`);
+  const h2h = h2hState.status === 'ready' ? h2hState.data : null;
+  const record = (ours: string, theirs: string) => h2h?.records.get(ours)?.get(theirs);
+  const meetings = ourRows
+    .flatMap((ours) => teamRoster(pool, opponentId).map((theirs) => ({ ours, theirs, record: record(ours, theirs) })))
+    .filter((m): m is { ours: string; theirs: string; record: HeadToHead } => m.record !== undefined)
+    .sort((a, b) => b.record[0] + b.record[1] - (a.record[0] + a.record[1]) || b.record[2].localeCompare(a.record[2]));
+  const meetingText = (m: { ours: string; theirs: string; record: HeadToHead }) =>
+    t.preview.h2hItem(playerName(m.ours), playerName(m.theirs), m.record[0], m.record[1], dayWithYear(m.record[2]), m.record[3] === 1);
+  const gridMeetings = grid ? meetings.filter((m) => grid.team.includes(m.ours) && grid.opponent.includes(m.theirs)) : [];
 
   const toggle = (side: string, playerId: string) =>
     setLineups((current) => {
@@ -260,11 +274,20 @@ export function MatchPreview({ pool, match }: { pool: PoolData; match: TeamMatch
                       <a href={href('player', pool.pool.id, id)}>{playerName(id)}</a>
                       <span className="muted small"> {shownRating(id) ?? t.common.unrated}</span>
                     </th>
-                    {grid.singles[i].map((p, j) => (
-                      <td key={grid.opponent[j]} className={`heat heat-${heat(p)}`}>
-                        {percent(p)}
-                      </td>
-                    ))}
+                    {grid.singles[i].map((p, j) => {
+                      const met = gridMeetings.find((m) => m.ours === id && m.theirs === grid.opponent[j]);
+                      return (
+                        <td key={grid.opponent[j]} className={`heat heat-${heat(p)}`}>
+                          {percent(p)}
+                          {met && (
+                            <span className="h2h" title={meetingText(met)}>
+                              <span className="sr-only">{t.preview.h2hSr} </span>
+                              {met.record[0]}–{met.record[1]}
+                            </span>
+                          )}
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
               </tbody>
@@ -277,6 +300,17 @@ export function MatchPreview({ pool, match }: { pool: PoolData; match: TeamMatch
               </span>
             ))}
           </div>
+          {gridMeetings.length > 0 && h2h && <p className="muted small">{t.preview.h2hNote(h2h.from)}</p>}
+          {meetings.length > 0 && (
+            <details className="why">
+              <summary>{t.preview.h2hAll(meetings.length)}</summary>
+              <ul className="reasons small">
+                {meetings.map((m) => (
+                  <li key={`${m.ours}-${m.theirs}`}>{meetingText(m)}</li>
+                ))}
+              </ul>
+            </details>
+          )}
         </section>
       )}
 

@@ -48,7 +48,8 @@ It is built for any team. Vallensbæk BTK 3 is the first test team.
 - **Match preview** (for upcoming matches).
   - Chances from either team's side.
   - A lineup picker for both teams that updates the chances immediately.
-  - Every one of your players against their regular lineup.
+  - Every one of your players against their regular lineup, with how each pair has done against each other in
+    singles, this season and before.
   - Why: the ratings alone, players' form against their rating and the home table, and results against common
     opponents.
 - **Match page.** All games of a played team match, with players and sets.
@@ -103,7 +104,7 @@ The plan, with the steps and decisions for each, is in [docs/roadmap.md](docs/ro
 4. **Shared login** for teams and clubs, so every player answers in the app.
 5. **Donations**, within the Danish rules for fundraising and tax.
 
-Also planned in the code: head-to-head records across all seasons.
+Also planned in the code: calibrating the predictions on all the past seasons.
 
 ## Data and privacy
 

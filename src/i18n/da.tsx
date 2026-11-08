@@ -380,6 +380,11 @@ export const da: Texts = {
     columnsPicked: (team) => `den opstilling for ${team} du har valgt`,
     columnsUsual: (team) => `de mest brugte spillere fra ${team}`,
     gridPlayer: (team) => `Spiller fra ${team}`,
+    h2hSr: 'Indbyrdes:',
+    h2hNote: (from) => `Under en chance står de to spilleres indbyrdes singler siden ${from}, vundet–tabt.`,
+    h2hAll: (pairs) => `${pairs} par spillere har mødt hinanden før`,
+    h2hItem: (player, opponent, won, lost, last, lastWon) =>
+      `${player} mod ${opponent}: ${won}–${lost}, ${won + lost === 1 ? '' : 'senest '}${lastWon ? 'en sejr' : 'et nederlag'} den ${last}`,
     heat: ['Klar underdog', 'Underdog', 'Lige', 'Favorit', 'Klar favorit'],
     commonTitle: 'Fælles modstandere',
     commonNote: (team) => `Sådan klarede begge hold sig mod de samme modstandere. Forskel: kampe pr. holdkamp set fra ${team}.`,

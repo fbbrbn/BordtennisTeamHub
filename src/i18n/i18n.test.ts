@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { oneDecimal, ordinal as currentOrdinal, percent as currentPercent } from '../lib/text';
 import { da } from './da';
 import { en } from './en';
-import { decimal, list, longDate, ordinal, percent, plural, shortDate, signed, weekdayDate } from './format';
+import { dayDate, decimal, list, longDate, ordinal, percent, plural, shortDate, signed, weekdayDate } from './format';
 import { detectLang, lang, setLang, t } from '.';
 
 afterEach(() => setLang('da', false));
@@ -33,6 +33,8 @@ describe('formats', () => {
     expect(weekdayDate('2026-11-04T19:00', 'da')).toBe('ons. 4. nov.');
     expect(longDate('2026-11-04T19:00', 'da')).toBe('onsdag den 4. november 2026');
     expect(shortDate('2026-10-23', 'da')).toBe('23. okt.');
+    expect(dayDate('2025-10-12', 'da')).toBe('12. okt. 2025');
+    expect(dayDate('2025-10-12', 'en')).toBe('12 Oct 2025');
     expect(weekdayDate('2026-11-04T19:00', 'en')).toBe('Wed 4 Nov');
   });
 

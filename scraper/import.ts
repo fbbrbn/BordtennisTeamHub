@@ -20,6 +20,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { clubOf, clubSlug } from '../src/data/clubs.ts';
 import type { ClubRef, DataIndex, NamedId, PlayerIndex, PoolData, PoolRef, RatingStatus } from '../src/data/model.ts';
+import { earliestSeason, headToHeadOf, headToHeadShards } from '../src/data/headtohead.ts';
 import { predictionRecord, ratingOn, replaySeason } from '../src/data/prematch.ts';
 import { forecastRatings, ratingPoints, type RatingForecast } from '../src/data/ratings.ts';
 import { parseDropdowns, parseRatingLinks, parseRegionPools, seasonName, type PoolLink } from './parse.ts';
@@ -323,6 +324,12 @@ async function main() {
   }
   for (const [key, shard] of careers) {
     const file = join(outDir, 'careers', `${key}.json`);
+    if (JSON.stringify(await readJson(file)) !== JSON.stringify(shard)) await writeJson(file, shard);
+  }
+
+  // This season's singles between every two players, for the match preview (data/h2h/).
+  for (const [key, shard] of headToHeadShards(headToHeadOf(seasonPools), earliestSeason(seasonPools))) {
+    const file = join(outDir, 'h2h', `${key}.json`);
     if (JSON.stringify(await readJson(file)) !== JSON.stringify(shard)) await writeJson(file, shard);
   }
 

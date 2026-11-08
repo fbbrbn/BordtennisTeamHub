@@ -86,7 +86,7 @@ GitHub's own schedule stays in the import workflows as a backup:
    team's lineups come from the history branch (`form/<season>.json`): a team that has not played in its pool yet
    borrows its lineups from the same team in an earlier pool this season, or from last season.
 9. **Files.** Pool files are written only when their content changed, then the index, the player list and this
-   season's player lines (`careers/`).
+   season's player lines (`careers/`) and head-to-head records (`h2h/`).
 
 Then the workflow publishes the folder to the `data` branch as one new commit, replacing the previous one (so the
 repository does not grow with every update), and starts the site build. A quiet run costs about 150 requests and 2 minutes. Requests are spaced 800 ms apart, and a run stops
@@ -103,6 +103,7 @@ On the `data` branch, copied into the site as `data/`:
 | `players.json` | Every player with their official rating and the teams they played for, for the player search. |
 | `ratings/<seasonId>.json` | The season's official rating lists: every player's rating in each version in force on a match day. |
 | `careers/<last three digits of the player id>.json` | This season's line for every player and team (matches, singles, doubles, rating when the pool started), for the player's History tab. |
+| `h2h/<last three digits of the player id>.json` | This season's singles between every two players: won, lost, and the day and result of the last meeting, for the match preview. |
 
 The fields are described in [`src/data/model.ts`](../src/data/model.ts). Ids are the portal's own: pool ids are
 `leagueGroupID`, team ids `leagueGroupTeamID`, match ids `leagueMatchID`, seasons `4YYYY` (42026 is 2026/2027).
@@ -120,6 +121,8 @@ And at the top of the branch:
 
 - `players/<last three digits of the player id>.json`: every player's past seasons (team, pool, matches, singles and
   doubles, rating at the time), for the player page.
+- `h2h/<last three digits of the player id>.json`: every past singles between two players, added up per pair, for the
+  match preview (`src/data/headtohead.ts`).
 - `form/<season>.json`: a complete season's form, every player's singles against their rating and whether they played
   in a youth pool, and every team's lineups, for the next season's forecasts (`scraper/seasonform.ts`). Written when
   the season is complete, and again when the file's version changes (`SEASON_FORM_VERSION`).
@@ -128,9 +131,9 @@ Past seasons do not change, so each pool and rating list is read once. The whole
 nights, with requests one second apart. Once a season's rating lists are in, its pool files get each player's official
 rating when the pool started.
 
-The site build copies the past pools (by pool id) and the player files into the site as `history/`
-([`scripts/pull-history.sh`](../scripts/pull-history.sh)). The site looks a pool up in `data/pools/` first, then in
-`history/pools/`, and marks it as a past season.
+The site build copies the past pools (by pool id), the player files and the head-to-head files into the site as
+`history/` ([`scripts/pull-history.sh`](../scripts/pull-history.sh)). The site looks a pool up in `data/pools/` first,
+then in `history/pools/`, and marks it as a past season.
 
 ## 5. Running it yourself
 
@@ -191,8 +194,8 @@ imports a small part of a past season into `history/` (also ignored by git).
   hours, requests one second apart) write `history/<season>/` on the `history` branch, newest season first:
   - `targets.json` (the season's pools, discovered once), `pools/<pool>.json` (same format as the current season),
     `ratings.json` (up to 12 versions spread over the match days, `chooseVersions`) and `index.json` (`complete`).
-  - Also `players/<shard>.json` (`scraper/careers.ts`, rebuilt from every stored pool at the end of each run). A
-    complete season's pools get the ratings at the time (`applyRatings`).
+  - Also `players/<shard>.json` (`scraper/careers.ts`) and `h2h/<shard>.json` (`src/data/headtohead.ts`), rebuilt from
+    every stored pool at the end of each run. A complete season's pools get the ratings at the time (`applyRatings`).
   - And `form/<season>.json` for every complete season that has none yet, or an older version (`writeSeasonForms`: the
     season replayed with `replaySeason`, and its lineups from `seasonLineups`).
   - The branch gets one ordinary commit per night, and then the workflow starts `site.yml`, which copies it in with

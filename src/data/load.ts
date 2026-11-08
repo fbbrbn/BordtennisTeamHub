@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { CareerEntry, CareerShard, DataIndex, PlayerIndex, PoolData } from './model';
+import { headToHeadShard, playerHeadToHead, type HeadToHeadIndex } from './headtohead';
+import type { CareerEntry, CareerShard, DataIndex, HeadToHeadShard, PlayerIndex, PoolData } from './model';
 
 const cache = new Map<string, Promise<unknown>>();
 
@@ -45,6 +46,21 @@ export function loadHistory(playerId: string): Promise<CareerEntry[]> {
   return Promise.all([entries(`data/careers/${shard}.json`), entries(`history/players/${shard}.json`)]).then(([current, past]) =>
     [...current, ...past].sort((a, b) => b.seasonId.localeCompare(a.seasonId) || b.from.localeCompare(a.from)),
   );
+}
+
+/**
+ * The head-to-head records of these players, this season's and past seasons' added up, and the
+ * earliest season counted ("2019/2020"; empty when there are no files).
+ */
+export function loadHeadToHead(playerIds: readonly string[]): Promise<{ records: HeadToHeadIndex; from: string }> {
+  const shards = [...new Set(playerIds.map(headToHeadShard))];
+  const file = (path: string) => getJson<HeadToHeadShard>(path).catch(() => null);
+  return Promise.all(shards.map((s) => Promise.all([file(`data/h2h/${s}.json`), file(`history/h2h/${s}.json`)]))).then((pairs) => {
+    const files = new Map(shards.map((s, i) => [s, pairs[i]]));
+    const records: HeadToHeadIndex = new Map(playerIds.map((id) => [id, playerHeadToHead(files.get(headToHeadShard(id))!, id)]));
+    const from = pairs.flat().reduce((first, f) => (f?.from && (!first || f.from < first) ? f.from : first), '');
+    return { records, from };
+  });
 }
 
 export type Loaded<T> = { status: 'loading' } | { status: 'error'; error: string } | { status: 'ready'; data: T };

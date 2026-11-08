@@ -22,6 +22,7 @@
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { NamedId, PoolData, PoolRef } from '../src/data/model.ts';
+import { earliestSeason, headToHeadOf, headToHeadShards } from '../src/data/headtohead.ts';
 import { ratingOn, replaySeason, seasonLineups } from '../src/data/prematch.ts';
 import { careerShards } from './careers.ts';
 import { parseDropdowns, parseRegionPools, seasonName, type PoolLink } from './parse.ts';
@@ -198,7 +199,10 @@ async function applyRatings(dir: string, ids: Iterable<string>, ratings: SeasonR
   }
 }
 
-/** Rebuilds players/<shard>.json from every stored past pool, whatever seasons this run covered. */
+/**
+ * Rebuilds players/<shard>.json (careers) and h2h/<shard>.json (head-to-head records) from every
+ * stored past pool, whatever seasons this run covered.
+ */
 async function writeCareers(): Promise<void> {
   const pools: PoolData[] = [];
   const seasons = (await readdir(outDir).catch(() => [] as string[])).filter((name) => /^4\d{4}$/.test(name));
@@ -215,6 +219,12 @@ async function writeCareers(): Promise<void> {
     if (JSON.stringify(await readJson(file)) !== JSON.stringify(shard)) await writeJson(file, shard);
   }
   console.log(`Past seasons by player: ${pools.length} pools, ${shards.size} files.`);
+  const h2h = headToHeadShards(headToHeadOf(pools), earliestSeason(pools));
+  for (const [key, shard] of h2h) {
+    const file = join(outDir, 'h2h', `${key}.json`);
+    if (JSON.stringify(await readJson(file)) !== JSON.stringify(shard)) await writeJson(file, shard);
+  }
+  console.log(`Head-to-head records: ${h2h.size} files.`);
 }
 
 /**

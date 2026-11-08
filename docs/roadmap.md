@@ -145,4 +145,5 @@ decide on an association. Then ask the Indsamlingsnævnet and SKAT how donations
 
 - **Use the earlier seasons for predictions:** done for first matches, which borrow a team's lineups from an earlier
   pool or last season ([predictions.md](predictions.md)). Still to do: calibrate the model on all the past seasons.
-- **Head-to-head records** between two players across all seasons, on the match preview.
+- **Head-to-head records** between two players across all seasons, on the match preview: done. Each pair's singles
+  against each other show in the match preview's matchup table, with a list of every pair that has met.

@@ -32,7 +32,9 @@ Two independent estimates are combined, the ratings counting three times as much
    met. Fewer comparisons pull the estimate towards even.
 
 The match page shows each reason: the ratings alone, then form and the home table (with the players who are well above
-or below their rating), then the common opponents.
+or below their rating), then the common opponents. Its matchup table also shows how each pair of players has done
+against each other in singles, this season and before. That record is not part of the chances (see "Tried, and not in
+the model").
 
 Each pool's real match format is read from its results:
 - the number of players per side;
@@ -129,7 +131,8 @@ Each edge is added to a game's log-odds in `gameChance` (forecast.ts). As rating
 
 ### Tried, and not in the model
 
-- Head-to-head records: a small gain once form is counted. Worth showing; not worth a place in the odds.
+- Head-to-head records: a small gain once form is counted. Worth showing, so the match preview shows them
+  (`src/data/headtohead.ts`); not worth a place in the odds.
 - The change in a player's rating over 8 weeks or a year: no gain once form is counted.
 - Weighting a team's recent lineups more: no consistent gain.
 - One global scale, fixed scales, and ratings replayed with the games after each list's cutoff: no better, or

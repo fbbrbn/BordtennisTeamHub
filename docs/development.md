@@ -53,7 +53,10 @@ The main logic is in pure functions with unit tests:
   - `state.ts`: reducer. The UI lives in `LineupPage.tsx`, `Matches.tsx`, `BalanceTable.tsx` and `RosterEditor.tsx`.
 - `src/data/`: `model.ts` (shared JSON types), `load.ts` (fetch + cache) and `stats.ts` (pure, tested statistics).
   - `loadPool` tries the current season (`data/pools/`), then past seasons (`history/pools/`, marked `pool.past`).
-    `loadHistory` merges a player's seasons from `data/careers/` and `history/players/`.
+    `loadHistory` merges a player's seasons from `data/careers/` and `history/players/`, and `loadHeadToHead` a
+    player's head-to-head records from `data/h2h/` and `history/h2h/`.
+  - `headtohead.ts`: every singles between two players, added up per pair (won, lost, the last meeting), in files by
+    the player id's last three digits. The importer writes this season's, the history job the past seasons'.
   - `forecast.ts`: match odds.
     - Logistic rating model with a scale calibrated per pool by `fitScale`.
     - Exact distribution of games won, and common-opponent margins.
@@ -77,7 +80,8 @@ The main logic is in pure functions with unit tests:
   - Unrated players get the pool median inside the model, less the unrated edge of `form.ts`, but the UI must show them
     as "unrated".
 - `src/pages/MatchPreview.tsx`: the upcoming-match page.
-  - Chances from either side, a lineup picker and a matchup heat table.
+  - Chances from either side, a lineup picker and a matchup heat table. Under each chance, the two players' singles
+    against each other, this season and before; below the table, every pair of the two teams that has met.
   - The reasons: ratings alone, form and the home table (`formReason`), common opponents. The team page's next match
     shows the same.
   - It starts from the planner lineup when the captain has answers (`src/lineup/planned.ts`).

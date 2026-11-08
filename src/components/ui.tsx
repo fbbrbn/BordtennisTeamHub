@@ -4,7 +4,7 @@ import type { PoolInfo } from '../data/model';
 import type { Outcome } from '../data/stats';
 import { lang, t } from '../i18n';
 import type { Thing } from '../i18n/en';
-import { longDate, shortDate, weekdayDate } from '../i18n/format';
+import { dayDate, longDate, shortDate, weekdayDate } from '../i18n/format';
 
 /** "Sat 7 Nov" and "lør. 7. nov." */
 export const matchDay = (date: string) => weekdayDate(date, lang);
@@ -12,6 +12,8 @@ export const matchDayLong = (date: string) => longDate(date, lang);
 export const matchTime = (date: string) => date.split('T')[1] ?? '';
 /** "23 Oct" and "23. okt." */
 export const shortDay = (date: string) => shortDate(date, lang);
+/** "23 Oct 2025" and "23. okt. 2025" */
+export const dayWithYear = (date: string) => dayDate(date, lang);
 
 export { ordinal, percent, signed } from '../lib/text';
 

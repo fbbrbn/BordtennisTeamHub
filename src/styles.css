@@ -1836,6 +1836,14 @@ textarea {
   border-radius: 2px;
 }
 
+/* A pair's earlier singles (won–lost), under its chance. */
+.heat-table .h2h {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
 .heat-table tr.is-picked th {
   box-shadow: inset 3px 0 0 var(--accent);
 }

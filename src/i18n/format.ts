@@ -69,6 +69,11 @@ export function longDate(date: string, language: Language): string {
   return dateFormat(language, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(parseLocal(date));
 }
 
+/** "12 Oct 2025" and "12. okt. 2025" */
+export function dayDate(date: string, language: Language): string {
+  return dateFormat(language, { day: 'numeric', month: 'short', year: 'numeric' }).format(parseLocal(date));
+}
+
 /** "7 Nov" and "7. nov." */
 export function shortDate(date: string, language: Language): string {
   return dateFormat(language, { day: 'numeric', month: 'short' }).format(parseLocal(date));

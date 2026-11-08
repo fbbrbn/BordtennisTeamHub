@@ -36,6 +36,24 @@ export interface CareerShard {
   players: Record<string, CareerEntry[]>;
 }
 
+/**
+ * Singles between two players, from one player's side: games won, games lost, the day of the last
+ * meeting (`YYYY-MM-DD`) and whether that one was won (1) or lost (0). Walkovers do not count.
+ */
+export type HeadToHead = [won: number, lost: number, last: string, lastWon: 0 | 1];
+
+/**
+ * Head-to-head records by player id, then by opponent id, in files named like the careers' (the id's
+ * last three digits, see src/data/headtohead.ts): `data/h2h/` for the current season and
+ * `history/h2h/` for past ones.
+ */
+export interface HeadToHeadShard {
+  version: 1;
+  /** The earliest season counted, e.g. "2019/2020". */
+  from: string;
+  players: Record<string, Record<string, HeadToHead>>;
+}
+
 /** One team a player played for in one season. */
 export interface CareerEntry {
   seasonId: string;

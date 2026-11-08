@@ -370,6 +370,12 @@ export const en = {
     columnsPicked: (team: string) => `the ${team} lineup you picked`,
     columnsUsual: (team: string) => `${team}'s most-used players`,
     gridPlayer: (team: string) => `${team} player`,
+    /** Head-to-head records (src/data/headtohead.ts), from our player's side. */
+    h2hSr: 'Head-to-head:',
+    h2hNote: (from: string) => `Under a chance: the two players' singles against each other since ${from}, won–lost.`,
+    h2hAll: (pairs: number) => `${pairs === 1 ? '1 pair of players has' : `${pairs} pairs of players have`} met before`,
+    h2hItem: (player: string, opponent: string, won: number, lost: number, last: string, lastWon: boolean) =>
+      `${player} v ${opponent}: ${won}–${lost}, ${won + lost === 1 ? '' : 'most recently '}${lastWon ? 'a win' : 'a loss'} on ${last}`,
     heat: ['Clear underdog', 'Underdog', 'Even', 'Favourite', 'Clear favourite'],
     commonTitle: 'Common opponents',
     commonNote: (team: string) => `How both teams did against the same teams. Difference: games per match, from ${team}'s side.`,
