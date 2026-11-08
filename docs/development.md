@@ -69,6 +69,9 @@ The main logic is in pure functions with unit tests:
     that day on, rates players as on the rating list in force then, and gives them their form from earlier days; the
     format is shared from the whole season (`shareFormat`). `replaySeason` replays all pools of a season day by day;
     the importer stores `match.prediction` (home side) and `player.form`; `predictionRecord` scores them.
+  - A team that has not played in its pool yet borrows its lineups in `replaySeason`: from the same team (`teamKey`) in
+    an earlier pool this season, or last season (`LineupHints.fallback`, pulled towards even by `BORROWED_SHRINK`).
+    The pages show that stored prediction when their own forecast has no odds (`shownOdds` in forecast.ts).
   - `forecast.ts` averages match odds over a team's form on the day (`FORM_SPREAD`, 100 rating points, three-point
     Gauss-Hermite). It helped the honest backtest; fresher replayed ratings and other scales did not.
   - Unrated players get the pool median inside the model, less the unrated edge of `form.ts`, but the UI must show them

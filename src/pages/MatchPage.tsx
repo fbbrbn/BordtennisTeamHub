@@ -166,6 +166,7 @@ function PredictionCard({ match, homeName, awayName }: { match: TeamMatch; homeN
       <details className="why">
         <summary>{t.match.howPredicted}</summary>
         <p className="muted small">{t.match.howPredictedNote(homeName)}</p>
+        {match.prediction.lineups && <p className="muted small">{t.prediction.borrowed[match.prediction.lineups]}</p>}
       </details>
     </section>
   );

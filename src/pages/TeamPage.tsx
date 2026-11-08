@@ -6,7 +6,7 @@ import { PastSeasonTag } from '../components/PlayerHistory';
 import { PredictedLine, PredictionRecordNote } from '../components/Prediction';
 import { listNote } from '../components/RatingForecast';
 import { clubSlug } from '../data/clubs';
-import { fitScale, forecastMatch, lineupSize, ratingSummary, type MatchForecast } from '../data/forecast';
+import { fitScale, forecastMatch, lineupSize, ratingSummary, shownOdds, type MatchForecast } from '../data/forecast';
 import { teamInsights, type Insight, type InsightId } from '../data/insights';
 import { loadPool, useLoaded } from '../data/load';
 import type { PoolData, TeamMatch, TeamRef } from '../data/model';
@@ -136,7 +136,9 @@ function Overview({
   const anyPlayed = race.some((r) => r.points.length > 1);
   const next = upcoming[0];
   const nextForecast = next ? forecasts.get(next.id) : undefined;
-  const odds = nextForecast?.forecast.odds;
+  // A team that has not played in the pool yet: the importer's prediction, from borrowed lineups.
+  const shown = next && nextForecast ? shownOdds(nextForecast.forecast, next) : null;
+  const odds = shown?.odds;
   const opponent = next ? (teams.get(opponentOf(next, team.id))?.name ?? t.team.theOpponent) : '';
   // The same forecast without form and the home table, for "ratings alone".
   const nextLineup = next ? (plannedLineup(pool.pool.id, team.id, next.id, lineupSize(pool)) ?? undefined) : undefined;
@@ -176,23 +178,29 @@ function Overview({
               <OddsBar odds={odds} />
               <details className="why">
                 <summary>{t.team.whyChances}</summary>
-                <ul className="reasons">
-                  <li>
-                    <strong>{t.preview.reasonRatings}</strong> {ratingReason(plain, team.name, opponent)}
-                  </li>
-                  <li>
-                    <strong>{t.preview.reasonForm}</strong>{' '}
-                    {formReason(pool, scale, next, [{ teamId: team.id, lineup: nextLineup }, { teamId: opponentOf(next, team.id) }], nextForecast.forecast.rating, plain, nameOf, playerName)}
-                  </li>
-                  <li>
-                    <strong>{t.preview.reasonCommon}</strong> {commonReason(nextForecast.forecast.common, team.name)}
-                  </li>
-                </ul>
-                <p className="muted small">
-                  {nextForecast.planned
-                    ? t.team.plannedLineup((nextForecast.forecast.rating?.team ?? []).map((id) => players.get(id)?.name ?? '?').join(', '))
-                    : t.team.seasonLineups}
-                </p>
+                {shown?.stored ? (
+                  next.prediction?.lineups && <p className="muted small">{t.prediction.borrowed[next.prediction.lineups]}</p>
+                ) : (
+                  <>
+                    <ul className="reasons">
+                      <li>
+                        <strong>{t.preview.reasonRatings}</strong> {ratingReason(plain, team.name, opponent)}
+                      </li>
+                      <li>
+                        <strong>{t.preview.reasonForm}</strong>{' '}
+                        {formReason(pool, scale, next, [{ teamId: team.id, lineup: nextLineup }, { teamId: opponentOf(next, team.id) }], nextForecast.forecast.rating, plain, nameOf, playerName)}
+                      </li>
+                      <li>
+                        <strong>{t.preview.reasonCommon}</strong> {commonReason(nextForecast.forecast.common, team.name)}
+                      </li>
+                    </ul>
+                    <p className="muted small">
+                      {nextForecast.planned
+                        ? t.team.plannedLineup((nextForecast.forecast.rating?.team ?? []).map((id) => players.get(id)?.name ?? '?').join(', '))
+                        : t.team.seasonLineups}
+                    </p>
+                  </>
+                )}
                 <HowWorkedOut />
               </details>
             </>
@@ -250,7 +258,8 @@ function Matches({ pool, team, matches, forecasts }: { pool: PoolData; team: Tea
           <p className="muted small">{t.team.comingUpNote}</p>
           <ul className="result-list">
             {upcoming.map((m) => {
-              const odds = forecasts.get(m.id)?.forecast.odds;
+              const f = forecasts.get(m.id);
+              const odds = f ? shownOdds(f.forecast, m).odds : null;
               return (
                 <li key={m.id} className="result-row">
                   <div className="result-main">

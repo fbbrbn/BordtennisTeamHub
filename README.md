@@ -42,7 +42,8 @@ It is built for any team. Vallensbæk BTK 3 is the first test team.
   - A points race against the rest of the pool, with a table view.
   - All results, plus every upcoming match with its chance to win.
   - Every result keeps the prediction made before the match (expected score and chance to win), with a record of how
-    often the likeliest outcome happened.
+    often the likeliest outcome happened. A team's first match in a pool borrows its lineups from an earlier pool or
+    last season.
   - Every player who played for the team: rating, rating forecast, matches, singles with win rate, doubles and sets.
 - **Match preview** (for upcoming matches).
   - Chances from either team's side.
@@ -102,8 +103,7 @@ The plan, with the steps and decisions for each, is in [docs/roadmap.md](docs/ro
 4. **Shared login** for teams and clubs, so every player answers in the app.
 5. **Donations**, within the Danish rules for fundraising and tax.
 
-Also planned in the code: predictions for a team's first matches from last season's lineups, and head-to-head records
-across all seasons.
+Also planned in the code: head-to-head records across all seasons.
 
 ## Data and privacy
 

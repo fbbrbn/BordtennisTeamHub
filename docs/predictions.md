@@ -24,6 +24,10 @@ Two independent estimates are combined, the ratings counting three times as much
    - The games of one match are not independent: on a good evening the whole team plays better. The odds are averaged
      over a team's form on the day, which varies by about 100 rating points.
    - Without a chosen or planned lineup, it averages over every lineup each team has fielded this season.
+   - A team that has not played in the pool yet borrows its lineups: from the same team (same name and age group) in
+     an earlier pool this season, otherwise from last season. Only about half of a team's players are the same from
+     one season to the next, so those chances are pulled towards even: a little for this season's lineups, halfway for
+     last season's.
 2. **Common opponents.** It compares how both teams did against the same teams, and against each other if they already
    met. Fewer comparisons pull the estimate towards even.
 
@@ -53,7 +57,26 @@ results of earlier matches, and each player's form until then. Checked against t
 The two complete past seasons improve too: 2025/26 from 69.5% and 0.419 to 70.5% and 0.411, and 2024/25 from 69.2% and
 0.416 to 70.2% and 0.409.
 
-Matches that were a team's first of the season have no prediction, because nothing was known about its lineup yet.
+### First matches
+
+A team's first match in a pool has no lineups of its own yet, so it borrows them (see above). That gives a prediction
+to 94–97% of the played matches of each past season instead of 81–84%, and to 89% of 2026/27's so far instead of
+65%. They are rough: the likeliest outcome happens in 54–67% of them, against 69–71% once a team has played in the
+pool. Guessing (a third each, or half each when no draw is possible) scores 0.58–0.62 on the same matches.
+
+| Season | Own lineups in the pool | First matches, lineups from earlier this season | First matches, lineups from last season |
+| --- | --- | --- | --- |
+| 2021/22 | 4,605 matches: 69.2% right, Brier 0.431 | 406: 60.1%, 0.507 | 341: 58.4%, 0.543 |
+| 2022/23 | 4,558: 69.7%, 0.416 | 284: 64.4%, 0.475 | 372: 54.0%, 0.555 |
+| 2023/24 | 5,108: 70.8%, 0.407 | 256: 66.8%, 0.480 | 381: 55.6%, 0.537 |
+| 2024/25 | 5,220: 70.3%, 0.409 | 346: 60.1%, 0.519 | 464: 58.2%, 0.539 |
+| 2025/26 | 5,441: 70.5%, 0.411 | 328: 60.1%, 0.495 | 459: 59.0%, 0.529 |
+| 2026/27, to 8 November | 1,057: 70.8%, 0.414 | 11 | 371: 61.5%, 0.500 |
+
+So the season's record on the site, which counts every prediction, reads about two points lower than the matches with
+their own lineups alone (2026/27: 68.6% right and Brier 0.43), while covering far more matches. Matches still without a
+prediction had a team with no lineups to borrow: a new team, or a renamed one.
+
 The site always labels the chances as estimates.
 
 ## Details for developers
@@ -85,6 +108,25 @@ Each edge is added to a game's log-odds in `gameChance` (forecast.ts). As rating
   doubles. In veteran pools the difference was nil.
 - Unrated players won about 43% of the singles where the model expected 48%; unrated youth players did better than that.
 
+### First matches (`prematch.ts`)
+
+- `ratingSummary` (forecast.ts) asks `LineupHints.fallback` for a side with no lineups in the pool: no fielded lineup
+  and no players. Only `replaySeason` passes one:
+  - the same team (`teamKey`: age group and name, ignoring case and spacing) in pools of this season, from matches on
+    earlier days, each lineup weighted by how often it was fielded;
+  - otherwise last season's lineups, from `teams` in `form/<season>.json` (version 2, `scraper/seasonform.ts`).
+  - Borrowed players join the pool as it was before the day, with the rating of that day's list and their form.
+- The odds are then pulled towards even by `BORROWED_SHRINK` (forecast.ts): 0.2 with this season's lineups, 0.5 with
+  last season's. The win and the loss move towards each other and the draw stays (`towardsEven`); the larger share
+  wins when both sides borrow.
+- Why: of the players in a team's first match, 53–61% had played for the team last season, and 36–45% were in its
+  most-used lineup. The shares were tuned on 2021/22 to 2024/25 (best: 0.2, and 0.5–0.6 for last season) and checked
+  on 2025/26 and 2026/27 (0.5 best). To tune them again: `npm run backtest -- --season-shrink 0.2 --last-shrink 0.5`.
+- The stored prediction says where the lineups came from: `lineups: 'season' | 'last-season'`.
+- The site's own forecasts cannot borrow, because the browser loads only one pool. Where they have no odds for a
+  match to come, the pages show the stored prediction instead (`shownOdds`): the team page, the match preview, the
+  start page, the projected table and the insights.
+
 ### Tried, and not in the model
 
 - Head-to-head records: a small gain once form is counted. Worth showing; not worth a place in the odds.
@@ -95,9 +137,9 @@ Each edge is added to a game's log-odds in `gameChance` (forecast.ts). As rating
 - Knowing the lineups: with the players who actually played, 73–74% right and Brier 0.357. That is three times the gain
   of all the edges together, and it is what the planner's answers give the match preview, but the stored predictions
   cannot know it.
-- First matches of a season, from last season's lineups of the team with the same name in the same age group: they
-  cover two thirds of them, at 58–63% right and Brier 0.51–0.54 against 0.60 for guessing (pulled 40% towards even).
-  A possible next step.
+- For first matches, a wider spread of form on the day instead of pulling the odds towards even: up to 0.02 worse
+  Brier with last season's lineups, in every season and at every spread tried (up to 1,200 points). Pulling towards a
+  third each instead of keeping the draw: up to 0.015 worse.
 
 ### Checking a change
 
@@ -107,7 +149,8 @@ git fetch --depth 1 origin history && mkdir -p history && git archive FETCH_HEAD
 npm run backtest
 ```
 
-prints the record of every stored season (`scraper/backtest.ts`), predicted the same honest way.
+prints the record of every stored season (`scraper/backtest.ts`), predicted the same honest way: all predictions, then
+the matches with their own lineups and the first matches by where their lineups came from.
 
 ### Match formats
 

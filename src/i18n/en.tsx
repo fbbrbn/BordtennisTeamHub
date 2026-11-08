@@ -113,7 +113,14 @@ export const en = {
     line: (home: number, away: number, win: number) => `Predicted ${dec(home)}–${dec(away)}, ${pct(win)} to win`,
     record: (right: number, matches: number) => `Predicted before each match: right in ${right} of ${matches}`,
     recordNote:
-      "Each played match keeps the prediction made from what was known before its day: the official rating list of that day, the earlier results, and each player's form until then. “Right” means the likeliest outcome happened. Matches without a prediction were a team's first of the season.",
+      "Each played match keeps the prediction made from what was known before its day: the official rating list of that day, the earlier results, and each player's form until then. “Right” means the likeliest outcome happened. A team that had not played in the pool yet borrows its lineups from an earlier pool this season or from last season. Matches without a prediction had a team with no lineups to borrow.",
+    /** Why the chances of a match rest on borrowed lineups (MatchPrediction.lineups). */
+    borrowed: {
+      season:
+        'At least one of the teams has not played in this pool yet, so the chances use its lineups from an earlier pool this season, pulled a little towards even.',
+      'last-season':
+        "At least one of the teams has not played in this pool yet, so the chances use its lineups from last season. They are pulled halfway towards even, as only about half of a team's players are usually the same from one season to the next.",
+    },
   },
 
   follow: {
@@ -351,7 +358,9 @@ export const en = {
     reasonCommon: 'Common opponents.',
     lineups: 'Lineups',
     tryLineup: 'Try a lineup: the chances above update straight away.',
+    tryLineupStored: 'The chances above stay as they are until both teams have played in the pool.',
     statusSeason: 'Using the lineups from this season. Tap players to pick your own.',
+    statusNoPlayers: 'Has not played in this pool yet, so there are no players to pick.',
     statusPickMore: (n: number) => `Pick ${n} more. Until then, the lineups from this season are used.`,
     statusPlanned: 'Lineup from your planner.',
     statusYours: 'Your lineup.',

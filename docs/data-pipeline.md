@@ -82,8 +82,9 @@ GitHub's own schedule stays in the import workflows as a backup:
 8. **Predictions and form.** The season is replayed day by day, all pools together (`replaySeason` in
    `src/data/prematch.ts`). Every match gets the prediction made from what was known before its day: the rating list of
    that day, the earlier results and each player's form until then. The season's record goes in the index, and each
-   player's form now goes in the pool files, for the forecasts of the matches to come. Last season's form comes from the
-   history branch (`form/<season>.json`).
+   player's form now goes in the pool files, for the forecasts of the matches to come. Last season's form and every
+   team's lineups come from the history branch (`form/<season>.json`): a team that has not played in its pool yet
+   borrows its lineups from the same team in an earlier pool this season, or from last season.
 9. **Files.** Pool files are written only when their content changed, then the index, the player list and this
    season's player lines (`careers/`).
 
@@ -120,8 +121,8 @@ And at the top of the branch:
 - `players/<last three digits of the player id>.json`: every player's past seasons (team, pool, matches, singles and
   doubles, rating at the time), for the player page.
 - `form/<season>.json`: a complete season's form, every player's singles against their rating and whether they played
-  in a youth pool, for the next season's forecasts (`scraper/seasonform.ts`). Written once, when the season is
-  complete.
+  in a youth pool, and every team's lineups, for the next season's forecasts (`scraper/seasonform.ts`). Written when
+  the season is complete, and again when the file's version changes (`SEASON_FORM_VERSION`).
 
 Past seasons do not change, so each pool and rating list is read once. The whole backfill takes about two weeks of
 nights, with requests one second apart. Once a season's rating lists are in, its pool files get each player's official
@@ -184,15 +185,16 @@ imports a small part of a past season into `history/` (also ignored by git).
   - `match.prediction` in every pool of the season, and the season's record as `index.predictions`.
   - `player.form` in every pool of the season: singles this season and wins above expectation, last season's, and
     `youth` (see [predictions.md](predictions.md)). The importer reads last season's from `history/form/<season>.json`
-    (`--history-form` to change the folder); without the file, last season counts as nothing.
+    (`--history-form` to change the folder); without the file, last season counts as nothing. A version 1 file has
+    no lineups, so first matches can then borrow only from earlier pools this season.
 - Past seasons: `scraper/history.ts` and `.github/workflows/history.yml` (nightly at 00:41 UTC from the clock, four
   hours, requests one second apart) write `history/<season>/` on the `history` branch, newest season first:
   - `targets.json` (the season's pools, discovered once), `pools/<pool>.json` (same format as the current season),
     `ratings.json` (up to 12 versions spread over the match days, `chooseVersions`) and `index.json` (`complete`).
   - Also `players/<shard>.json` (`scraper/careers.ts`, rebuilt from every stored pool at the end of each run). A
     complete season's pools get the ratings at the time (`applyRatings`).
-  - And `form/<season>.json` for every complete season that has none yet (`writeSeasonForms`: the season replayed with
-    `replaySeason`).
+  - And `form/<season>.json` for every complete season that has none yet, or an older version (`writeSeasonForms`: the
+    season replayed with `replaySeason`, and its lineups from `seasonLineups`).
   - The branch gets one ordinary commit per night, and then the workflow starts `site.yml`, which copies it in with
     `scripts/pull-history.sh` (`npm run history:pull` locally).
 - The clock (`clock.yml`): its only job sleeps until the next time in `scraper/clock.ts` (`nextRun`), starts that

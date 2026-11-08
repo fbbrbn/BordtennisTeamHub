@@ -9,6 +9,7 @@ import {
   lineupSize,
   matchOdds,
   playerAdjustments,
+  predictionOdds,
   ratingForecast,
   ratingSummary,
   teamRoster,
@@ -120,7 +121,11 @@ export function MatchPreview({ pool, match }: { pool: PoolData; match: TeamMatch
   const summary = ratingSummary(pool, teamId, opponentId, scale, picked, home);
   const plain = ratingSummary(pool, teamId, opponentId, scale, picked, home, false);
   const common = commonOpponentForecast(pool, teamId, opponentId);
-  const odds = matchOdds(summary?.odds ?? null, common.odds);
+  // A team that has not played in the pool yet: the importer's prediction, made from borrowed lineups.
+  const live = matchOdds(summary?.odds ?? null, common.odds);
+  const stored = live || match.score ? null : predictionOdds(match, teamId);
+  const odds = live ?? stored;
+  const basis = match.prediction?.lineups;
 
   const opponentColumns = chosen(opponentId) ?? usualLineup(pool, opponentId, size);
   const shownRating = (id: string) => players.get(id)?.rating ?? null;
@@ -143,6 +148,7 @@ export function MatchPreview({ pool, match }: { pool: PoolData; match: TeamMatch
 
   const status = (side: string) => {
     const { ids, planned } = lineups[side];
+    if (teamRoster(pool, side).length === 0) return t.preview.statusNoPlayers;
     if (ids.length === 0) return t.preview.statusSeason;
     if (ids.length < size) return t.preview.statusPickMore(size - ids.length);
     return planned ? t.preview.statusPlanned : t.preview.statusYours;
@@ -176,24 +182,28 @@ export function MatchPreview({ pool, match }: { pool: PoolData; match: TeamMatch
         ) : (
           <p className="muted">{t.preview.notEnough}</p>
         )}
-        <ul className="reasons">
-          <li>
-            <strong>{t.preview.reasonRatings}</strong> {ratingReason(plain, teamName(teamId), teamName(opponentId))}
-          </li>
-          <li>
-            <strong>{t.preview.reasonForm}</strong>{' '}
-            {formReason(pool, scale, match, [{ teamId, lineup: picked.team }, { teamId: opponentId, lineup: picked.opponent }], summary, plain, teamName, playerName)}
-          </li>
-          <li>
-            <strong>{t.preview.reasonCommon}</strong> {commonReason(common, teamName(teamId))}
-          </li>
-        </ul>
+        {stored ? (
+          basis && <p className="muted">{t.prediction.borrowed[basis]}</p>
+        ) : (
+          <ul className="reasons">
+            <li>
+              <strong>{t.preview.reasonRatings}</strong> {ratingReason(plain, teamName(teamId), teamName(opponentId))}
+            </li>
+            <li>
+              <strong>{t.preview.reasonForm}</strong>{' '}
+              {formReason(pool, scale, match, [{ teamId, lineup: picked.team }, { teamId: opponentId, lineup: picked.opponent }], summary, plain, teamName, playerName)}
+            </li>
+            <li>
+              <strong>{t.preview.reasonCommon}</strong> {commonReason(common, teamName(teamId))}
+            </li>
+          </ul>
+        )}
         <HowWorkedOut />
       </section>
 
       <section className="card">
         <h2>{t.preview.lineups}</h2>
-        <p className="muted">{t.preview.tryLineup}</p>
+        <p className="muted">{stored ? t.preview.tryLineupStored : t.preview.tryLineup}</p>
         {[teamId, opponentId].map((side) => {
           const selected = lineups[side].ids;
           return (

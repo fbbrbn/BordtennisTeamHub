@@ -12,8 +12,9 @@
  */
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { PoolData } from '../src/data/model.ts';
-import { homeOutcome, predictionRecord, replaySeason, type LastSeason, type RatingTimeline } from '../src/data/prematch.ts';
+import type { MatchPrediction, PoolData } from '../src/data/model.ts';
+import { homeOutcome, predictionRecord, replaySeason, seasonLineups, type LastSeason, type RatingTimeline } from '../src/data/prematch.ts';
+import { lastSeasonOf, seasonFormFile } from './seasonform.ts';
 
 const cli = process.argv.slice(2);
 const option = (name: string, fallback: string) => {
@@ -22,6 +23,11 @@ const option = (name: string, fallback: string) => {
 };
 const dataDir = option('--data', 'public/data');
 const historyDir = option('--history', 'history');
+/** To tune BORROWED_SHRINK (src/data/forecast.ts), for lineups borrowed from this season or last. */
+const shrink = {
+  ...(cli.includes('--season-shrink') ? { season: Number(option('--season-shrink', '')) } : {}),
+  ...(cli.includes('--last-shrink') ? { lastSeason: Number(option('--last-shrink', '')) } : {}),
+};
 
 async function readJson<T>(file: string): Promise<T | null> {
   try {
@@ -53,23 +59,29 @@ async function main() {
   let last: LastSeason | null = null;
   let previousId = '';
   for (const season of seasons) {
-    const replay = replaySeason(season.pools, season.timeline, Number(season.id) - 1 === Number(previousId) ? last : null);
+    const replay = replaySeason(season.pools, season.timeline, Number(season.id) - 1 === Number(previousId) ? last : null, { shrink });
     const matches = season.pools.flatMap((p) => p.matches.map((m) => ({ ...m, prediction: replay.predictions.get(p.pool.id)?.get(m.id) })));
-    const record = predictionRecord(matches);
-    let logLoss = 0;
-    for (const m of matches) {
-      const outcome = homeOutcome(m.score, m.walkover);
-      if (outcome && m.prediction) logLoss -= Math.log(Math.max(1e-4, m.prediction[outcome]));
-    }
     const played = matches.filter((m) => homeOutcome(m.score, m.walkover)).length;
-    if (record) {
+    const report = (label: string, keep: (p: MatchPrediction) => boolean) => {
+      const subset = matches.map((m) => ({ ...m, prediction: m.prediction && keep(m.prediction) ? m.prediction : undefined }));
+      const record = predictionRecord(subset);
+      if (!record) return;
+      let logLoss = 0;
+      for (const m of subset) {
+        const outcome = homeOutcome(m.score, m.walkover);
+        if (outcome && m.prediction) logLoss -= Math.log(Math.max(1e-4, m.prediction[outcome]));
+      }
       console.log(
-        `${season.id}: ${record.matches} of ${played} played matches predicted. Right ${((100 * record.right) / record.matches).toFixed(1)}%, ` +
+        `${season.id} ${label}: ${record.matches} of ${played} played matches. Right ${((100 * record.right) / record.matches).toFixed(1)}%, ` +
           `Brier ${record.brier.toFixed(4)}, log loss ${(logLoss / record.matches).toFixed(4)}, games off ${(100 * record.gamesError).toFixed(1)}%.`,
       );
-    }
-    last = new Map([...replay.tallies].map(([id, t]) => [id, { ...t, youth: replay.youth.has(id) }]));
-    for (const id of replay.youth) if (!last.has(id)) last.set(id, { games: 0, above: 0, youth: true });
+    };
+    report('all predictions', () => true);
+    report('  with lineups from the pool', (p) => !p.lineups);
+    report('  first matches, lineups from earlier this season', (p) => p.lineups === 'season');
+    report('  first matches, lineups from last season', (p) => p.lineups === 'last-season');
+    // What the next season gets from this one, the way history.ts writes it.
+    last = lastSeasonOf(seasonFormFile(season.id, replay, seasonLineups(season.pools)));
     previousId = season.id;
   }
 }

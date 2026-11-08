@@ -22,12 +22,12 @@
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { NamedId, PoolData, PoolRef } from '../src/data/model.ts';
-import { ratingOn, replaySeason } from '../src/data/prematch.ts';
+import { ratingOn, replaySeason, seasonLineups } from '../src/data/prematch.ts';
 import { careerShards } from './careers.ts';
 import { parseDropdowns, parseRegionPools, seasonName, type PoolLink } from './parse.ts';
 import { importPool, loadClubs, message, readJson, toRef, writeJson, type Context } from './pool.ts';
 import { PortalClient } from './portal.ts';
-import { seasonFormFile } from './seasonform.ts';
+import { SEASON_FORM_VERSION, seasonFormFile, type SeasonFormFile } from './seasonform.ts';
 import { addVersion, chooseVersions, defaultRatingList, ratingListAt, ratingListVersions, type SeasonRatings } from './ratinglist.ts';
 
 /** The season's pools, with failed attempts so a broken pool is not retried for ever. */
@@ -217,12 +217,15 @@ async function writeCareers(): Promise<void> {
   console.log(`Past seasons by player: ${pools.length} pools, ${shards.size} files.`);
 }
 
-/** Writes form/<season>.json for every complete season that has none yet: past seasons never change. */
+/**
+ * Writes form/<season>.json for every complete season that has none, or an older version: past seasons
+ * never change, so each file is written once per version.
+ */
 async function writeSeasonForms(): Promise<void> {
   const seasons = (await readdir(outDir).catch(() => [] as string[])).filter((name) => /^4\d{4}$/.test(name));
   for (const seasonId of seasons) {
     const file = join(outDir, 'form', `${seasonId}.json`);
-    if (await readJson(file)) continue;
+    if ((await readJson<SeasonFormFile>(file))?.version === SEASON_FORM_VERSION) continue;
     const index = await readJson<SeasonIndex>(join(outDir, seasonId, 'index.json'));
     const ratings = await readJson<SeasonRatings>(join(outDir, seasonId, 'ratings.json'));
     if (!index?.complete || !ratings) continue;
@@ -231,9 +234,9 @@ async function writeSeasonForms(): Promise<void> {
       const data = await readJson<PoolData>(join(outDir, seasonId, 'pools', `${ref.id}.json`));
       if (data) pools.push(data);
     }
-    const form = seasonFormFile(seasonId, replaySeason(pools, ratings));
+    const form = seasonFormFile(seasonId, replaySeason(pools, ratings), seasonLineups(pools));
     await writeJson(file, form);
-    console.log(`${seasonName(seasonId)}: form of ${Object.keys(form.players).length} players.`);
+    console.log(`${seasonName(seasonId)}: form of ${Object.keys(form.players).length} players, lineups of ${Object.keys(form.teams ?? {}).length} teams.`);
   }
 }
 

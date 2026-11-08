@@ -213,7 +213,10 @@ async function main() {
   const timeline = ratingList ? await seasonTimeline(client, ratingList, all.filter((d) => d.pool.seasonId === ratingList.seasonId)) : null;
   const lastSeason = ratingList ? await readLastSeason(formDir, ratingList.seasonId) : null;
   const replay = timeline && ratingList ? replaySeason(all.filter((d) => d.pool.seasonId === ratingList.seasonId), timeline, lastSeason) : null;
-  if (replay) console.log(`Form: ${replay.form.size} players${lastSeason ? `, with last season for ${lastSeason.size}` : ' (no file for last season)'}.`);
+  if (replay) {
+    const last = lastSeason ? `, with last season for ${lastSeason.players.size} and lineups of ${lastSeason.teams.size} teams` : ' (no file for last season)';
+    console.log(`Form: ${replay.form.size} players${last}.`);
+  }
   for (const { previous, data } of imported) {
     if (replay && data.pool.seasonId === ratingList?.seasonId) {
       const predictions = replay.predictions.get(data.pool.id) ?? new Map();

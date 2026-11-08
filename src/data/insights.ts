@@ -3,7 +3,7 @@
  * data and the forecast model, so the dashboards explain themselves.
  */
 import { t, type Texts } from '../i18n';
-import { FORM_SPREAD, forecastMatch, lineupSize, projectTable, ratingForecast, ratingsOf, teamRoster, winChance } from './forecast';
+import { FORM_SPREAD, forecastMatch, lineupSize, projectTable, ratingForecast, ratingsOf, shownOdds, teamRoster, winChance } from './forecast';
 import type { PoolData } from './model';
 import { isHome, playerGames, playersById, scoreFor, teamMatches, teamsById, type GameRecord } from './stats';
 
@@ -118,7 +118,8 @@ export function teamInsights(pool: PoolData, teamId: string, scale: number): Ins
       let favourite = 0;
       for (const match of teamMatches(pool, teamId)) {
         if (match.score) continue;
-        const odds = forecastMatch(pool, match, teamId, scale, { team: strongest }).odds;
+        // Against a team that has not played in the pool yet, the stored prediction, as in projectTable.
+        const odds = shownOdds(forecastMatch(pool, match, teamId, scale, { team: strongest }), match).odds;
         if (odds && odds.win > odds.loss) favourite++;
       }
       if (favourite !== projection.favourite) {

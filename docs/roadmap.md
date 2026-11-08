@@ -143,6 +143,6 @@ decide on an association. Then ask the Indsamlingsnævnet and SKAT how donations
 
 ## Also planned (code)
 
-- **Use the earlier seasons for predictions:** a team's first matches of a season currently have no prediction, and
-  last season's lineups can fill that gap. Calibrate the model on all the past seasons too.
+- **Use the earlier seasons for predictions:** done for first matches, which borrow a team's lineups from an earlier
+  pool or last season ([predictions.md](predictions.md)). Still to do: calibrate the model on all the past seasons.
 - **Head-to-head records** between two players across all seasons, on the match preview.

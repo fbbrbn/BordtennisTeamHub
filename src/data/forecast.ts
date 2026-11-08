@@ -59,6 +59,37 @@ export interface CommonForecast {
   odds: Odds | null;
 }
 
+export interface WeightedLineup {
+  ids: string[];
+  weight: number;
+}
+
+/** Which lineups to assume. Without them, every lineup the team fielded in the pool this season. */
+export interface LineupHints {
+  team?: string[];
+  opponent?: string[];
+  /**
+   * Lineups for a side that has not played in this pool yet, borrowed from the same team in an earlier
+   * pool or last season (see prematch.ts), and how uncertain they are. Without it, such a side has no
+   * rating odds.
+   */
+  fallback?: (teamId: string) => Borrowed | null;
+}
+
+/** Lineups borrowed for a team, and how far to pull the odds towards even (BORROWED_SHRINK). */
+export interface Borrowed {
+  lineups: WeightedLineup[];
+  shrink: number;
+}
+
+/**
+ * A team whose lineups are borrowed may field other players: of the players in a team's first match,
+ * only 53–61% had played for it last season. So the odds are pulled towards even, the win and the loss
+ * towards each other, by this share, by where the lineups come from. Tuned on the first matches of
+ * 2020/21 to 2024/25 and checked on 2025/26 and 2026/27 (docs/predictions.md).
+ */
+export const BORROWED_SHRINK = { season: 0.2, lastSeason: 0.5 };
+
 /** Rating-based odds, averaged over one or more possible lineups per side. */
 export interface RatingSummary {
   odds: Odds;
@@ -69,6 +100,8 @@ export interface RatingSummary {
   opponentLineups: number;
   /** The lineup used for our side when it is a specific one. */
   team: string[] | null;
+  /** A side's lineups were borrowed (LineupHints.fallback). */
+  borrowed: boolean;
 }
 
 export interface MatchForecast {
@@ -399,7 +432,8 @@ export function gamesPerMatch(pool: PoolData): number {
 function playersPerSide(pool: PoolData): number {
   const sizes = new Map<number, number>();
   for (const match of pool.matches) {
-    const singles = match.games?.filter((g) => g.kind === 'single' && !g.walkover) ?? [];
+    // A "Golden Set" can be listed as a singles game without players: it says nothing about the lineups.
+    const singles = match.games?.filter((g) => g.kind === 'single' && !g.walkover && g.home.length + g.away.length > 0) ?? [];
     if (singles.length === 0) continue;
     const size = Math.max(new Set(singles.flatMap((g) => g.home)).size, new Set(singles.flatMap((g) => g.away)).size);
     sizes.set(size, (sizes.get(size) ?? 0) + 1);
@@ -436,16 +470,23 @@ export function ratingSummary(
   teamId: string,
   opponentId: string,
   scale: number,
-  lineups: { team?: string[]; opponent?: string[] } = {},
+  lineups: LineupHints = {},
   home = true,
   adjust = true,
 ): RatingSummary | null {
-  const options = (id: string, given?: string[]) => {
+  let shrink = 0;
+  let borrowed = false;
+  const options = (id: string, given?: string[]): WeightedLineup[] => {
     if (given) return [{ ids: given, weight: 1 }];
     const fielded = fieldedLineups(pool, id);
     if (fielded.length > 0) return fielded;
     const usual = usualLineup(pool, id);
-    return usual.length > 0 ? [{ ids: usual, weight: 1 }] : [];
+    if (usual.length > 0) return [{ ids: usual, weight: 1 }];
+    const fallback = lineups.fallback?.(id);
+    if (!fallback || fallback.lineups.length === 0) return [];
+    borrowed = true;
+    shrink = Math.max(shrink, fallback.shrink);
+    return fallback.lineups;
   };
   const ours = options(teamId, lineups.team);
   const theirs = options(opponentId, lineups.opponent);
@@ -470,20 +511,33 @@ export function ratingSummary(
   if (total === 0) return null;
   const weightedAverage = (list: { ids: string[]; weight: number }[]) =>
     list.reduce((acc, l) => acc + l.weight * average(l.ids.map(rating)), 0) / list.reduce((acc, l) => acc + l.weight, 0);
+  const odds = {
+    win: sum.win / total,
+    draw: sum.draw / total,
+    loss: sum.loss / total,
+    expectedGames: sum.expectedGames / total,
+    totalGames: sum.totalGames / total,
+    drawPossible,
+  };
   return {
-    odds: {
-      win: sum.win / total,
-      draw: sum.draw / total,
-      loss: sum.loss / total,
-      expectedGames: sum.expectedGames / total,
-      totalGames: sum.totalGames / total,
-      drawPossible,
-    },
+    odds: shrink > 0 ? towardsEven(odds, shrink) : odds,
     teamAverage: weightedAverage(ours),
     opponentAverage: weightedAverage(theirs),
     teamLineups: ours.length,
     opponentLineups: theirs.length,
     team: ours.length === 1 ? ours[0].ids : null,
+    borrowed,
+  };
+}
+
+/** Odds pulled towards even by a share: the win and the loss towards each other, the draw kept. */
+export function towardsEven(odds: Odds, share: number): Odds {
+  const even = (odds.win + odds.loss) / 2;
+  return {
+    ...odds,
+    win: odds.win + share * (even - odds.win),
+    loss: odds.loss + share * (even - odds.loss),
+    expectedGames: odds.expectedGames + share * (odds.totalGames / 2 - odds.expectedGames),
   };
 }
 
@@ -640,12 +694,38 @@ export function forecastMatch(
   match: TeamMatch,
   teamId: string,
   scale: number,
-  lineups: { team?: string[]; opponent?: string[] } = {},
+  lineups: LineupHints = {},
 ): MatchForecast {
   const opponentId = isHome(match, teamId) ? match.awayTeamId : match.homeTeamId;
   const rating = ratingSummary(pool, teamId, opponentId, scale, lineups, isHome(match, teamId));
   const common = commonOpponentForecast(pool, teamId, opponentId);
   return { teamId, opponentId, rating, common, odds: matchOdds(rating?.odds ?? null, common.odds) };
+}
+
+/** A match's stored prediction (made by the importer, see prematch.ts) as odds for one of its teams. */
+export function predictionOdds(match: TeamMatch, teamId: string): Odds | null {
+  const p = match.prediction;
+  if (!p) return null;
+  const home = match.homeTeamId === teamId;
+  return {
+    win: home ? p.win : p.loss,
+    draw: p.draw,
+    loss: home ? p.loss : p.win,
+    expectedGames: home ? p.homeGames : p.totalGames - p.homeGames,
+    totalGames: p.totalGames,
+    drawPossible: p.draw > 0,
+  };
+}
+
+/**
+ * The chances to show for a match to come: the live forecast, or else the importer's stored prediction.
+ * A team that has not played in the pool yet has no lineups here, but the importer borrowed them from
+ * an earlier pool or last season (prematch.ts). `stored` says the chances are that prediction.
+ */
+export function shownOdds(forecast: MatchForecast, match: TeamMatch): { odds: Odds | null; stored: boolean } {
+  if (forecast.odds || match.score) return { odds: forecast.odds, stored: false };
+  const stored = predictionOdds(match, forecast.teamId);
+  return { odds: stored, stored: stored !== null };
 }
 
 export interface Projection {
@@ -669,7 +749,7 @@ export function projectTable(pool: PoolData, scale: number): Projection[] {
     for (const match of teamMatches(pool, team.id)) {
       if (match.score) continue;
       remaining++;
-      const odds = forecastMatch(pool, match, team.id, scale).odds;
+      const odds = shownOdds(forecastMatch(pool, match, team.id, scale), match).odds;
       if (!odds) {
         projected += 1;
         continue;

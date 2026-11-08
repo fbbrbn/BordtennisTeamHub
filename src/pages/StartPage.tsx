@@ -3,7 +3,7 @@ import { FollowButton } from '../components/FollowButton';
 import { ThinOdds } from '../components/Odds';
 import { matchDay, matchTime } from '../components/ui';
 import { clubSlug, fallbackClubName } from '../data/clubs';
-import { fitScale, forecastMatch, lineupSize } from '../data/forecast';
+import { fitScale, forecastMatch, lineupSize, shownOdds } from '../data/forecast';
 import { loadIndex, loadPlayers, loadPool, useLoaded } from '../data/load';
 import type { DataIndex, IndexTeam, PlayerEntry, PoolData, PoolRef } from '../data/model';
 import { isHome, opponentOf, teamMatches, teamsById } from '../data/stats';
@@ -163,10 +163,10 @@ function MyTeamSummary({ pool, team }: { pool: PoolData; team: FollowedTeam }) {
   const teams = teamsById(pool);
   const standing = pool.standings.find((s) => s.teamId === team.teamId);
   const next = teamMatches(pool, team.teamId).find((m) => !m.score);
-  const forecast = useMemo(() => {
+  const odds = useMemo(() => {
     if (!next) return null;
     const planned = plannedLineup(pool.pool.id, team.teamId, next.id, lineupSize(pool));
-    return forecastMatch(pool, next, team.teamId, scale, planned ? { team: planned } : {});
+    return shownOdds(forecastMatch(pool, next, team.teamId, scale, planned ? { team: planned } : {}), next).odds;
   }, [pool, next, team.teamId, scale]);
   const base = href('team', pool.pool.id, team.teamId);
 
@@ -188,12 +188,12 @@ function MyTeamSummary({ pool, team }: { pool: PoolData; team: FollowedTeam }) {
             {t.common.vs} {teams.get(opponentOf(next, team.teamId))?.name ?? t.start.opponent}{' '}
             <span className="tag">{isHome(next, team.teamId) ? t.common.home : t.common.away}</span>
           </span>
-          {forecast?.odds && (
+          {odds && (
             <span className="my-team-odds">
               <span>
-                <strong>{percent(forecast.odds.win)}</strong> {t.odds.chanceToWin}
+                <strong>{percent(odds.win)}</strong> {t.odds.chanceToWin}
               </span>
-              <ThinOdds odds={forecast.odds} />
+              <ThinOdds odds={odds} />
             </span>
           )}
         </a>

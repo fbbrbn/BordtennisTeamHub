@@ -122,7 +122,13 @@ export const da: Texts = {
     line: (home, away, win) => `Forudsagt ${dec(home)}–${dec(away)} og ${pct(win)} for sejr`,
     record: (right, matches) => `Forudsagt før kampene: rigtigt i ${right} af ${matches}`,
     recordNote:
-      'Hver spillet kamp beholder den forudsigelse der blev lavet ud fra det man vidste før kampdagen: dagens officielle ratingliste, de tidligere resultater og hver spillers form indtil da. »Rigtigt« betyder at det mest sandsynlige udfald blev resultatet. Kampe uden forudsigelse var et holds første kamp i sæsonen.',
+      'Hver spillet kamp beholder den forudsigelse der blev lavet ud fra det man vidste før kampdagen: dagens officielle ratingliste, de tidligere resultater og hver spillers form indtil da. »Rigtigt« betyder at det mest sandsynlige udfald blev resultatet. Et hold der ikke havde spillet i puljen endnu, låner sine opstillinger fra en tidligere pulje i sæsonen eller fra sidste sæson. Kampe uden forudsigelse er kampe hvor et hold ikke havde nogen opstillinger at låne.',
+    borrowed: {
+      season:
+        'Mindst ét af holdene har ikke spillet i puljen endnu, så chancerne bygger på holdets opstillinger fra en tidligere pulje i sæsonen og er trukket lidt mod lige chancer.',
+      'last-season':
+        'Mindst ét af holdene har ikke spillet i puljen endnu, så chancerne bygger på holdets opstillinger fra sidste sæson. De er trukket halvvejs mod lige chancer, for kun omkring halvdelen af et holds spillere plejer at være de samme fra sæson til sæson.',
+    },
   },
 
   follow: {
@@ -361,7 +367,9 @@ export const da: Texts = {
     reasonCommon: 'Fælles modstandere.',
     lineups: 'Opstillinger',
     tryLineup: 'Prøv en opstilling: Chancerne ovenfor opdateres med det samme.',
+    tryLineupStored: 'Chancerne ovenfor ændrer sig ikke før begge hold har spillet i puljen.',
     statusSeason: 'Bruger sæsonens opstillinger. Tryk på spillere for at vælge din egen.',
+    statusNoPlayers: 'Har ikke spillet i puljen endnu, så der er ingen spillere at vælge.',
     statusPickMore: (n) => `Vælg ${n === 1 ? '1 spiller' : `${n} spillere`} mere. Indtil da bruges sæsonens opstillinger.`,
     statusPlanned: 'Opstilling fra holdplanlæggeren.',
     statusYours: 'Din opstilling.',

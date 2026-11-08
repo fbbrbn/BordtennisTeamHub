@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { BORROWED_SHRINK } from './forecast';
 import type { Game, PoolData, TeamMatch } from './model';
-import { homeOutcome, likeliest, poolBefore, predictionRecord, ratingOn, replaySeason, type RatingTimeline } from './prematch';
+import { homeOutcome, likeliest, poolBefore, predictionRecord, ratingOn, replaySeason, teamKey, type RatingTimeline } from './prematch';
 
 // A made-up pool: teams H, A and B, three players each, a match every week.
 const single = (label: string, home: string, away: string, homeWins: boolean): Game => ({
@@ -85,11 +86,58 @@ describe('replaySeason', () => {
 
   it('adds last season and youth pools to the final form', () => {
     const youthPool = pool([play('y1', '2026-09-12', 'H', 'A', 5)], 'y', '4004');
-    const last = new Map([['b1', { games: 40, above: 3, youth: false }]]);
+    const last = { players: new Map([['b1', { games: 40, above: 3, youth: false }]]), teams: new Map() };
     const replay = replaySeason([pool(matches), youthPool], timeline, last);
     expect(replay.form.get('h2')!.youth).toBe(true);
     expect(replay.form.get('b1')!.last).toEqual({ games: 40, above: 3 });
     expect(replay.youth.has('a3')).toBe(true);
+  });
+});
+
+describe('first matches', () => {
+  // A spring pool where H and A meet first, on 24 September.
+  const spring = () => pool([play('s1', '2026-09-24', 'H', 'A', 5)], 'spring');
+
+  it('have no prediction when neither team has played anywhere before', () => {
+    expect(replaySeason([spring()], timeline).predictions.get('spring')!.has('s1')).toBe(false);
+  });
+
+  it('borrow the lineups the same teams fielded in an earlier pool this season', () => {
+    const autumn = pool([play('a1', '2026-09-10', 'H', 'A', 6)], 'autumn');
+    const s1 = replaySeason([autumn, spring()], timeline).predictions.get('spring')!.get('s1')!;
+    expect(s1.lineups).toBe('season');
+    expect(s1.win).toBeGreaterThan(s1.loss); // H is rated higher
+    // Results from the same day do not count.
+    const sameDay = pool([play('a1', '2026-09-24', 'H', 'A', 6)], 'autumn');
+    expect(replaySeason([sameDay, spring()], timeline).predictions.get('spring')!.has('s1')).toBe(false);
+  });
+
+  // Last season's lineups of H and A, in age group "g".
+  const teams = new Map([
+    [teamKey('g', 'H'), [{ ids: ['h1', 'h2', 'h3'], weight: 4 }]],
+    [teamKey('g', 'A'), [{ ids: ['a1', 'a2', 'a3'], weight: 2 }, { ids: ['a1', 'a2', 'b3'], weight: 1 }]],
+  ]);
+
+  it('borrow last season\'s lineups otherwise, matched by age group and team name', () => {
+    const s1 = replaySeason([spring()], timeline, { players: new Map(), teams }).predictions.get('spring')!.get('s1')!;
+    expect(s1.lineups).toBe('last-season');
+    expect(s1.win + s1.draw + s1.loss).toBeCloseTo(1, 2);
+    // Another age group's team of the same name is someone else.
+    const other = new Map([...teams].map(([key, v]) => [key.replace(/^g\|/, '4010|'), v]));
+    expect(replaySeason([spring()], timeline, { players: new Map(), teams: other }).predictions.get('spring')!.has('s1')).toBe(false);
+  });
+
+  it('pull borrowed odds towards even, keeping the draw', () => {
+    const last = { players: new Map(), teams };
+    const plain = replaySeason([spring()], timeline, last, { shrink: { lastSeason: 0 } }).predictions.get('spring')!.get('s1')!;
+    const pulled = replaySeason([spring()], timeline, last).predictions.get('spring')!.get('s1')!;
+    expect(plain.win - plain.loss).toBeGreaterThan(0.1);
+    expect(pulled.draw).toBeCloseTo(plain.draw, 2);
+    expect(pulled.win - pulled.loss).toBeCloseTo((plain.win - plain.loss) * (1 - BORROWED_SHRINK.lastSeason), 2);
+  });
+
+  it('key teams by age group and name, whatever the spacing and case', () => {
+    expect(teamKey('4006', '  Vallensbæk  BTK 3 ')).toBe(teamKey('4006', 'vallensbæk btk 3'));
   });
 });
 

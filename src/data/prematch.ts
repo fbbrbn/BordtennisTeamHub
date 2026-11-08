@@ -12,9 +12,9 @@
  * - Form (src/data/form.ts): each player's singles on earlier days, in every pool of the season,
  *   so the season is replayed day by day with all its pools together (`replaySeason`).
  */
-import { fitScale, forecastMatch, ratingsOf, shareFormat, winChance, type Odds } from './forecast.ts';
+import { BORROWED_SHRINK, fieldedLineups, fitScale, forecastMatch, ratingsOf, shareFormat, winChance, type Borrowed, type WeightedLineup } from './forecast.ts';
 import { formOf, YOUTH_AGE_GROUPS, type FormTally } from './form.ts';
-import type { MatchPrediction, PlayerForm, PoolData, TeamMatch } from './model.ts';
+import type { MatchPrediction, PlayerForm, PoolData } from './model.ts';
 
 /** Official ratings by list version: `players[id][i]` belongs to `versions[i]` (oldest first). */
 export interface RatingTimeline {
@@ -61,8 +61,39 @@ export function poolBefore(
   return view;
 }
 
-/** Last season's tallies by player id, with whether they played in a youth pool (scraper/history.ts). */
-export type LastSeason = Map<string, FormTally & { youth?: boolean }>;
+/** What the next season needs from a finished one (scraper/seasonform.ts writes and reads it). */
+export interface LastSeason {
+  /** Tallies by player id, with whether they played in a youth pool. */
+  players: Map<string, FormTally & { youth?: boolean }>;
+  /** Every team's lineups, by `teamKey`. */
+  teams: Map<string, WeightedLineup[]>;
+}
+
+/** A team across pools and seasons: its age group and name ("4006|vallensbæk btk 3"). */
+export function teamKey(ageGroupId: string, name: string): string {
+  return `${ageGroupId}|${name.toLocaleLowerCase('da').replace(/\s+/g, ' ').trim()}`;
+}
+
+/** Every team's lineups across the season's pools, by `teamKey`, weighted by how often each was fielded. */
+export function seasonLineups(pools: PoolData[]): Map<string, WeightedLineup[]> {
+  const teams = new Map<string, Map<string, WeightedLineup>>();
+  for (const pool of pools) {
+    for (const team of pool.teams) {
+      const key = teamKey(pool.pool.ageGroupId, team.name);
+      const lineups = teams.get(key) ?? new Map<string, WeightedLineup>();
+      for (const l of fieldedLineups(pool, team.id)) addLineup(lineups, l.ids, l.weight);
+      if (lineups.size > 0) teams.set(key, lineups);
+    }
+  }
+  return new Map([...teams].map(([key, lineups]) => [key, [...lineups.values()]]));
+}
+
+function addLineup(lineups: Map<string, WeightedLineup>, ids: string[], weight: number): void {
+  const key = [...ids].sort().join('+');
+  const entry = lineups.get(key) ?? { ids, weight: 0 };
+  entry.weight += weight;
+  lineups.set(key, entry);
+}
 
 export interface SeasonReplay {
   /** By pool id and match id: the prediction made before the match day, from the home side. */
@@ -79,11 +110,22 @@ export interface SeasonReplay {
  * every pool. Each match is predicted from its pool as it was before the match day, with the form
  * from earlier days. Then the day's singles count: wins above what the plain rating curve expected,
  * with the ratings in force and the pool's scale on that day.
+ *
+ * A team that has not played in its pool yet borrows its lineups: from the same team (same age group
+ * and name) in pools of this season, on earlier days; otherwise from last season.
  */
-export function replaySeason(pools: PoolData[], timeline: RatingTimeline | null, last: LastSeason | null = null): SeasonReplay {
+export function replaySeason(
+  pools: PoolData[],
+  timeline: RatingTimeline | null,
+  last: LastSeason | null = null,
+  options: { shrink?: Partial<typeof BORROWED_SHRINK> } = {},
+): SeasonReplay {
+  const shrink = { ...BORROWED_SHRINK, ...options.shrink };
   const tallies = new Map<string, FormTally>();
   const youth = new Set<string>();
-  const formFor = (id: string) => formOf(tallies.get(id), last?.get(id), youth.has(id));
+  const formFor = (id: string) => formOf(tallies.get(id), last?.players.get(id), youth.has(id));
+  /** This season's lineups by team key, from the days replayed so far. */
+  const earlier = new Map<string, Map<string, WeightedLineup>>();
   const predictions = new Map<string, Map<string, MatchPrediction>>();
   const byDay = new Map<string, PoolData[]>();
   for (const pool of pools) {
@@ -93,13 +135,34 @@ export function replaySeason(pools: PoolData[], timeline: RatingTimeline | null,
   for (const day of [...byDay.keys()].sort()) {
     const results: { home: string; away: string; above: number }[] = [];
     const youthToday: string[] = [];
+    const fieldedToday: { key: string; ids: string[] }[] = [];
     for (const pool of byDay.get(day)!) {
       const view = poolBefore(pool, day, timeline, formFor);
       const scale = fitScale(view);
       const rating = ratingsOf(view);
+      const known = new Set(view.players.map((p) => p.id));
+      const names = new Map(pool.teams.map((x) => [x.id, x.name]));
       for (const match of pool.matches) {
         if (match.date.slice(0, 10) !== day) continue;
-        const odds = forecastMatch(view, match, match.homeTeamId, scale).odds;
+        const sources = new Set<'season' | 'last-season'>();
+        const fallback = (teamId: string): Borrowed | null => {
+          const key = teamKey(pool.pool.ageGroupId, names.get(teamId) ?? '');
+          const thisSeason = [...(earlier.get(key)?.values() ?? [])];
+          const lineups = thisSeason.length > 0 ? thisSeason : (last?.teams.get(key) ?? []);
+          if (lineups.length === 0) return null;
+          sources.add(thisSeason.length > 0 ? 'season' : 'last-season');
+          // The borrowed players join the view, rated as on that day's list.
+          for (const id of new Set(lineups.flatMap((l) => l.ids))) {
+            if (known.has(id)) continue;
+            known.add(id);
+            const r = timeline ? ratingOn(timeline, id, day) : undefined;
+            const player = { id, name: '', teamId: null, rating: r ?? null, form: formFor(id) };
+            if (!player.form) delete player.form;
+            view.players.push(player);
+          }
+          return { lineups, shrink: thisSeason.length > 0 ? shrink.season : shrink.lastSeason };
+        };
+        const odds = forecastMatch(view, match, match.homeTeamId, scale, { fallback }).odds;
         if (odds) {
           predictions.get(pool.pool.id)!.set(match.id, {
             win: round(odds.win, 3),
@@ -107,9 +170,15 @@ export function replaySeason(pools: PoolData[], timeline: RatingTimeline | null,
             loss: round(odds.loss, 3),
             homeGames: round(odds.expectedGames, 2),
             totalGames: round(odds.totalGames, 2),
+            ...(sources.size > 0 ? { lineups: sources.has('last-season') ? 'last-season' : 'season' } : {}),
           });
         }
         if (!match.score || match.walkover) continue;
+        for (const teamId of [match.homeTeamId, match.awayTeamId]) {
+          const side = teamId === match.homeTeamId ? 'home' : 'away';
+          const ids = [...new Set((match.games ?? []).filter((g) => g.kind === 'single').flatMap((g) => g[side]))];
+          if (ids.length > 0) fieldedToday.push({ key: teamKey(pool.pool.ageGroupId, names.get(teamId) ?? ''), ids });
+        }
         for (const g of match.games ?? []) {
           if (YOUTH_AGE_GROUPS.has(pool.pool.ageGroupId)) youthToday.push(...g.home, ...g.away);
           if (g.kind !== 'single' || g.walkover || !g.winner || g.home.length !== 1 || g.away.length !== 1) continue;
@@ -126,6 +195,11 @@ export function replaySeason(pools: PoolData[], timeline: RatingTimeline | null,
       }
     }
     for (const id of youthToday) youth.add(id);
+    for (const { key, ids } of fieldedToday) {
+      const lineups = earlier.get(key) ?? new Map<string, WeightedLineup>();
+      addLineup(lineups, ids, 1);
+      earlier.set(key, lineups);
+    }
   }
   const form = new Map<string, PlayerForm>();
   for (const id of new Set([...pools.flatMap((p) => p.players.map((x) => x.id)), ...tallies.keys()])) {
@@ -135,20 +209,7 @@ export function replaySeason(pools: PoolData[], timeline: RatingTimeline | null,
   return { predictions, form, tallies, youth };
 }
 
-/** A match's stored prediction as odds for one of its teams. */
-export function predictionOdds(match: TeamMatch, teamId: string): Odds | null {
-  const p = match.prediction;
-  if (!p) return null;
-  const home = match.homeTeamId === teamId;
-  return {
-    win: home ? p.win : p.loss,
-    draw: p.draw,
-    loss: home ? p.loss : p.win,
-    expectedGames: home ? p.homeGames : p.totalGames - p.homeGames,
-    totalGames: p.totalGames,
-    drawPossible: p.draw > 0,
-  };
-}
+export { predictionOdds } from './forecast.ts';
 
 export type Outcome = 'win' | 'draw' | 'loss';
 

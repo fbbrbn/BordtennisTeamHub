@@ -170,6 +170,11 @@ export interface MatchPrediction {
   homeGames: number;
   /** Expected games played. */
   totalGames: number;
+  /**
+   * When a team had not played in the pool yet: where its lineups came from, the same team in an
+   * earlier pool of the season or last season (src/data/prematch.ts).
+   */
+  lineups?: 'season' | 'last-season';
 }
 
 export interface Game {

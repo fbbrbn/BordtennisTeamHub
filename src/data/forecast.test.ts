@@ -8,6 +8,7 @@ import {
   fieldedLineups,
   fitScale,
   FORM_SPREAD,
+  forecastMatch,
   gameChance,
   lineupSize,
   matchFormat,
@@ -17,6 +18,8 @@ import {
   projectTable,
   ratingForecast,
   ratingSummary,
+  shownOdds,
+  towardsEven,
   usualLineup,
   winChance,
   winDistribution,
@@ -199,6 +202,15 @@ describe('match formats', () => {
     ]),
   ];
 
+  it('ignores singles listed without players, such as a golden set', () => {
+    const withGolden = structuredClone(pool);
+    const golden: Game = { label: 'Golden Set', kind: 'single', home: [], away: [], sets: [1, 0], winner: 'home', walkover: false };
+    // Only the golden set is recorded in most matches.
+    for (const id of ['2', '3']) withGolden.matches.push(match(id, 'H', 'A', [1, 0], [golden]));
+    expect(lineupSize(withGolden)).toBe(4);
+    expect(matchFormat(withGolden).singles.every((p) => Array.isArray(p))).toBe(true);
+  });
+
   it('reads positions and doubles from the game labels', () => {
     const format = matchFormat(pool);
     expect(format.size).toBe(4);
@@ -223,6 +235,31 @@ describe('match formats', () => {
     expect(home.singles[0][0]).toBeCloseTo(gameChance(1400, 1400, 265, HOME_EDGE), 9);
     const veteran = { ...pool, pool: { ...pool.pool, ageGroupId: '4010' } };
     expect(ratingForecast(veteran, lineups[0], lineups[1], 265, true)!.odds.expectedGames).toBeCloseTo(7, 5);
+  });
+});
+
+describe('towardsEven', () => {
+  it('pulls the win and the loss towards each other, keeping the draw', () => {
+    const half = towardsEven({ win: 0.7, draw: 0.1, loss: 0.2, expectedGames: 6.4, totalGames: 10, drawPossible: true }, 0.5);
+    expect(half.win).toBeCloseTo(0.575);
+    expect(half.loss).toBeCloseTo(0.325);
+    expect(half.draw).toBe(0.1);
+    expect(half.expectedGames).toBeCloseTo(5.7);
+  });
+});
+
+describe('stored predictions', () => {
+  it('stand in for the live chances of a match to come when there are no lineups to compare', () => {
+    const pool = emptyPool();
+    const upcoming = { ...match('5', 'H', 'A', null), prediction: { win: 0.6, draw: 0.1, loss: 0.3, homeGames: 5.6, totalGames: 10, lineups: 'last-season' as const } };
+    const forecast = forecastMatch(pool, upcoming, 'A', 300);
+    expect(forecast.odds).toBeNull();
+    const shown = shownOdds(forecast, upcoming);
+    expect(shown.stored).toBe(true);
+    expect(shown.odds!.win).toBeCloseTo(0.3, 9); // from A's side
+    expect(shown.odds!.expectedGames).toBeCloseTo(4.4, 9);
+    // A played match never shows its stored prediction as chances.
+    expect(shownOdds(forecast, { ...upcoming, score: [6, 4] }).odds).toBeNull();
   });
 });
 
