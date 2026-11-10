@@ -36,7 +36,6 @@ import {
   portalUrl,
   RowLink,
   shortDay,
-  signed,
   StatTile,
   useShowAll,
   WinMeter,
@@ -369,7 +368,7 @@ function Players({ pool, team }: { pool: PoolData; team: TeamRef }) {
                       {player?.rating ?? t.common.unrated}
                       {player?.forecast && player.rating !== null && (
                         <div className="muted small" title={t.ratings.forecastTitleShort}>
-                          → {player.forecast.rating} ({signed(player.forecast.rating - player.rating)})
+                          → {player.forecast.rating}
                         </div>
                       )}
                     </td>

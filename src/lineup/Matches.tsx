@@ -12,9 +12,13 @@ interface MatchProps {
   nameOf: (id: string) => string;
 }
 
-type RowStatus = 'plays' | 'reserve' | 'rest' | 'out' | 'waiting';
+type RowStatus = 'plays' | 'reserve' | 'rest';
 const ANSWERS: Exclude<Availability, 'unknown'>[] = ['yes', 'maybe', 'no'];
 
+/**
+ * One match to come. Folded, it is a single row: when, against whom and the lineup so far. Open, it
+ * has every player's answer. Tapping the row opens and closes it.
+ */
 export function PlannedMatch({ item, state, dispatch, nameOf, startOpen = true }: MatchProps & { startOpen?: boolean }) {
   const f = item.fixture;
   const [editing, setEditing] = useState(false);
@@ -22,105 +26,127 @@ export function PlannedMatch({ item, state, dispatch, nameOf, startOpen = true }
   const active = state.players.filter((p) => p.active);
   const inLineup = new Set(item.lineup);
   const isReserve = new Set(item.reserves);
+  const notes = matchNotes(item, nameOf, active.length);
+  const time = formatTime(f.date);
+  const lineup =
+    item.lineup.length > 0 ? item.lineup.map(nameOf).join(' · ') : item.unanswered.length > 0 ? t.planner.waitingAnswers : t.planner.nobodyCan;
+  // The portal keeps its own matches up to date, so only the captain's own matches can be edited.
+  const own = !f.portalId;
 
   return (
-    <article className={open ? 'card match' : 'card match is-collapsed'}>
-      <MatchHeading fixture={f} editing={editing} onEdit={() => setEditing((v) => !v)} />
-
-      {editing && (
-        <FixtureForm
-          initial={f}
-          onSubmit={(patch) => {
-            dispatch({ type: 'updateFixture', id: f.id, patch });
-            setEditing(false);
-          }}
-          onCancel={() => setEditing(false)}
-          onDelete={() => {
-            if (window.confirm(t.planner.deleteConfirm)) dispatch({ type: 'removeFixture', id: f.id });
-          }}
-        />
-      )}
-
-      <p className="match-lineup">
-        <span className="label">{t.planner.lineup}</span>
-        <span>
-          {item.lineup.length > 0
-            ? item.lineup.map(nameOf).join(' · ')
-            : item.unanswered.length > 0
-              ? t.planner.waitingAnswers
-              : t.planner.nobodyCan}
-        </span>
-      </p>
-
-      <MatchNotices item={item} nameOf={nameOf} activeCount={active.length} />
-
-      {!open && (
-        <button type="button" className="link-button match-toggle" aria-expanded={false} onClick={() => setOpen(true)}>
-          {t.planner.whoCanPlay}
+    <article className={open ? 'card match is-open' : 'card match'}>
+      <h3 className="match-title">
+        <button type="button" className="match-summary" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+          <span className="match-summary-main">
+            <span className="match-when">
+              {formatDay(f.date)}
+              {time && ` · ${time}`}
+            </span>
+            <span className="match-vs">
+              {t.common.vs} {f.opponent || t.planner.noOpponent}{' '}
+              <span className={`tag ${f.home ? 'tag-home' : ''}`}>{f.home ? t.common.home : t.common.away}</span>
+            </span>
+            {!open && (
+              <span className={item.lineup.length > 0 ? 'match-status' : 'match-status is-waiting'}>
+                {lineup}
+                {notes.some((n) => n.tone === 'warn') && (
+                  <span className="match-alert">
+                    <span aria-hidden="true">!</span>
+                    <span className="sr-only">{t.planner.warning}</span>
+                  </span>
+                )}
+              </span>
+            )}
+          </span>
         </button>
-      )}
-
-      {open && active.length === 0 && <p className="muted">{t.planner.addPlayersFirst}</p>}
-      {open && active.length > 0 && (
-        <ul className="player-rows">
-          {active.map((p) => {
-            const answer = availabilityOf(state, f.id, p.id);
-            const override = state.overrides[f.id]?.[p.id];
-            const status: RowStatus = inLineup.has(p.id)
-              ? 'plays'
-              : override === 'out'
-                ? 'rest'
-                : isReserve.has(p.id)
-                  ? 'reserve'
-                  : answer === 'unknown'
-                    ? 'waiting'
-                    : 'out';
-            return (
-              <li key={p.id} className="player-row">
-                <span className="player-name">{p.name}</span>
-                <span className={`status status-${status}`}>
-                  {t.planner.status[status]}
-                  {override === 'in' && <span className="sr-only">{t.planner.setByCaptain}</span>}
-                </span>
-                <AnswerButtons
-                  name={p.name}
-                  value={answer}
-                  onChange={(value) => dispatch({ type: 'availability', fixtureId: f.id, playerId: p.id, value })}
-                />
-                <select
-                  className="pick"
-                  aria-label={t.planner.selectionFor(p.name)}
-                  value={override ?? 'auto'}
-                  onChange={(e) =>
-                    dispatch({
-                      type: 'override',
-                      fixtureId: f.id,
-                      playerId: p.id,
-                      value: e.target.value === 'auto' ? null : (e.target.value as Override),
-                    })
-                  }
-                >
-                  <option value="auto">{t.planner.auto}</option>
-                  <option value="in">{t.planner.mustPlay}</option>
-                  <option value="out">{t.planner.rest}</option>
-                </select>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      </h3>
 
       {open && (
-      <div className="match-foot">
-        <button
-          type="button"
-          className="button"
-          disabled={item.lineup.length === 0}
-          onClick={() => dispatch({ type: 'markPlayed', fixtureId: f.id, playerIds: item.lineup })}
-        >
-          {t.planner.markPlayed}
-        </button>
-      </div>
+        <>
+          <p className="match-lineup">
+            <span className="label">{t.planner.lineup}</span>
+            <span>{lineup}</span>
+          </p>
+
+          <MatchNotices notes={notes} />
+
+          {active.length === 0 && <p className="muted">{t.planner.addPlayersFirst}</p>}
+          {active.length > 0 && (
+            <ul className="player-rows">
+              {active.map((p) => {
+                const answer = availabilityOf(state, f.id, p.id);
+                const override = state.overrides[f.id]?.[p.id];
+                // Said only when it adds something: the buttons already show who cannot play or has not answered.
+                const status: RowStatus | null = inLineup.has(p.id) ? 'plays' : override === 'out' ? 'rest' : isReserve.has(p.id) ? 'reserve' : null;
+                return (
+                  <li key={p.id} className="player-row">
+                    <span className="player-name">{p.name}</span>
+                    {status && (
+                      <span className={`status status-${status}`}>
+                        {t.planner.status[status]}
+                        {override === 'in' && <span className="sr-only">{t.planner.setByCaptain}</span>}
+                      </span>
+                    )}
+                    <AnswerButtons
+                      name={p.name}
+                      value={answer}
+                      onChange={(value) => dispatch({ type: 'availability', fixtureId: f.id, playerId: p.id, value })}
+                    />
+                    <select
+                      className="pick"
+                      aria-label={t.planner.selectionFor(p.name)}
+                      value={override ?? 'auto'}
+                      onChange={(e) =>
+                        dispatch({
+                          type: 'override',
+                          fixtureId: f.id,
+                          playerId: p.id,
+                          value: e.target.value === 'auto' ? null : (e.target.value as Override),
+                        })
+                      }
+                    >
+                      <option value="auto">{t.planner.auto}</option>
+                      <option value="in">{t.planner.mustPlay}</option>
+                      <option value="out">{t.planner.rest}</option>
+                    </select>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          {(own || isPast(f.date)) && (
+            <div className="match-foot">
+              {own && (
+                <button type="button" className="button quiet" aria-expanded={editing} onClick={() => setEditing((v) => !v)}>
+                  {t.planner.editMatch}
+                </button>
+              )}
+              <button
+                type="button"
+                className="button"
+                disabled={item.lineup.length === 0}
+                onClick={() => dispatch({ type: 'markPlayed', fixtureId: f.id, playerIds: item.lineup })}
+              >
+                {t.planner.markPlayed}
+              </button>
+            </div>
+          )}
+
+          {editing && (
+            <FixtureForm
+              initial={f}
+              onSubmit={(patch) => {
+                dispatch({ type: 'updateFixture', id: f.id, patch });
+                setEditing(false);
+              }}
+              onCancel={() => setEditing(false)}
+              onDelete={() => {
+                if (window.confirm(t.planner.deleteConfirm)) dispatch({ type: 'removeFixture', id: f.id });
+              }}
+            />
+          )}
+        </>
       )}
     </article>
   );
@@ -205,45 +231,22 @@ export function PlayedMatch({ item, state, dispatch, nameOf }: MatchProps) {
   );
 }
 
-function MatchHeading({ fixture, editing, onEdit }: { fixture: Fixture; editing: boolean; onEdit: () => void }) {
-  const time = formatTime(fixture.date);
-  return (
-    <header className="match-head">
-      <div>
-        <div className="match-when">
-          {formatDay(fixture.date)}
-          {time && <span className="muted"> · {time}</span>}
-        </div>
-        <h3 className="match-vs">
-          {t.common.vs} {fixture.opponent || t.planner.noOpponent}{' '}
-          <span className={`tag ${fixture.home ? 'tag-home' : ''}`}>{fixture.home ? t.common.home : t.common.away}</span>
-        </h3>
-      </div>
-      <button type="button" className="link-button" aria-expanded={editing} onClick={onEdit}>
-        {t.planner.edit}
-      </button>
-    </header>
-  );
+interface Note {
+  tone: 'warn' | 'info';
+  text: string;
 }
 
-function MatchNotices({
-  item,
-  nameOf,
-  activeCount,
-}: {
-  item: FixturePlan;
-  nameOf: (id: string) => string;
-  activeCount: number;
-}) {
-  const notes: { tone: 'warn' | 'info'; text: string }[] = [];
+/**
+ * What a captain should know about a match's lineup: open places, too many forced in, someone forced
+ * in who cannot play, a date that has passed. Nothing while everybody is still to answer: the lineup
+ * line says that already.
+ */
+function matchNotes(item: FixturePlan, nameOf: (id: string) => string, activeCount: number): Note[] {
+  const notes: Note[] = [];
   if (item.missing > 0 && item.unanswered.length > 0) {
-    notes.push({
-      tone: 'info',
-      text:
-        item.unanswered.length === activeCount
-          ? t.planner.noAnswersYet
-          : t.planner.stillToAnswer(item.missing, item.unanswered.map(nameOf).join(', ')),
-    });
+    if (item.unanswered.length < activeCount) {
+      notes.push({ tone: 'info', text: t.planner.stillToAnswer(item.missing, item.unanswered.map(nameOf).join(', ')) });
+    }
   } else if (item.missing > 0) {
     notes.push({ tone: 'warn', text: t.planner.everyoneAnswered(item.missing) });
   }
@@ -256,6 +259,10 @@ function MatchNotices({
   if (isPast(item.fixture.date)) {
     notes.push({ tone: 'info', text: t.planner.datePassed });
   }
+  return notes;
+}
+
+function MatchNotices({ notes }: { notes: Note[] }) {
   if (notes.length === 0) return null;
   return (
     <ul className="notices">

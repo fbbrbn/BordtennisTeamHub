@@ -9,7 +9,7 @@ export function listNote(status: RatingStatus): string {
   return t.ratings.listNote(shortDay(status.listDate), shortDay(status.ratedThrough));
 }
 
-/** A player's forecast rating and the singles it comes from. Nothing when there are no new games. */
+/** A player's forecast rating in one line; the singles it comes from and the rules sit behind a fold. */
 export function RatingForecastCard({ pool, player }: { pool: PoolData; player: Player }) {
   const status = pool.pool.ratings;
   const forecast = player.forecast;
@@ -18,37 +18,40 @@ export function RatingForecastCard({ pool, player }: { pool: PoolData; player: P
     <section className="card">
       <h2>{t.ratings.forecastTitle}</h2>
       <p className="forecast-headline">{t.ratings.forecastHeadline(forecast.rating, signed(forecast.rating - player.rating), forecast.games.length)}</p>
-      <p className="muted small">{t.ratings.official(player.rating, listNote(status))}</p>
-      <div className="table-scroll">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th scope="col">{t.common.date}</th>
-              <th scope="col">{t.common.against}</th>
-              <th scope="col">{t.common.result}</th>
-              <th scope="col" className="num">{t.common.points}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {forecast.games.map((g, i) => (
-              <tr key={`${g.matchId}-${g.opponentId}-${i}`}>
-                <td>
-                  <a href={href('match', g.poolId, g.matchId)}>{shortDay(g.date)}</a>
-                </td>
-                <td>
-                  <a href={href('player', g.poolId, g.opponentId)}>{g.opponentName || t.common.unknownPlayer}</a>
-                  <div className="muted small">{t.ratings.ratedAt(g.opp)}</div>
-                </td>
-                <td>
-                  <OutcomeBadge outcome={g.won ? 'single-won' : 'single-lost'} />
-                </td>
-                <td className="num strong">{signed(g.points)}</td>
+      <details className="why">
+        <summary>{t.common.howWorkedOut}</summary>
+        <p className="muted small">{t.ratings.official(player.rating, listNote(status))}</p>
+        <div className="table-scroll">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th scope="col">{t.common.date}</th>
+                <th scope="col">{t.common.against}</th>
+                <th scope="col">{t.common.result}</th>
+                <th scope="col" className="num">{t.common.points}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <RatingRules />
+            </thead>
+            <tbody>
+              {forecast.games.map((g, i) => (
+                <tr key={`${g.matchId}-${g.opponentId}-${i}`}>
+                  <td>
+                    <a href={href('match', g.poolId, g.matchId)}>{shortDay(g.date)}</a>
+                  </td>
+                  <td>
+                    <a href={href('player', g.poolId, g.opponentId)}>{g.opponentName || t.common.unknownPlayer}</a>
+                    <div className="muted small">{t.ratings.ratedAt(g.opp)}</div>
+                  </td>
+                  <td>
+                    <OutcomeBadge outcome={g.won ? 'single-won' : 'single-lost'} />
+                  </td>
+                  <td className="num strong">{signed(g.points)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <RatingRulesBody />
+      </details>
     </section>
   );
 }
@@ -59,6 +62,14 @@ export function RatingRules({ intro }: { intro?: string }) {
     <details className="why">
       <summary>{t.common.howWorkedOut}</summary>
       {intro && <p className="muted small">{intro}</p>}
+      <RatingRulesBody />
+    </details>
+  );
+}
+
+function RatingRulesBody() {
+  return (
+    <>
       <ul className="reasons">
         {t.ratings.rules.map((rule) => (
           <li key={rule}>{rule}</li>
@@ -108,6 +119,6 @@ export function RatingRules({ intro }: { intro?: string }) {
         </table>
       </div>
       <p className="muted small">{t.ratings.rulesNote}</p>
-    </details>
+    </>
   );
 }

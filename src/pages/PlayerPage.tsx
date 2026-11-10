@@ -7,9 +7,9 @@ import type { Player, PoolData } from '../data/model';
 import { playerGames, playersById, summarize, teamsById, winRate } from '../data/stats';
 import { t } from '../i18n';
 import { href } from '../lib/router';
-import { HistoryLink, PastSeasonTag, PlayerHistory } from '../components/PlayerHistory';
+import { PastSeasonTag, PlayerHistory } from '../components/PlayerHistory';
 import { RatingForecastCard } from '../components/RatingForecast';
-import { matchDay, NotFound, OutcomeBadge, PageState, shortDay, signed, StatTile } from '../components/ui';
+import { matchDay, NotFound, OutcomeBadge, PageState, percent, RowLink, shortDay, StatTile } from '../components/ui';
 
 export function PlayerPage({ poolId, playerId, tab }: { poolId: string; playerId: string; tab: string | null }) {
   const loaded = useLoaded(() => loadPool(poolId), poolId);
@@ -77,19 +77,13 @@ function PlayerView({ pool, player, tab }: { pool: PoolData; player: Player; tab
           label={t.common.rating}
           value={player.rating ?? '–'}
           detail={
-            player.rating === null
-              ? t.common.unrated
-              : player.forecast
-                ? t.ratings.forecastDetail(player.forecast.rating, signed(player.forecast.rating - player.rating))
-                : undefined
+            player.rating === null ? t.common.unrated : player.forecast ? t.ratings.forecastDetail(player.forecast.rating) : undefined
           }
         />
-        <StatTile label={t.player.singlesWonLost} value={`${summary.singles.won}–${summary.singles.lost}`} detail={t.common.wonShare(winRate(summary.singles))} />
-        <StatTile label={t.player.doublesWonLost} value={`${summary.doubles.won}–${summary.doubles.lost}`} />
-        <StatTile label={t.player.setsWonLost} value={`${summary.sets.won}–${summary.sets.lost}`} detail={t.player.inMatches(summary.matches)} />
+        <StatTile label={t.common.singles} value={`${summary.singles.won}–${summary.singles.lost}`} detail={percent(winRate(summary.singles))} />
+        <StatTile label={t.common.doubles} value={`${summary.doubles.won}–${summary.doubles.lost}`} />
+        <StatTile label={t.common.sets} value={`${summary.sets.won}–${summary.sets.lost}`} detail={t.n.matches(summary.matches)} />
       </div>
-
-      <HistoryLink playerId={player.id} href={`${base}?tab=history`} />
 
       <RatingForecastCard pool={pool} player={player} />
 
@@ -110,11 +104,8 @@ function PlayerView({ pool, player, tab }: { pool: PoolData; player: Player; tab
       {strip.length > 0 && (
         <section className="card">
           <h2>{t.player.byOpponent}</h2>
-          <p className="muted">
-            {t.player.byOpponentNote(player.name)}
-            {unrated > 0 && t.player.unratedNotShown(unrated)}
-          </p>
           <RatingStrip points={strip} ownRating={player.rating} />
+          {unrated > 0 && <p className="muted small">{t.player.unratedNotShown(unrated)}</p>}
         </section>
       )}
 
@@ -126,54 +117,40 @@ function PlayerView({ pool, player, tab }: { pool: PoolData; player: Player; tab
         {records.length === 0 ? (
           <p className="muted">{t.player.noGames}</p>
         ) : (
-          <div className="table-scroll">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th scope="col">{t.common.date}</th>
-                  <th scope="col">{t.common.against}</th>
-                  <th scope="col" className="num">{t.common.rating}</th>
-                  <th scope="col" className="num">{t.common.sets}</th>
-                  <th scope="col">{t.common.result}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...records].reverse().map((r) => (
-                  <tr key={`${r.match.id}-${r.game.label}`}>
-                    <td>
-                      <a href={href('match', pool.pool.id, r.match.id)}>{shortDay(r.match.date)}</a>
-                    </td>
-                    <td>
+          <ul className="result-list">
+            {[...records].reverse().map((r) => (
+              <li key={`${r.match.id}-${r.game.label}`} className="result-row">
+                {/* The whole row leads to the team match, where every player has a link. */}
+                <RowLink to={href('match', pool.pool.id, r.match.id)}>
+                  <span className="result-main">
+                    <span className="result-when">
+                      {shortDay(r.match.date)} · {teams.get(r.opponentTeamId)?.name}
+                    </span>
+                    <span className="result-vs">
                       {r.opponents.map((id, i) => (
                         <span key={id}>
                           {i > 0 && t.common.andJoin}
-                          <a href={href('player', pool.pool.id, id)}>{nameOf(id)}</a>
+                          {nameOf(id)} <span className="muted small">{players.get(id)?.rating ?? t.common.unrated}</span>
                         </span>
                       ))}
-                      <div className="muted small">{teams.get(r.opponentTeamId)?.name}</div>
-                      {r.game.kind === 'double' && (
-                        <div className="muted small">
-                          {t.player.doubleGame}
-                          {r.partners.length > 0 && t.player.doublesWith(r.partners.map(nameOf).join(t.common.andJoin))}
-                        </div>
-                      )}
-                    </td>
-                    <td className="num">
-                      {r.opponents.map((id) => (
-                        <div key={id}>{players.get(id)?.rating ?? '–'}</div>
-                      ))}
-                    </td>
-                    <td className="num">
+                    </span>
+                    {r.game.kind === 'double' && (
+                      <span className="result-venue">
+                        {t.player.doubleGame}
+                        {r.partners.length > 0 && t.player.doublesWith(r.partners.map(nameOf).join(t.common.andJoin))}
+                      </span>
+                    )}
+                  </span>
+                  <span className="result-side">
+                    <span className="result-score">
                       {r.setsFor}–{r.setsAgainst}
-                    </td>
-                    <td>
-                      <OutcomeBadge outcome={r.won ? 'single-won' : 'single-lost'} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </span>
+                    <OutcomeBadge outcome={r.won ? 'single-won' : 'single-lost'} />
+                  </span>
+                </RowLink>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
       </>

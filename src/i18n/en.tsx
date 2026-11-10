@@ -77,7 +77,6 @@ export const en = {
     pastSeason: 'Past season',
     planLineup: 'Plan lineup',
     played: (n: number) => `${n} played`,
-    wonShare: (rate: number | null) => `${pct(rate)} won`,
     meterLabel: (label: string, rate: number | null) => `${label}: ${pct(rate)} won`,
     ratingOf: (rating: number) => `rating ${rating}`,
     andJoin: ' & ',
@@ -86,16 +85,10 @@ export const en = {
   /** Counted nouns: "1 match", "3 matches". */
   n: {
     matches: (n: number) => plural(n, 'match', 'matches'),
-    teamMatches: (n: number) => plural(n, 'team match', 'team matches'),
     teams: (n: number) => plural(n, 'team', 'teams'),
     clubs: (n: number) => plural(n, 'club', 'clubs'),
-    pools: (n: number) => plural(n, 'pool', 'pools'),
     players: (n: number) => plural(n, 'player', 'players'),
     points: (n: number) => plural(n, 'point', 'points'),
-    pts: (n: number) => plural(n, 'pt', 'pts'),
-    seasons: (n: number) => plural(n, 'season', 'seasons'),
-    singles: (n: number) => plural(n, 'single', 'singles'),
-    singlesGames: (n: number) => plural(n, 'singles game', 'singles games'),
     games: (n: number) => plural(n, 'game', 'games'),
   },
 
@@ -136,7 +129,7 @@ export const en = {
     forecastTitle: 'Rating forecast',
     forecastHeadline: (rating: number, change: string, games: number) => (
       <>
-        <strong>{rating}</strong> ({change}) once {plural(games, 'singles game', 'singles games')} since the official list are rated.
+        <strong>{rating}</strong> ({change}) after {plural(games, 'singles game', 'singles games')} since the official list.
       </>
     ),
     official: (rating: number, note: string) => `Official rating ${rating}, from the ${note}.`,
@@ -155,12 +148,12 @@ export const en = {
     rulesNote: 'Read from rated games on bordtennisportalen.dk. This is an estimate, not the official calculation.',
     forecastNote: (day: string) => `→ Forecast: the rating once the games after ${day} are rated.`,
     forecastTitleShort: 'Forecast',
-    forecastDetail: (rating: number, change: string) => `Forecast ${rating} (${change})`,
+    /** Under the rating in a tile: the forecast. */
+    forecastDetail: (rating: number) => `→ ${rating}`,
   },
 
   history: {
     tab: 'History',
-    linkSummary: (seasons: number, since: string) => `· ${plural(seasons, 'season', 'seasons')} since ${since}`,
     loading: 'Loading the history…',
     empty: 'No seasons found yet. Past seasons are added as the import works back to 2011/2012.',
     startOf: (season: string) => `Start of ${season}`,
@@ -170,18 +163,16 @@ export const en = {
     nextTitle: 'Forecast, once the games played are rated',
     seasons: 'Seasons',
     since: (season: string) => `since ${season}`,
-    singlesWonLost: 'Singles won and lost',
-    teamMatches: 'Team matches',
+    teamMatches: 'Matches',
     clubs: (n: number): string => (n === 1 ? 'Club' : 'Clubs'),
     overSeasons: 'Rating over the seasons',
     overSeasonsNote: (withToday: boolean) => `The official rating when each season started${withToday ? ', then today' : ''}.`,
     everySeason: 'Every season',
-    tapScore: 'Tap a score for the games of that season.',
     about: 'About these numbers',
     aboutNote:
       'Team-tournament matches only, from bordtennisportalen.dk; tournaments are not included. The rating is the official one when the pool started. Earlier seasons are added as the import works back in time, to 2011/2012.',
     thisPage: ' · this page',
-    scoreLabel: (season: string, won: number, lost: number) => `Games in ${season}: singles ${won} won, ${lost} lost`,
+    scoreLabel: (won: number, lost: number) => `Singles: ${won} won, ${lost} lost`,
     singles: 'singles',
   },
 
@@ -251,14 +242,8 @@ export const en = {
     stripWon: (sets: string, name: string) => `Won ${sets} against ${name}`,
     stripLost: (sets: string, name: string) => `Lost ${sets} against ${name}`,
     stripRating: (rating: number, team: string) => `Rating ${rating} · ${team}`,
-    singlesWonLost: 'Singles won and lost',
-    doublesWonLost: 'Doubles won and lost',
-    setsWonLost: 'Sets won and lost',
-    inMatches: (n: number) => `in ${plural(n, 'match', 'matches')}`,
     byOpponent: 'Singles by opponent rating',
-    byOpponentNote: (name: string) =>
-      `Wins on the top row, losses below. Dots to the right of the line are opponents rated higher than ${name}.`,
-    unratedNotShown: (n: number) => ` ${n} game${n === 1 ? '' : 's'} against unrated opponents not shown.`,
+    unratedNotShown: (n: number) => `${n} game${n === 1 ? '' : 's'} against unrated opponents not shown.`,
     games: 'Games',
     noGames: 'No games recorded in this pool.',
     /** One doubles game, in a list of games. */
@@ -436,7 +421,7 @@ export const en = {
     forecastSuffix: ' (forecast)',
     stripLabel: 'Singles results by opponent rating',
     ownRating: (rating: number) => `Own rating ${rating}`,
-    stripNote: "Each dot is one singles game, placed by the opponent's rating. The game list below has every value.",
+    stripNote: "Each dot is one singles game, placed by the opponent's rating.",
   },
 
   planner: {
@@ -454,7 +439,9 @@ export const en = {
     restored: 'Backup restored',
     unreadable: 'That file could not be read.',
     loadFailed: 'Could not load the latest results. The plan below is the last saved version.',
-    linked: (team: ReactNode) => <>Linked to {team}: players, matches and results update by themselves. Just mark who can play.</>,
+    linked: (team: ReactNode) => <>{team}: matches and players update by themselves. Just mark who can play.</>,
+    findTeamHint: 'Does the team play in the team tournament? Find it on the start page, and its players and matches fill in by themselves.',
+    findTeam: 'Find your team',
     yourTeam: 'your team',
     incoming: (team: ReactNode) => <>This link holds a plan for {team} that differs from the one saved on this device.</>,
     aTeam: 'a team',
@@ -463,15 +450,14 @@ export const en = {
     howMade: 'How the plan is made',
     howMade1: (
       <>
-        Nobody is planned on guesses. For each match, mark who said <em>I can</em>, <em>Maybe</em> or <em>I can't</em>. Only
-        players who said <em>I can</em> or <em>Maybe</em> are picked, and <em>I can</em> goes first.
+        Nobody is planned on guesses. Only players marked <em>Can</em> or <em>Maybe</em> are picked, and <em>Can</em> goes
+        first.
       </>
     ),
     howMade2: (
       <>
-        Among them, the planner picks whoever has played the fewest matches so far. Matches already played count, and so do
-        the upcoming matches a player is already picked for. Use <em>Must play</em> or <em>Rest</em> to overrule it for one
-        match.
+        Among them, the planner picks whoever has played the fewest matches, counting played and planned ones. Use{' '}
+        <em>Must play</em> or <em>Rest</em> to decide yourself for one match.
       </>
     ),
     upcoming: 'Upcoming matches',
@@ -484,20 +470,21 @@ export const en = {
     activeEdit: (n: number) => `${n} active · edit`,
     active: (n: number) => `${n} active`,
     untickNote: 'Untick Active for anyone who should not be planned, for example a reserve.',
-    share: 'Share and back up',
-    shareNote: 'The plan is saved in this browser only. Send the link in your team chat: whoever opens it gets their own copy.',
-    copyLink: 'Copy share link',
-    copyMessage: 'Copy message for the team chat',
-    download: 'Download backup',
-    restore: 'Restore backup',
+    share: 'Share the plan',
+    shareNote: 'The plan lives in this browser only. Whoever opens the link gets their own copy.',
+    copyLink: 'Copy link',
+    copyMessage: 'Copy message for the team',
+    backup: 'Backup',
+    download: 'Download',
+    restore: 'Restore',
     copyBlocked: 'Copying is blocked here. Select the text and copy it yourself:',
-    status: { plays: 'Plays', reserve: 'Reserve', rest: 'Resting', out: "Can't play", waiting: 'No answer' },
-    answers: { yes: 'I can', maybe: 'Maybe', no: "I can't" },
+    status: { plays: 'Plays', reserve: 'Reserve', rest: 'Resting' },
+    /** The captain marks each player's answer for a match. */
+    answers: { yes: 'Can', maybe: 'Maybe', no: "Can't" },
     deleteConfirm: 'Delete this match from the plan?',
     lineup: 'Lineup',
     waitingAnswers: 'Waiting for answers',
     nobodyCan: 'Nobody can play',
-    whoCanPlay: 'Who can play?',
     addPlayersFirst: 'Add players to the roster to plan this match.',
     setByCaptain: ' (set by captain)',
     selectionFor: (name: string) => `Selection for ${name}`,
@@ -508,15 +495,15 @@ export const en = {
     noOpponent: 'opponent not set',
     nobodyRecorded: 'Nobody recorded',
     edit: 'Edit',
+    editMatch: 'Edit match',
     whoPlayed: 'Who played?',
     save: 'Save',
     cancel: 'Cancel',
     notPlayedYet: 'Not played yet',
-    noAnswersYet: 'No answers yet. Ask the team who can play.',
     stillToAnswer: (open: number, names: string) => `${plural(open, 'place', 'places')} open. Still to answer: ${names}.`,
     everyoneAnswered: (open: number) => `${plural(open, 'place', 'places')} open, and everyone has answered.`,
     surplus: (n: number) => `${n} more ${n === 1 ? 'player is' : 'players are'} set to "Must play" than there are places.`,
-    conflicts: (names: string) => `${names} set to "Must play" but said "I can't".`,
+    conflicts: (names: string) => `${names} set to "Must play" but marked "Can't".`,
     datePassed: 'This date has passed. Mark the match as played to keep the count right.',
     warning: 'Warning: ',
     note: 'Note: ',

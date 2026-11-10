@@ -86,7 +86,6 @@ export const da: Texts = {
     pastSeason: 'Tidligere sæson',
     planLineup: 'Planlæg opstilling',
     played: (n) => `${n} spillet`,
-    wonShare: (rate) => `${pct(rate)} vundet`,
     meterLabel: (label, rate) => `${label}: ${pct(rate)} vundet`,
     ratingOf: (rating) => `rating ${rating}`,
     andJoin: ' & ',
@@ -94,16 +93,10 @@ export const da: Texts = {
 
   n: {
     matches: (n) => plural(n, 'kamp', 'kampe'),
-    teamMatches: (n) => plural(n, 'holdkamp', 'holdkampe'),
     teams: (n) => plural(n, 'hold', 'hold'),
     clubs: (n) => plural(n, 'klub', 'klubber'),
-    pools: (n) => plural(n, 'pulje', 'puljer'),
     players: (n) => plural(n, 'spiller', 'spillere'),
     points: (n) => plural(n, 'point', 'point'),
-    pts: (n) => plural(n, 'p', 'p'),
-    seasons: (n) => plural(n, 'sæson', 'sæsoner'),
-    singles: (n) => plural(n, 'single', 'singler'),
-    singlesGames: (n) => plural(n, 'single', 'singler'),
     games: (n) => plural(n, 'kamp', 'kampe'),
   },
 
@@ -142,8 +135,7 @@ export const da: Texts = {
     forecastTitle: 'Ratingprognose',
     forecastHeadline: (rating, change, games) => (
       <>
-        <strong>{rating}</strong> ({change}), når {games === 1 ? 'den single' : `de ${games} singler`} der er spillet siden den
-        officielle liste, er ratet.
+        <strong>{rating}</strong> ({change}) efter {plural(games, 'single', 'singler')} siden den officielle liste.
       </>
     ),
     official: (rating, note) => `Officiel rating: ${rating} (${note}).`,
@@ -162,12 +154,11 @@ export const da: Texts = {
     rulesNote: 'Aflæst fra ratede kampe på bordtennisportalen.dk. Det er et skøn og ikke den officielle beregning.',
     forecastNote: (day) => `→ Prognose: ratingen når kampene efter ${day} er ratet.`,
     forecastTitleShort: 'Prognose',
-    forecastDetail: (rating, change) => `Prognose ${rating} (${change})`,
+    forecastDetail: (rating) => `→ ${rating}`,
   },
 
   history: {
     tab: 'Historik',
-    linkSummary: (seasons, since) => `· ${plural(seasons, 'sæson', 'sæsoner')} siden ${since}`,
     loading: 'Henter historikken…',
     empty: 'Ingen sæsoner fundet endnu. Tidligere sæsoner kommer med efterhånden som importen arbejder sig tilbage til 2011/2012.',
     startOf: (season) => `Starten af ${season}`,
@@ -177,18 +168,16 @@ export const da: Texts = {
     nextTitle: 'Prognose når de spillede kampe er ratet',
     seasons: 'Sæsoner',
     since: (season) => `siden ${season}`,
-    singlesWonLost: 'Singler vundet og tabt',
     teamMatches: 'Holdkampe',
     clubs: (n) => (n === 1 ? 'Klub' : 'Klubber'),
     overSeasons: 'Rating gennem sæsonerne',
     overSeasonsNote: (withToday) => `Den officielle rating ved hver sæsonstart${withToday ? ' og ratingen i dag' : ''}.`,
     everySeason: 'Alle sæsoner',
-    tapScore: 'Tryk på et resultat for at se sæsonens kampe.',
     about: 'Om tallene',
     aboutNote:
       'Kun kampe i holdturneringen fra bordtennisportalen.dk, ikke individuelle turneringer. Ratingen er den officielle fra da puljen startede. Tidligere sæsoner kommer med efterhånden som importen arbejder sig tilbage til 2011/2012.',
     thisPage: ' · denne side',
-    scoreLabel: (season, won, lost) => `Kampe i ${season}: ${won} singler vundet og ${lost} tabt`,
+    scoreLabel: (won, lost) => `Singler: ${won} vundet, ${lost} tabt`,
     singles: 'singler',
   },
 
@@ -256,14 +245,8 @@ export const da: Texts = {
     stripWon: (sets, name) => `Vandt ${sets} mod ${name}`,
     stripLost: (sets, name) => `Tabte ${sets} mod ${name}`,
     stripRating: (rating, team) => `Rating ${rating} · ${team}`,
-    singlesWonLost: 'Singler vundet og tabt',
-    doublesWonLost: 'Doubler vundet og tabt',
-    setsWonLost: 'Sæt vundet og tabt',
-    inMatches: (n) => `i ${plural(n, 'kamp', 'kampe')}`,
     byOpponent: 'Singler efter modstanderens rating',
-    byOpponentNote: (name) =>
-      `Sejre i øverste række og nederlag nederst. Prikker til højre for linjen er modstandere med højere rating end ${name}.`,
-    unratedNotShown: (n) => ` ${n} ${kampe(n)} mod modstandere uden rating er ikke vist.`,
+    unratedNotShown: (n) => `${n} ${kampe(n)} mod modstandere uden rating er ikke vist.`,
     games: 'Kampe',
     noGames: 'Ingen kampe registreret i denne pulje.',
     doubleGame: 'Double',
@@ -434,7 +417,7 @@ export const da: Texts = {
     forecastSuffix: ' (prognose)',
     stripLabel: 'Singleresultater efter modstanderens rating',
     ownRating: (rating) => `Egen rating ${rating}`,
-    stripNote: 'Hver prik er en single, placeret efter modstanderens rating. Kamplisten herunder har alle tallene.',
+    stripNote: 'Hver prik er en single, placeret efter modstanderens rating.',
   },
 
   planner: {
@@ -452,11 +435,9 @@ export const da: Texts = {
     restored: 'Sikkerhedskopien er gendannet',
     unreadable: 'Filen kunne ikke læses.',
     loadFailed: 'De seneste resultater kunne ikke hentes. Planen herunder er den senest gemte.',
-    linked: (team) => (
-      <>
-        Koblet til {team}: Spillere, kampe og resultater opdateres automatisk. Du skal bare markere hvem der kan spille.
-      </>
-    ),
+    linked: (team) => <>{team}: Kampe og spillere hentes automatisk. Markér bare hvem der kan spille.</>,
+    findTeamHint: 'Spiller holdet i Holdturneringen? Find det på forsiden, så hentes spillere og kampe automatisk.',
+    findTeam: 'Find dit hold',
     yourTeam: 'jeres hold',
     incoming: (team) => <>Linket indeholder en plan for {team} som afviger fra den der er gemt på denne enhed.</>,
     aTeam: 'et hold',
@@ -465,16 +446,14 @@ export const da: Texts = {
     howMade: 'Sådan bliver planen lavet',
     howMade1: (
       <>
-        Ingen bliver sat på holdet ud fra gæt. Markér for hver kamp hvem der har svaret <em>Jeg kan</em>, <em>Måske</em> eller{' '}
-        <em>Jeg kan ikke</em>. Kun spillere der har svaret <em>Jeg kan</em> eller <em>Måske</em>, bliver valgt, og{' '}
-        <em>Jeg kan</em> kommer først.
+        Ingen bliver sat på holdet ud fra gæt. Kun spillere der er markeret <em>Kan</em> eller <em>Måske</em>, bliver valgt,
+        og <em>Kan</em> kommer først.
       </>
     ),
     howMade2: (
       <>
-        Blandt dem vælger planlæggeren dem der har spillet færrest kampe indtil nu. Både spillede kampe og kommende kampe som
-        en spiller allerede er valgt til, tæller med. Brug <em>Skal spille</em> eller <em>Hvil</em> for at gå uden om planen i
-        én kamp.
+        Blandt dem vælger planlæggeren dem der har spillet færrest kampe, når spillede og planlagte kampe tælles sammen. Brug{' '}
+        <em>Skal spille</em> eller <em>Hvil</em> for selv at bestemme i en enkelt kamp.
       </>
     ),
     upcoming: 'Kommende kampe',
@@ -487,39 +466,39 @@ export const da: Texts = {
     activeEdit: (n) => `${n} aktive · rediger`,
     active: (n) => `${n} aktive`,
     untickNote: 'Fjern fluebenet ved Aktiv for spillere der ikke skal planlægges, fx en reserve.',
-    share: 'Del og gem en kopi',
-    shareNote: 'Planen gemmes kun i denne browser. Send linket i holdets chat: Den der åbner det, får sin egen kopi.',
+    share: 'Del planen',
+    shareNote: 'Planen ligger kun i denne browser. Den der åbner linket, får sin egen kopi.',
     copyLink: 'Kopiér link',
-    copyMessage: 'Kopiér besked til holdets chat',
-    download: 'Hent sikkerhedskopi',
-    restore: 'Gendan sikkerhedskopi',
+    copyMessage: 'Kopiér besked til holdet',
+    backup: 'Sikkerhedskopi',
+    download: 'Hent',
+    restore: 'Gendan',
     copyBlocked: 'Kopiering er blokeret her. Markér teksten og kopiér den selv:',
-    status: { plays: 'Spiller', reserve: 'Reserve', rest: 'Hviler', out: 'Kan ikke', waiting: 'Intet svar' },
-    answers: { yes: 'Jeg kan', maybe: 'Måske', no: 'Jeg kan ikke' },
+    status: { plays: 'Spiller', reserve: 'Reserve', rest: 'Hviler' },
+    answers: { yes: 'Kan', maybe: 'Måske', no: 'Kan ikke' },
     deleteConfirm: 'Vil du slette kampen fra planen?',
     lineup: 'Opstilling',
     waitingAnswers: 'Venter på svar',
     nobodyCan: 'Ingen kan spille',
-    whoCanPlay: 'Hvem kan spille?',
     addPlayersFirst: 'Tilføj spillere til truppen for at planlægge kampen.',
     setByCaptain: ' (valgt af kaptajnen)',
     selectionFor: (name) => `Udtagelse af ${name}`,
-    auto: 'Automatisk',
+    auto: 'Auto',
     mustPlay: 'Skal spille',
     rest: 'Hvil',
     markPlayed: 'Markér som spillet',
     noOpponent: 'modstander ikke angivet',
     nobodyRecorded: 'Ingen registreret',
     edit: 'Rediger',
+    editMatch: 'Rediger kamp',
     whoPlayed: 'Hvem spillede?',
     save: 'Gem',
     cancel: 'Annuller',
     notPlayedYet: 'Ikke spillet endnu',
-    noAnswersYet: 'Ingen svar endnu. Spørg holdet hvem der kan spille.',
     stillToAnswer: (open, names) => `${capital(openPlaces(open))}. Mangler svar fra ${names}.`,
     everyoneAnswered: (open) => `${capital(openPlaces(open))}, og alle har svaret.`,
     surplus: (n) => `Der er sat ${n} ${n === 1 ? 'spiller' : 'spillere'} mere til »Skal spille« end der er pladser.`,
-    conflicts: (names) => `${names} er sat til »Skal spille« men har svaret »Jeg kan ikke«.`,
+    conflicts: (names) => `${names} er sat til »Skal spille« men er markeret »Kan ikke«.`,
     datePassed: 'Datoen er passeret. Markér kampen som spillet så optællingen passer.',
     warning: 'Advarsel: ',
     note: 'Bemærk: ',

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { useShowAll } from '../components/ui';
 import { loadPool } from '../data/load';
 import { t } from '../i18n';
 import { copyText } from '../lib/clipboard';
@@ -13,6 +14,8 @@ import { decodeState, emptyState, encodeState, loadState, normalizeState, saveSt
 import type { PlannerState } from './types';
 
 const isBlank = (s: PlannerState) => !s.teamName && s.players.length === 0 && s.fixtures.length === 0;
+/** The page starts with this many of the matches to come: about as far ahead as a captain plans. */
+const UPCOMING_SHOWN = 5;
 
 export interface TeamLink {
   poolId: string;
@@ -91,6 +94,7 @@ export function LineupPage({
   const nameOf = (id: string) => names.get(id) ?? t.planner.formerPlayer;
   const planned = plan.fixtures.filter((f) => f.status === 'planned');
   const played = plan.fixtures.filter((f) => f.status === 'played').reverse();
+  const [shownPlanned, showAllPlanned] = useShowAll(planned, UPCOMING_SHOWN);
 
   const playersPerMatchField = (
     <label className="field inline">
@@ -155,22 +159,32 @@ export function LineupPage({
     <div className="planner">
       <div className="page-head">
         <h1>{t.planner.title}</h1>
-        <label className="field team-field">
-          <span>{t.planner.team}</span>
-          <input
-            value={state.teamName}
-            placeholder={t.planner.teamPlaceholder}
-            onChange={(e) => dispatch({ type: 'teamName', name: e.target.value })}
-          />
-        </label>
+        {link ? (
+          <p className={linked === 'failed' ? 'linked-note is-failed' : 'linked-note'}>
+            {linked === 'failed'
+              ? t.planner.loadFailed
+              : t.planner.linked(<a href={href('team', link.poolId, link.teamId)}>{state.teamName || t.planner.yourTeam}</a>)}
+          </p>
+        ) : (
+          <label className="field team-field">
+            <span>{t.planner.team}</span>
+            <input
+              value={state.teamName}
+              placeholder={t.planner.teamPlaceholder}
+              onChange={(e) => dispatch({ type: 'teamName', name: e.target.value })}
+            />
+          </label>
+        )}
       </div>
 
-      {link && (
-        <p className={linked === 'failed' ? 'linked-note is-failed' : 'linked-note'}>
-          {linked === 'failed'
-            ? t.planner.loadFailed
-            : t.planner.linked(<a href={href('team', link.poolId, link.teamId)}>{state.teamName || t.planner.yourTeam}</a>)}
-        </p>
+      {/* Opened without a team: most teams are in the data, and then nothing has to be typed. */}
+      {!link && isBlank(state) && (
+        <section className="card compact">
+          <p className="muted">{t.planner.findTeamHint}</p>
+          <a className="button" href="#/">
+            {t.planner.findTeam}
+          </a>
+        </section>
       )}
 
       {incoming && (
@@ -194,25 +208,18 @@ export function LineupPage({
         </div>
       )}
 
-      <section className="card settings">
-        {!link && playersPerMatchField}
-        <details className="explain">
-          <summary>{t.planner.howMade}</summary>
-          <p>{t.planner.howMade1}</p>
-          <p>{t.planner.howMade2}</p>
-          {link && playersPerMatchField}
-        </details>
-      </section>
-
       {state.players.length === 0 && <RosterEditor state={state} dispatch={dispatch} />}
 
-      {state.players.length > 0 && state.fixtures.length > 0 && <BalanceTable state={state} plan={plan} />}
-
       <section className="stack">
-        <div className="section-head">
-          <h2>{t.planner.upcoming}</h2>
+        <h2>{t.planner.upcoming}</h2>
+        {planned.length === 0 && !adding && <p className="empty">{t.planner.noUpcoming}</p>}
+        {shownPlanned.map((item, i) => (
+          <PlannedMatch key={item.fixture.id} item={item} state={state} dispatch={dispatch} nameOf={nameOf} startOpen={i === 0} />
+        ))}
+        <div className="button-row">
+          {showAllPlanned}
           {!adding && (
-            <button type="button" className="button" onClick={() => setAdding(true)}>
+            <button type="button" className={planned.length === 0 ? 'button primary' : 'button quiet'} onClick={() => setAdding(true)}>
               {t.planner.addMatch}
             </button>
           )}
@@ -231,19 +238,19 @@ export function LineupPage({
             />
           </div>
         )}
-        {planned.length === 0 && !adding && (
-          <p className="empty">{t.planner.noUpcoming}</p>
-        )}
-        {planned.map((item, i) => (
-          <PlannedMatch
-            key={item.fixture.id}
-            item={item}
-            state={state}
-            dispatch={dispatch}
-            nameOf={nameOf}
-            startOpen={i === 0}
-          />
-        ))}
+      </section>
+
+      {state.players.length > 0 && state.fixtures.length > 0 && <BalanceTable state={state} plan={plan} />}
+
+      {/* How lineups are chosen, and the one setting: a manual planner shows the setting outright. */}
+      <section className="card settings">
+        {!link && playersPerMatchField}
+        <details className="explain">
+          <summary>{t.planner.howMade}</summary>
+          <p>{t.planner.howMade1}</p>
+          <p>{t.planner.howMade2}</p>
+          {link && playersPerMatchField}
+        </details>
       </section>
 
       {played.length > 0 && (
@@ -274,9 +281,10 @@ export function LineupPage({
           <RosterEditor state={state} dispatch={dispatch} />
         ))}
 
+      {!isBlank(state) && (
       <section className="card">
         <h2>{t.planner.share}</h2>
-        <p className="muted">{t.planner.shareNote}</p>
+        <p className="muted small">{t.planner.shareNote}</p>
         <div className="button-row">
           <button type="button" className="button primary" onClick={() => void share('link')}>
             {t.planner.copyLink}
@@ -284,24 +292,29 @@ export function LineupPage({
           <button type="button" className="button" onClick={() => void share('message')}>
             {t.planner.copyMessage}
           </button>
-          <button type="button" className="button" onClick={download}>
-            {t.planner.download}
-          </button>
-          <button type="button" className="button" onClick={() => fileInput.current?.click()}>
-            {t.planner.restore}
-          </button>
-          <input
-            ref={fileInput}
-            type="file"
-            accept="application/json,.json"
-            hidden
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) void restore(file);
-              e.target.value = '';
-            }}
-          />
         </div>
+        <details className="why">
+          <summary>{t.planner.backup}</summary>
+          <div className="button-row">
+            <button type="button" className="button" onClick={download}>
+              {t.planner.download}
+            </button>
+            <button type="button" className="button" onClick={() => fileInput.current?.click()}>
+              {t.planner.restore}
+            </button>
+            <input
+              ref={fileInput}
+              type="file"
+              accept="application/json,.json"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void restore(file);
+                e.target.value = '';
+              }}
+            />
+          </div>
+        </details>
         {manualCopy && (
           <label className="field manual-copy">
             <span>{t.planner.copyBlocked}</span>
@@ -309,6 +322,7 @@ export function LineupPage({
           </label>
         )}
       </section>
+      )}
 
       <div className="toast" role="status" aria-live="polite">
         {notice}

@@ -243,7 +243,6 @@ textarea {
   }
 }
 
-
 .content {
   flex: 1;
   width: 100%;
@@ -466,22 +465,6 @@ textarea {
   max-width: 60ch;
 }
 
-.start-grid {
-  display: grid;
-  gap: 16px;
-}
-
-@media (min-width: 720px) {
-  .start-grid {
-    grid-template-columns: 1fr 1fr;
-    align-items: start;
-  }
-}
-
-.start-grid .button {
-  justify-self: start;
-}
-
 .saved-list {
   margin: 0;
   padding: 0;
@@ -656,13 +639,50 @@ textarea {
   background: var(--text-2);
 }
 
-/* Match cards */
+/* Match cards: folded, a card is one row to tap; open, it has every player's answer. */
 
-.match-head {
+.match {
+  gap: 10px;
+}
+
+.match-title {
+  font: inherit;
+}
+
+.match-summary {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: flex-start;
   gap: 12px;
+  width: 100%;
+  margin: -6px 0;
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.match-summary::after {
+  content: '';
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin: -4px 4px 0 0;
+  border-right: 2px solid var(--tick);
+  border-bottom: 2px solid var(--tick);
+  transform: rotate(45deg);
+}
+
+.match-summary[aria-expanded='true']::after {
+  margin-top: 4px;
+  transform: rotate(-135deg);
+}
+
+.match-summary-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
 }
 
 .match-when {
@@ -672,8 +692,35 @@ textarea {
 }
 
 .match-vs {
-  margin-top: 2px;
+  font-size: 1rem;
+  font-weight: 650;
   overflow-wrap: anywhere;
+}
+
+/* The lineup so far, under a folded match. */
+.match-status {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--accent-strong);
+}
+
+.match-status.is-waiting {
+  font-weight: 400;
+  color: var(--text-2);
+}
+
+.match-alert {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: var(--warning);
+  color: #0b1324;
+  font-size: 0.7rem;
+  font-weight: 800;
+  vertical-align: 1px;
 }
 
 .match-lineup {
@@ -807,8 +854,9 @@ textarea {
 
 .answer {
   min-height: 36px;
-  min-width: 56px;
+  min-width: 52px;
   padding: 4px 10px;
+  white-space: nowrap;
   border: 0;
   border-right: 1px solid var(--border);
   background: var(--surface);
@@ -860,7 +908,9 @@ textarea {
 
 .match-foot {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
+  gap: 8px;
 }
 
 /* Fixture form */
@@ -1362,52 +1412,6 @@ textarea {
   color: var(--text-2);
 }
 
-/* Start page picker */
-
-.recent {
-  text-decoration: none;
-  color: var(--text);
-  gap: 2px;
-}
-
-.recent strong {
-  font-size: 1.1rem;
-}
-
-.picker-pool {
-  display: grid;
-  gap: 8px;
-}
-
-.picker-pool h3 {
-  font-size: 0.95rem;
-}
-
-.team-chips {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.team-chips a {
-  display: inline-block;
-  padding: 6px 12px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--page);
-  color: var(--text);
-  text-decoration: none;
-  font-weight: 550;
-}
-
-.team-chips a:hover {
-  border-color: var(--accent);
-  color: var(--link);
-}
-
 .linked-note {
   padding: 10px 14px;
   border-radius: 10px;
@@ -1623,16 +1627,6 @@ textarea {
   margin-top: 8px;
 }
 
-/* Collapsed match cards in the planner */
-
-.match.is-collapsed {
-  gap: 8px;
-}
-
-.match-toggle {
-  justify-self: start;
-}
-
 /* ---------- Forecasts and insights ---------- */
 
 .odds-headline {
@@ -1648,7 +1642,6 @@ textarea {
 .forecast-headline {
   font-size: 1.05rem;
 }
-
 
 .rating-table {
   margin-top: 10px;
@@ -2236,42 +2229,9 @@ textarea {
   font-weight: 650;
 }
 
-.how-it-works .steps {
-  margin: 0;
-  padding-left: 22px;
-  display: grid;
-  gap: 8px;
-}
-
 .search-field input {
   min-height: 48px;
   font-size: 1.05rem;
-}
-
-.browse-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-}
-
-.browse-list a {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 2px;
-  border-top: 1px solid var(--line);
-  color: var(--text);
-  text-decoration: none;
-}
-
-.browse-list li:first-child a {
-  border-top: 0;
-}
-
-.browse-name {
-  font-weight: 600;
 }
 
 .card.compact {
