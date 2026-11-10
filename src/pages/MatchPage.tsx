@@ -31,7 +31,7 @@ function MatchView({ pool, match }: { pool: PoolData; match: TeamMatch }) {
       <span className="muted">{t.match.noPlayer}</span>
     ) : (
       ids.map((id, i) => (
-        <span key={id}>
+        <span key={`${id}-${i}`}>
           {i > 0 && t.common.andJoin}
           <a href={href('player', pool.pool.id, id)}>{players.get(id)?.name ?? t.common.unknownPlayer}</a>
         </span>

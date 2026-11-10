@@ -704,7 +704,8 @@ textarea {
   color: var(--accent-strong);
 }
 
-.match-status.is-waiting {
+.match-status.is-waiting,
+.match-open {
   font-weight: 400;
   color: var(--text-2);
 }
@@ -1296,7 +1297,9 @@ textarea {
   color: var(--text-2);
 }
 
+/* Positioned, so text for screen readers inside a wide table scrolls with it and never widens the page. */
 .table-scroll {
+  position: relative;
   overflow-x: auto;
   margin: 0 -4px;
   padding: 0 4px;
@@ -1660,6 +1663,14 @@ textarea {
 
 .next-when {
   font-weight: 550;
+}
+
+/* The venue on its own line, so a long hall name never breaks beside the opponent. */
+.next-venue {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--text-2);
 }
 
 .odds {

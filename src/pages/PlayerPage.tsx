@@ -128,7 +128,8 @@ function PlayerView({ pool, player, tab }: { pool: PoolData; player: Player; tab
                     </span>
                     <span className="result-vs">
                       {r.opponents.map((id, i) => (
-                        <span key={id}>
+                        // The portal now and then lists a player twice in a game: the place in the list keeps keys apart.
+                        <span key={`${id}-${i}`}>
                           {i > 0 && t.common.andJoin}
                           {nameOf(id)} <span className="muted small">{players.get(id)?.rating ?? t.common.unrated}</span>
                         </span>

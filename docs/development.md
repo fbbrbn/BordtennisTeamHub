@@ -51,6 +51,8 @@ The main logic is in pure functions with unit tests:
   - `planner.ts`: pure season planner (min-cost flow in `mcmf.ts`), unit-tested.
   - `storage.ts`: localStorage, share-link encoding (deflate + base64url) and validation of untrusted input.
   - `state.ts`: reducer. The UI lives in `LineupPage.tsx`, `Matches.tsx`, `BalanceTable.tsx` and `RosterEditor.tsx`.
+    A match to come is a card that folds into one row (`PlannedMatch`); the first is open, and the page starts with
+    the next five.
 - `src/data/`: `model.ts` (shared JSON types), `load.ts` (fetch + cache) and `stats.ts` (pure, tested statistics).
   - `loadPool` tries the current season (`data/pools/`), then past seasons (`history/pools/`, marked `pool.past`).
     `loadHistory` merges a player's seasons from `data/careers/` and `history/players/`, and `loadHeadToHead` a
@@ -82,13 +84,14 @@ The main logic is in pure functions with unit tests:
 - `src/pages/MatchPreview.tsx`: the upcoming-match page.
   - Chances from either side, a lineup picker and a matchup heat table. Under each chance, the two players' singles
     against each other, this season and before; below the table, every pair of the two teams that has met.
-  - The reasons: ratings alone, form and the home table (`formReason`), common opponents. The team page's next match
-    shows the same.
+  - `WhyChances`: the steps behind the chances, each with the chance to win at that step (ratings alone, with form and
+    the home table, common opponents, together). It sits behind "Why these chances?"; the team page's next match shows
+    the same.
   - It starts from the planner lineup when the captain has answers (`src/lineup/planned.ts`).
 - `src/pages/`: the start page, plus club, team, player, pool and match dashboards.
   - The start page shows followed teams first (`src/lib/follow.ts`, localStorage), then a search across every club,
-    team and player with region and age-group filters. Player names come from `data/players.json`, loaded on the first
-    keystroke (`matchPlayers`). Without a query it shows a short club list.
+    team and player; the region and age-group filters are folded away. Player names come from `data/players.json`,
+    loaded on the first keystroke (`matchPlayers`). Without a query it shows a short club list.
   - Team pages have tabs via `?tab=overview|matches|players`; the router scrolls to the top only when the path changes.
   - `src/components/Nav.tsx`: Home · My team · Lineup, a bottom bar on phones and top links on desktop. "My team" is
     the first followed team, otherwise the last team opened.
@@ -102,7 +105,9 @@ The main logic is in pure functions with unit tests:
   on light and dark pages. `public/manifest.webmanifest` makes the site installable; the PNG icons, the maskable icon and
   the Apple touch icon are rendered from the SVGs by `node scripts/make-icons.cjs` (needs Playwright).
 - `src/components/`: shared UI.
-  - `ui.tsx`: stat tiles, badges, dates and page states. `Odds.tsx`: the odds bars.
+  - `ui.tsx`: stat tiles, badges, dates and page states; `RowLink` (a list row that is one tap target), `useShowAll`
+    (a long list starts with its first rows) and `PortalLink` (the page's link to the portal, at its foot).
+    `Odds.tsx`: the odds bars.
   - `Prediction.tsx`: the predicted line under results and the prediction record.
   - `RatingForecast.tsx`: the rating forecast card and the points table.
   - `PlayerHistory.tsx`: the player page's History tab (totals, rating over the seasons, every season and team), the
@@ -123,6 +128,14 @@ The main logic is in pure functions with unit tests:
   uafgjort). Names from the portal (teams, clubs, pools, age groups) stay as they are.
 - Mobile first: captains and players use phones. Check 390px width in both languages (Danish words are longer); there
   must be no horizontal page scroll.
+- Short and clear, so a page reads at a glance:
+  - Say a thing once. A number shown in a tile or a bar is not repeated in a sentence.
+  - A list row is one tap target (`RowLink`) with one destination: a match row opens the match, where teams and
+    players have their own links. Tables keep a link on the name.
+  - Long lists start with their first rows (`useShowAll`).
+  - Explanations go behind `<details>` ("Why these chances?", "How is this worked out?"), never in front of the answer.
+  - Tile labels are one word; a hint that is the same on every row is said once, or not at all.
+  - The link to the same page on the portal is at the foot of the page (`PortalLink`).
 - Charts follow the dataviz skill's rules:
   - Validate colors with its script.
   - Thin marks and a legend.

@@ -297,7 +297,7 @@ export const da: Texts = {
     howPredictedNote:
       'Ud fra det man vidste før kampdagen: den officielle ratingliste den dag, de tidligere resultater og hver spillers form indtil da.',
     ratingPoints: 'Ratingpoint',
-    ratingPointsNote: 'Et skøn, indtil kampen er med på den officielle ratingliste.',
+    ratingPointsNote: 'Et skøn indtil kampen er med på den officielle ratingliste.',
     beforeNote: (note) => `»Før« er ratingen op til kampen, efter eventuelle tidligere kampe som den officielle ${note} ikke har med.`,
     before: 'Før',
   },
@@ -495,6 +495,7 @@ export const da: Texts = {
     save: 'Gem',
     cancel: 'Annuller',
     notPlayedYet: 'Ikke spillet endnu',
+    openPlaces,
     stillToAnswer: (open, names) => `${capital(openPlaces(open))}. Mangler svar fra ${names}.`,
     everyoneAnswered: (open) => `${capital(openPlaces(open))}, og alle har svaret.`,
     surplus: (n) => `Der er sat ${n} ${n === 1 ? 'spiller' : 'spillere'} mere til »Skal spille« end der er pladser.`,

@@ -31,8 +31,9 @@ Two independent estimates are combined, the ratings counting three times as much
 2. **Common opponents.** It compares how both teams did against the same teams, and against each other if they already
    met. Fewer comparisons pull the estimate towards even.
 
-The match page shows each reason: the ratings alone, then form and the home table (with the players who are well above
-or below their rating), then the common opponents. Its matchup table also shows how each pair of players has done
+The match page shows the steps behind "Why these chances?", each with the chance to win at that step: the ratings
+alone, then with form and the home table (with the players who are well above or below their rating), then the common
+opponents, and all together. Its matchup table also shows how each pair of players has done
 against each other in singles, this season and before. That record is not part of the chances (see "Tried, and not in
 the model").
 

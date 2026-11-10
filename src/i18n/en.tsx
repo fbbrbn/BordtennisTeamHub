@@ -500,6 +500,7 @@ export const en = {
     save: 'Save',
     cancel: 'Cancel',
     notPlayedYet: 'Not played yet',
+    openPlaces: (open: number) => `${plural(open, 'place', 'places')} open`,
     stillToAnswer: (open: number, names: string) => `${plural(open, 'place', 'places')} open. Still to answer: ${names}.`,
     everyoneAnswered: (open: number) => `${plural(open, 'place', 'places')} open, and everyone has answered.`,
     surplus: (n: number) => `${n} more ${n === 1 ? 'player is' : 'players are'} set to "Must play" than there are places.`,

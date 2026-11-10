@@ -15,6 +15,8 @@ It is built for any team. Vallensbæk BTK 3 is the first test team.
 - **In Danish, with English as an option.** The site opens in Danish; the switch at the bottom of every page changes
   it to English, and the choice is remembered on the device.
 - **Install it on your phone.** "Add to Home screen" gives it its own app icon, in light and dark mode.
+- **Made for a phone.** Pages say a thing once and keep it short. A list row is one thing to tap, long lists start
+  with the first few rows, and the explanations wait behind "Why these chances?" and "How is this worked out?".
 - **Follow your team.** Tap ☆ Follow on a team page. Followed teams come first on the start page, with their next
   match, your chance to win and a button to plan the lineup.
 - **Navigation.**
@@ -22,17 +24,18 @@ It is built for any team. Vallensbæk BTK 3 is the first test team.
   - Inner pages have a Back button.
 - **Find any club, team or player.** The start page searches every pool of the season: all regions (DT, ØST, VEST,
   MIDT, Bornholm and the DGI regions) and all age groups.
-  - Filter by region and age group.
   - Results are grouped by club. Without a search, a short club list.
-  - Type a player's name to see their club, team and pool.
+  - Type a player's name to see their team and pool.
+  - The region and age-group filters are folded away until you want them.
 - **Team pages have three tabs:**
   - **Overview:** key numbers, the next match and insights.
-  - **Matches:** upcoming matches with chances, then results.
+  - **Matches:** the next matches with chances, then results.
   - **Players:** the player table.
 - **Club page.** All of a club's teams across pools, with their place in the table.
 - **Team page.**
   - Position, points, record and games won.
-  - **Next match:** the chance to win, draw or lose, with the two reasons behind it.
+  - **Next match:** the chance to win, draw or lose. "Why these chances?" shows the steps: the ratings alone, with
+    form and the home table, the common opponents, and all together.
   - **Insights** in plain sentences:
     - the gap to the teams around you;
     - results compared with what the ratings predicted;
@@ -40,19 +43,19 @@ It is built for any team. Vallensbæk BTK 3 is the first test team.
     - the projected finish;
     - what the strongest lineup would change.
   - A points race against the rest of the pool, with a table view.
-  - All results, plus every upcoming match with its chance to win.
-  - Every result keeps the prediction made before the match (expected score and chance to win), with a record of how
-    often the likeliest outcome happened. A team's first match in a pool borrows its lineups from an earlier pool or
-    last season.
+  - The next five matches with the chance to win (the rest behind a button), and all results. Tapping a row opens
+    the match.
+  - Every result keeps the score predicted before the match, with a record of how often the likeliest outcome
+    happened. A team's first match in a pool borrows its lineups from an earlier pool or last season.
   - Every player who played for the team: rating, rating forecast, matches, singles with win rate, doubles and sets.
 - **Match preview** (for upcoming matches).
   - Chances from either team's side.
   - A lineup picker for both teams that updates the chances immediately.
   - Every one of your players against their regular lineup, with how each pair has done against each other in
     singles, this season and before.
-  - Why: the ratings alone, players' form against their rating and the home table, and results against common
-    opponents.
-- **Match page.** All games of a played team match, with players and sets.
+  - Why, step by step: the ratings alone, players' form against their rating and the home table, and results against
+    common opponents.
+- **Match page.** A scoreboard, then all games of a played team match, with players and sets.
   - The prediction made before the match, next to how it ended.
   - Until the official rating list includes the match, each player's estimated rating points.
 - **Player page**, with two tabs:
@@ -64,16 +67,16 @@ It is built for any team. Vallensbæk BTK 3 is the first test team.
   - Insights: wins compared with the ratings, fifth sets, best win, upset losses and doubles partners.
   - Singles results placed by opponent rating.
   - The full game list.
-- **Pool page.** Standings with projected final points, results (with the prediction record), next matches and a player
-  table.
+- **Pool page.** Standings (with the projected final standings behind a fold), results (with the prediction record),
+  next matches and a player table. Each list starts with its first rows.
 - **Past seasons**, back to 2011/2012 as the import works back in time: their pools, teams, matches and players open in
   the same pages, marked as a past season.
 - **Lineup planner.**
   - Opening it from a team page fills in the roster, the fixtures, who played and the number of players per match
     from the results, and keeps them up to date.
-  - For each match, mark every player *I can*, *Maybe* or *I can't*. Nobody is planned on guesses: only players
-    who answered *I can* or *Maybe* are picked, and *I can* goes first. Until then the match shows who still has to
-    answer.
+  - For each match, mark every player *Can*, *Maybe* or *Can't*. Nobody is planned on guesses: only players
+    marked *Can* or *Maybe* are picked, and *Can* goes first. Until then the match shows who still has to answer.
+  - The next match is open; the others are one row each, with the lineup so far, and open when tapped.
   - Among the players who can play, whoever has played the fewest matches so far goes first. Matches already played
     count, and so do upcoming matches a player is already picked for. Rests rotate.
   - Captain overrides: *Must play* or *Rest*.

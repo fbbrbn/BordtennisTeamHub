@@ -180,7 +180,7 @@ function Overview({
           <p className="next-when">
             {t.common.vs} <a href={href('team', pool.pool.id, opponentOf(next, team.id))}>{opponent}</a>{' '}
             <span className="tag">{isHome(next, team.id) ? t.common.home : t.common.away}</span>
-            <span className="muted small"> · {next.venue}</span>
+            {next.venue && <span className="next-venue">{next.venue}</span>}
           </p>
           {odds && nextForecast && (
             <>

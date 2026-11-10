@@ -49,6 +49,8 @@ export function PlannedMatch({ item, state, dispatch, nameOf, startOpen = true }
             {!open && (
               <span className={item.lineup.length > 0 ? 'match-status' : 'match-status is-waiting'}>
                 {lineup}
+                {/* Names alone would look like a full lineup: say how many places are still open. */}
+                {item.lineup.length > 0 && item.missing > 0 && <span className="match-open"> · {t.planner.openPlaces(item.missing)}</span>}
                 {notes.some((n) => n.tone === 'warn') && (
                   <span className="match-alert">
                     <span aria-hidden="true">!</span>
