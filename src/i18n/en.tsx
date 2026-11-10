@@ -15,14 +15,14 @@ const ord = (n: number) => ordinal(n, 'en');
 const names = (items: readonly string[]) => list(items, 'en');
 /** "1 more game", "2.5 more games" */
 const games = (n: number) => (Math.abs(n) === 1 ? 'game' : 'games');
+const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export const en = {
   language: { label: 'Language', en: 'English', da: 'Dansk' },
 
   app: {
     back: 'Back',
-    footer:
-      'Unofficial tool, not affiliated with DBTU or bordtennisportalen.dk. Results come from bordtennisportalen.dk and are refreshed several times a day, hourly on match evenings. Lineup plans and followed teams are saved in your browser.',
+    footer: 'Unofficial, not affiliated with DBTU. Results from bordtennisportalen.dk. Plans and followed teams stay in your browser.',
   },
 
   nav: {
@@ -69,7 +69,9 @@ export const en = {
     points: 'Points',
     results: 'Results',
     insights: 'Insights',
-    openOnPortal: 'Open on bordtennisportalen.dk',
+    onPortal: 'See on bordtennisportalen.dk',
+    showAll: (n: number) => `Show all ${n}`,
+    showFewer: 'Show fewer',
     showAsTable: 'Show as table',
     howWorkedOut: 'How is this worked out?',
     pastSeason: 'Past season',
@@ -103,14 +105,12 @@ export const en = {
     loss: 'Loss',
     summary: (win: number, draw: number, loss: number, drawPossible: boolean) =>
       drawPossible ? `Win ${pct(win)}, draw ${pct(draw)}, loss ${pct(loss)}` : `Win ${pct(win)}, loss ${pct(loss)}`,
-    /** After the bold win share: "45% chance to win, 22% to draw." */
-    sentence: (draw: number, drawPossible: boolean) => (drawPossible ? `chance to win, ${pct(draw)} to draw.` : 'chance to win.'),
     chanceToWin: 'chance to win',
     winShort: (win: number) => `${pct(win)} win`,
   },
 
   prediction: {
-    line: (home: number, away: number, win: number) => `Predicted ${dec(home)}–${dec(away)}, ${pct(win)} to win`,
+    line: (home: number, away: number) => `Predicted ${dec(home)}–${dec(away)}`,
     record: (right: number, matches: number) => `Predicted before each match: right in ${right} of ${matches}`,
     recordNote:
       "Each played match keeps the prediction made from what was known before its day: the official rating list of that day, the earlier results, and each player's form until then. “Right” means the likeliest outcome happened. A team that had not played in the pool yet borrows its lineups from an earlier pool this season or from last season. Matches without a prediction had a team with no lineups to borrow.",
@@ -153,7 +153,7 @@ export const en = {
     wins: 'wins',
     loses: 'loses',
     rulesNote: 'Read from rated games on bordtennisportalen.dk. This is an estimate, not the official calculation.',
-    forecastNote: (note: string) => `→ Forecast: the rating once the singles played since the official ${note} are rated.`,
+    forecastNote: (day: string) => `→ Forecast: the rating once the games after ${day} are rated.`,
     forecastTitleShort: 'Forecast',
     forecastDetail: (rating: number, change: string) => `Forecast ${rating} (${change})`,
   },
@@ -186,29 +186,16 @@ export const en = {
   },
 
   start: {
-    welcomeBack: 'Welcome back',
     findTeam: 'Find your team',
-    intro: 'Results, chances and lineup planning for every team in the Danish table tennis team tournament.',
+    intro: 'Follow your team with ☆ to keep its next match, your chances and the lineup in one place.',
     myTeams: 'My teams',
     continueWith: (team: ReactNode) => <>Continue with {team}</>,
     followHint: 'Follow it to keep it at the top of this page, with its next match.',
-    howItWorks: 'How it works',
-    steps: [
-      <>
-        <strong>Find your team</strong> by club, team or player name below.
-      </>,
-      <>
-        <strong>Follow it</strong> with ☆ so it is always here, with its next match and your chances.
-      </>,
-      <>
-        <strong>Plan your lineup</strong>: mark who can play, and the planner keeps the matches fair for everyone.
-      </>,
-    ],
     findHeading: 'Find a club, team or player',
     loadingClubs: 'Loading clubs…',
     clubsUnavailable: 'Club data is not available right now.',
-    notListed: 'Planning for a team that is not listed?',
-    notListedNote: 'The lineup planner also works by hand: add your players and matches yourself.',
+    notListed: 'Is your team missing?',
+    notListedNote: 'Add the players and matches yourself in the lineup planner.',
     unnamedTeam: 'Unnamed team',
     planByHand: 'Plan by hand',
     planAnother: 'Plan another team by hand',
@@ -219,15 +206,18 @@ export const en = {
     teamPage: 'Team page',
     searching: 'Searching…',
     nothingMatches: (query: string) => `Nothing matches “${query}”. Try part of a club, team or player name.`,
-    searchLabel: 'Club, team or player',
-    searchPlaceholder: 'Search, e.g. Vallensbæk',
+    searchLabel: 'Search for a club, team or player',
+    searchPlaceholder: 'Club, team or player',
+    filters: 'Region and age group',
+    /** A team's place in its pool, in a search result: "2nd". */
+    place: (position: number) => ord(position),
+    allTeams: (n: number) => `All ${n} teams`,
     region: 'Region',
     allRegions: 'All regions',
     ageGroup: 'Age group',
     allAgeGroups: 'All age groups',
     showMore: (left: number) => `Show more (${left} left)`,
     showMorePlayers: (left: number) => `Show more players (${left} left)`,
-    season: (name: string) => ` · season ${name}`,
     showFewerClubs: 'Show fewer clubs',
     showAllClubs: (n: number) => `Show all ${n} clubs`,
   },
@@ -235,29 +225,22 @@ export const en = {
   team: {
     tabs: { overview: 'Overview', matches: 'Matches', players: 'Players' },
     tabsLabel: 'Team pages',
-    onPortal: 'See this team on bordtennisportalen.dk',
     position: 'Position',
-    ofTeams: (n: number) => `of ${n} teams`,
-    afterMatches: (n: number) => `after ${plural(n, 'match', 'matches')}`,
-    wonDrawnLost: 'Won, drawn, lost',
-    gamesWonLost: 'Games won and lost',
+    ofTeams: (n: number) => `of ${n}`,
+    /** Short tile labels, each with what it stands for. */
+    wonDrawnLost: ['W–D–L', 'Won, drawn, lost'],
+    gamesWonLost: ['Games', 'Games won and lost'],
     nextMatch: 'Next match',
     theOpponent: 'the opponent',
     whyChances: 'Why these chances?',
-    plannedLineup: (players: string) => `Using the lineup from your planner: ${players}.`,
-    seasonLineups: 'Based on the lineups both teams have used this season. Mark who can play in the planner to use your real lineup.',
-    preview: 'Preview and try lineups',
-    moreInsights: (n: number) => `${n} more insight${n === 1 ? '' : 's'}`,
+    plannedLineup: (players: string) => `With the lineup from your planner: ${players}.`,
+    seasonLineups: 'From the lineups both teams have used this season.',
+    preview: 'See the match',
+    moreInsights: (n: number) => `${n} more`,
     pointsRace: 'Points over the season',
-    pointsRaceNote: 'League points after each match, compared with the rest of the pool.',
     comingUp: 'Coming up',
     left: (n: number) => `${n} left`,
-    comingUpNote: 'Chance to win each match. Tap a match for the preview and to try lineups.',
-    previewLabel: (win: number) => `Preview: ${pct(win)} chance to win`,
     nonePlayed: 'No matches played yet.',
-    scoreLabel: (score: string) => `Games of the match, ${score}`,
-    to: ' to ',
-    tapName: 'Tap a name for their games and insights',
     noGames: 'No games recorded yet.',
     singlesFor: (name: string) => `Singles for ${name}`,
   },
@@ -284,8 +267,7 @@ export const en = {
   },
 
   club: {
-    eyebrow: (season: string | null) => `Club${season ? ` · ${season}` : ''}`,
-    teamsInPools: (teams: number, pools: number) => `${plural(teams, 'team', 'teams')} in ${plural(pools, 'pool', 'pools')}`,
+    eyebrow: (season: string | null, teams: number) => `Club${season ? ` · ${season}` : ''} · ${plural(teams, 'team', 'teams')}`,
     of: (teams: number, points: number) => ` of ${teams} · ${plural(points, 'pt', 'pts')}`,
     notStarted: 'Not started',
   },
@@ -299,13 +281,10 @@ export const en = {
       lost: ['L', 'Lost'],
       games: 'Games',
       points: 'Points',
-      projected: ['Proj.', 'Projected final points'],
     },
-    projectedNote:
-      'Proj.: projected final points, with the projected position under them. It adds up the win and draw chances of every remaining match, assuming each team fields lineups it has used this season.',
-    playedOf: (played: number, total: number) => `${played} of ${plural(total, 'match', 'matches')} played`,
-    showFewer: 'Show fewer',
-    showAllResults: (n: number) => `Show all ${n} results`,
+    projected: 'Projected final standings',
+    projectedNote: 'The win and draw chances of every remaining match added up, with the lineups the teams have used this season.',
+    playedOf: (played: number, total: number) => `${played} of ${total} played`,
     nextMatches: 'Next matches',
     sortedBySingles: 'Sorted by singles won',
     wonColumn: 'Won',
@@ -320,95 +299,81 @@ export const en = {
     game: 'Game',
     wo: ' (w.o.)',
     wonSr: ' (won)',
-    predictionTitle: 'Prediction and result',
-    predictionHeadline: (win: ReactNode, home: string, draw: string | null) => (
+    predictionTitle: 'Predicted before the match',
+    expectedEnded: (expected: ReactNode, ended: ReactNode, likeliest: boolean) => (
       <>
-        {win} chance for {home} to win{draw ? `, ${draw} to draw` : ''}, before the match.
+        Expected score {expected}. It ended {ended}
+        {likeliest ? ', the likeliest outcome' : ''}.
       </>
     ),
-    winFor: (team: string) => `a win for ${team}`,
-    aDraw: 'a draw',
-    expectedEnded: (expected: ReactNode, ended: ReactNode) => (
-      <>
-        Expected score {expected}; it ended {ended}.
-      </>
-    ),
-    likeliestHappened: (outcome: string) => `The likeliest outcome, ${outcome}, happened.`,
-    notLikeliest: (outcome: string) => `Not the likeliest outcome: the prediction favoured ${outcome}.`,
     howPredicted: 'How was this predicted?',
-    howPredictedNote: (home: string) =>
-      `From what was known before the match day: the official rating list in force that day, the results of earlier matches (for the lineups both teams had used and for common opponents) and each player's form until then. Win, draw and loss are from ${home}'s side.`,
+    howPredictedNote:
+      "From what was known before the match day: the official rating list in force that day, the earlier results and each player's form until then.",
     ratingPoints: 'Rating points',
-    ratingPointsNote: (note: string) =>
-      `Estimated: this match is not in the official ratings yet (${note}). Before is the rating going into the match, after any earlier games the list does not include.`,
+    ratingPointsNote: 'An estimate, until the official rating list includes this match.',
+    /** `note` is the list: "list of 23 Oct, which includes games up to 14 Oct". */
+    beforeNote: (note: string) => `“Before” is the rating going into the match, after any earlier games that the official ${note} leaves out.`,
     before: 'Before',
   },
 
   preview: {
     chances: 'Chances',
     showFor: 'Show chances for',
-    headline: (team: string, win: ReactNode, sentence: string, expected: string) => (
-      <>
-        {team}: {win} {sentence} Expected score {expected}.
-      </>
-    ),
+    /** After the bold share: "87% chance of a win for Smørum BTK 2". */
+    winFor: (team: string) => `chance of a win for ${team}`,
+    expected: (score: string) => `Expected score ${score}`,
     notEnough: 'Not enough results yet to estimate this match.',
-    reasonRatings: 'Player ratings.',
-    reasonForm: 'Form and home table.',
-    reasonCommon: 'Common opponents.',
     lineups: 'Lineups',
-    tryLineup: 'Try a lineup: the chances above update straight away.',
-    tryLineupStored: 'The chances above stay as they are until both teams have played in the pool.',
-    statusSeason: 'Using the lineups from this season. Tap players to pick your own.',
-    statusNoPlayers: 'Has not played in this pool yet, so there are no players to pick.',
-    statusPickMore: (n: number) => `Pick ${n} more. Until then, the lineups from this season are used.`,
-    statusPlanned: 'Lineup from your planner.',
-    statusYours: 'Your lineup.',
+    tryLineup: 'Tap players to try a lineup. The chances update straight away.',
+    tryLineupStored: 'The chances stay as they are until both teams have played in the pool.',
+    statusNoPlayers: 'Has not played in this pool yet.',
+    statusPickMore: (n: number) => `Pick ${n} more.`,
+    statusPlanned: 'From your planner.',
     backToSeason: "Back to this season's lineups",
     grid: 'Your players against theirs',
-    gridNote: (team: string, columns: string) => `Chance that each ${team} player wins a singles, from the ratings, form and home table. Columns: ${columns}.`,
-    columnsPicked: (team: string) => `the ${team} lineup you picked`,
+    gridNote: (team: string, columns: string) => `Chance that each ${team} player wins their singles. Columns: ${columns}.`,
+    columnsPicked: 'the lineup you picked',
     columnsUsual: (team: string) => `${team}'s most-used players`,
     gridPlayer: (team: string) => `${team} player`,
     /** Head-to-head records (src/data/headtohead.ts), from our player's side. */
     h2hSr: 'Head-to-head:',
-    h2hNote: (from: string) => `Under a chance: the two players' singles against each other since ${from}, won–lost.`,
+    h2hNote: (from: string) => `Small numbers: the two players' singles against each other since ${from} (won–lost).`,
     h2hAll: (pairs: number) => `${pairs === 1 ? '1 pair of players has' : `${pairs} pairs of players have`} met before`,
     h2hItem: (player: string, opponent: string, won: number, lost: number, last: string, lastWon: boolean) =>
       `${player} v ${opponent}: ${won}–${lost}, ${won + lost === 1 ? '' : 'most recently '}${lastWon ? 'a win' : 'a loss'} on ${last}`,
     heat: ['Clear underdog', 'Underdog', 'Even', 'Favourite', 'Clear favourite'],
     commonTitle: 'Common opponents',
-    commonNote: (team: string) => `How both teams did against the same teams. Difference: games per match, from ${team}'s side.`,
+    commonNote: (team: string) => `Results against the same teams. Difference from ${team}'s side.`,
     difference: 'Difference',
     eachOther: 'Each other',
     howWorkedOut:
-      "Each game gets a chance from the rating gap, calibrated on this pool's singles. Then come the things the ratings miss, checked on every match of the last three seasons: each player's singles this season, in every pool, against what their rating expected (last season counts a third as much); youth players, who improve faster than the rating list; unrated players, who are weaker than the pool's median rating they stand in for; and the home table, except in veteran pools. Common opponents count a quarter. Estimates, not certainties.",
+      "Each game gets a chance from the rating gap, calibrated on the pool's results. Form is a player's singles this season against what their rating expected; last season counts a third as much. Youth and unrated players are adjusted, and the home table counts except in veteran pools. All of it is an estimate.",
   },
 
   reasons: {
+    /** The steps of "Why these chances?" (WhyChances in pages/MatchPreview.tsx). */
+    chanceToWin: 'Chance to win',
+    ratings: 'Ratings alone',
+    averages: (ours: number, theirs: number) => `Average rating ${ours} against ${theirs}.`,
     noRatings: 'Not enough games yet to compare the players.',
-    aboutEven: 'about even',
-    stronger: (_team: string, points: number) => `${points} points stronger`,
-    weaker: (_team: string, points: number) => `${points} points weaker`,
-    lineupAverage: (team: string, average: number) => `${team}'s lineup averages ${average}`,
-    lineupsAverage: (team: string, average: number) => `${team}'s lineups this season average ${average}`,
-    ratings: (ours: string, theirs: string, balance: string, win: number) => `${ours}; ${theirs}: ${balance}. Ratings alone give ${pct(win)} to win.`,
-    noCommon: 'No common opponents yet, so this part is left out.',
-    commonOpponents: (n: number) => plural(n, 'common opponent', 'common opponents'),
-    earlierMeeting: 'their earlier meeting',
-    asWell: 'about as well as them',
-    better: (margin: number) => `${dec(margin)} ${games(margin)} per match better`,
-    worse: (margin: number) => `${dec(margin)} ${games(margin)} per match worse`,
-    common: (what: string, team: string, how: string, win: number) => `Based on ${what}, ${team} did ${how}. That alone gives ${pct(win)} to win.`,
-    atHome: (team: string, points: number) => `${team} plays at home: about +${points} rating points a game.`,
+    form: 'With form and the home table',
+    atHome: (team: string, points: number) => `Home table: +${points} rating points for ${team}.`,
     noHomeEdge: 'No home edge in veteran pools.',
+    /** A team's players who are well above or below their rating: "Ann +61, Bo −39". */
+    forTeam: (team: string, players: string) => `${team}: ${players}`,
     youth: ' (youth)',
     unrated: ' (unrated)',
-    forTeam: (players: string, team: string) => `${players} for ${team}`,
-    formList: (lists: string) => `Form against rating: ${lists}.`,
     noForm: 'No player is far from their rating.',
-    hardlyChange: 'Together they hardly change the chances.',
-    withThese: (after: number, before: number) => `With these, the ratings give ${pct(after)} instead of ${pct(before)}.`,
+    common: 'Common opponents',
+    commonNote: (what: string, how: string) => `${capital(what)}: ${how}.`,
+    noCommon: 'None yet.',
+    commonOpponents: (n: number) => plural(n, 'common opponent', 'common opponents'),
+    earlierMeeting: 'their earlier meeting',
+    asWell: 'about as good',
+    better: (margin: number) => `${dec(margin)} ${games(margin)} better per match`,
+    worse: (margin: number) => `${dec(margin)} ${games(margin)} worse per match`,
+    total: 'Together',
+    weights: 'Ratings with form count three quarters, common opponents a quarter.',
   },
 
   insights: {
@@ -423,21 +388,18 @@ export const en = {
       bestWin: 'Best win',
       upsetLoss: 'Upset loss',
     },
-    place: (position: number, teams: number, points: number) => `${ord(position)} of ${teams} with ${plural(points, 'point', 'points')}.`,
     levelWith: (teams: readonly string[]) => `Level with ${names(teams)}.`,
     behind: (points: number, team: string, position: number) => `${plural(points, 'point', 'points')} behind ${team} (${ord(position)}).`,
     top: 'Top of the table.',
     ahead: (points: number, team: string) => `${plural(points, 'point', 'points')} ahead of ${team}.`,
     teamForm: (matches: number, won: number, expected: number) =>
-      `In ${plural(matches, 'match', 'matches')} the team won ${plural(won, 'game', 'games')}; the players' ratings predicted ${dec(expected)}.`,
-    moreGames: (diff: number) => `That is ${dec(diff)} more ${games(diff)} than expected: playing above the ratings.`,
-    fewerGames: (diff: number) => `That is ${dec(diff)} fewer ${games(diff)} than expected.`,
-    moreWins: (diff: number) => `That is ${dec(diff)} more ${Math.abs(diff) === 1 ? 'win' : 'wins'} than expected: playing above the ratings.`,
-    fewerWins: (diff: number) => `That is ${dec(diff)} fewer ${Math.abs(diff) === 1 ? 'win' : 'wins'} than expected.`,
+      `Won ${plural(won, 'game', 'games')} in ${plural(matches, 'match', 'matches')}; the ratings predicted ${dec(expected)}.`,
+    more: (diff: number) => `That is ${dec(diff)} more than expected.`,
+    fewer: (diff: number) => `That is ${dec(diff)} fewer than expected.`,
     asExpected: 'About as expected.',
-    fifthSets: (won: number, lost: number) => `Singles that went to a fifth set: won ${won}, lost ${lost}.`,
+    fifthSets: (won: number, lost: number) => `Fifth sets in singles: won ${won}, lost ${lost}.`,
     doubles: (won: number, played: number, best: boolean, pair: readonly string[], pairWon: number, pairLost: number) =>
-      `Doubles won: ${won} of ${played}. ${best ? 'Best pair' : 'Most used pair'}: ${names(pair)} (${pairWon}–${pairLost}).`,
+      `Won ${won} of ${played}. ${best ? 'Best pair' : 'Most used pair'}: ${names(pair)} (${pairWon}–${pairLost}).`,
     standout: (name: string, won: number, singles: number, above: number) =>
       `${name} has won ${won} of ${plural(singles, 'single', 'singles')}, ${dec(above)} more than the rating predicts.`,
     outlook: (favourite: number, remaining: number, projected: number, rank: number) =>
@@ -446,17 +408,17 @@ export const en = {
           ? favourite === 1
             ? 'Favourite in the last match.'
             : 'Not favourite in the last match.'
-          : `Favourite in ${favourite} of the ${remaining} remaining matches.`
-      } Projected finish: about ${plural(projected, 'point', 'points')}, ${ord(rank)} place (assuming each team fields lineups it has used this season).`,
+          : `Favourite in ${favourite} of ${remaining} remaining matches.`
+      } Projected finish: ${ord(rank)} with about ${plural(projected, 'point', 'points')}.`,
     bestLineup: (size: number, players: readonly string[], favourite: number, remaining: number) =>
-      `With its ${plural(size, 'highest-rated player', 'highest-rated players')} (${names(players)}), the team would ${
-        remaining === 1 ? (favourite === 1 ? 'be favourite in the last match' : 'not be favourite in the last match') : `be favourite in ${favourite} of the ${remaining}`
+      `With the ${plural(size, 'highest-rated player', 'highest-rated players')} (${names(players)}): ${
+        remaining === 1 ? (favourite === 1 ? 'favourite in the last match' : 'not favourite in the last match') : `favourite in ${favourite} of ${remaining} matches`
       }.`,
     playerForm: (won: number, singles: number, expected: number) =>
-      `Won ${won} of ${plural(singles, 'single', 'singles')}; the ratings predicted ${dec(expected)}.`,
+      `Won ${won} of ${plural(singles, 'single', 'singles')}; the rating predicted ${dec(expected)}.`,
     playerFifthSets: (won: number, played: number) => `Fifth sets: won ${won} of ${played}.`,
-    bestWin: (name: string, rating: number, sets: string, gap: number) => `${name} (${rating}), ${sets}.${gap > 0 ? ` An upset: rated ${gap} higher.` : ''}`,
-    upsetLoss: (name: string, rating: number, sets: string, gap: number) => `${name} (${rating}), ${sets}: rated ${gap} lower.`,
+    bestWin: (name: string, rating: number, sets: string, gap: number) => `${name} (${rating}), ${sets}.${gap > 0 ? ` Rated ${gap} higher.` : ''}`,
+    upsetLoss: (name: string, rating: number, sets: string, gap: number) => `${name} (${rating}), ${sets}. Rated ${gap} lower.`,
     partner: (won: number, lost: number, name: string) => `${won}–${lost} with ${name}`,
   },
 

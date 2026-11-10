@@ -1,10 +1,9 @@
 import { useEffect, useMemo } from 'react';
 import { PointsRace } from '../charts/PointsRace';
 import { FollowButton } from '../components/FollowButton';
-import { OddsBar, oddsSentence, ThinOdds } from '../components/Odds';
+import { OddsBar, ThinOdds } from '../components/Odds';
 import { PastSeasonTag } from '../components/PlayerHistory';
 import { PredictedLine, PredictionRecordNote } from '../components/Prediction';
-import { listNote } from '../components/RatingForecast';
 import { clubSlug } from '../data/clubs';
 import { fitScale, forecastMatch, lineupSize, ratingSummary, shownOdds, type MatchForecast } from '../data/forecast';
 import { teamInsights, type Insight, type InsightId } from '../data/insights';
@@ -25,15 +24,33 @@ import {
 import { t } from '../i18n';
 import { rememberTeam } from '../lib/lastTeam';
 import { href } from '../lib/router';
-import { matchDay, matchTime, NotFound, ordinal, OutcomeBadge, PageState, percent, portalUrl, signed, StatTile, WinMeter } from '../components/ui';
+import {
+  matchDay,
+  matchTime,
+  NotFound,
+  ordinal,
+  OutcomeBadge,
+  PageState,
+  percent,
+  PortalLink,
+  portalUrl,
+  RowLink,
+  shortDay,
+  signed,
+  StatTile,
+  useShowAll,
+  WinMeter,
+} from '../components/ui';
 import { plannedLineup } from '../lineup/planned';
-import { commonReason, formReason, HowWorkedOut, ratingReason } from './MatchPreview';
+import { WhyChances } from './MatchPreview';
 
 type Tab = 'overview' | 'matches' | 'players';
 const TABS: Tab[] = ['overview', 'matches', 'players'];
 /** Insights a captain acts on come first; the rest sit behind "More insights". */
 const INSIGHT_ORDER: InsightId[] = ['table', 'outlook', 'bestLineup', 'standout', 'form', 'closeGames', 'doubles'];
-const INSIGHTS_SHOWN = 4;
+const INSIGHTS_SHOWN = 3;
+/** The matches tab starts with this many of the matches to come. */
+const UPCOMING_SHOWN = 5;
 
 export function TeamPage({ poolId, teamId, tab }: { poolId: string; teamId: string; tab: string | null }) {
   const loaded = useLoaded(() => loadPool(poolId), poolId);
@@ -106,11 +123,7 @@ function TeamView({ pool, team, tab }: { pool: PoolData; team: TeamRef; tab: Tab
       {tab === 'matches' && <Matches pool={pool} team={team} matches={matches} forecasts={forecasts} />}
       {tab === 'players' && <Players pool={pool} team={team} />}
 
-      <p className="page-source muted small">
-        <a href={portalUrl(pool.pool, 3, { teamId: team.id })} target="_blank" rel="noreferrer">
-          {t.team.onPortal}
-        </a>
-      </p>
+      <PortalLink to={portalUrl(pool.pool, 3, { teamId: team.id })} />
     </div>
   );
 }
@@ -151,9 +164,9 @@ function Overview({
       {standing && (
         <div className="tiles">
           <StatTile label={t.team.position} value={ordinal(standing.position)} detail={t.team.ofTeams(pool.standings.length)} />
-          <StatTile label={t.common.points} value={standing.points} detail={t.team.afterMatches(standing.played)} />
-          <StatTile label={t.team.wonDrawnLost} value={`${standing.won}–${standing.drawn}–${standing.lost}`} />
-          <StatTile label={t.team.gamesWonLost} value={`${standing.gamesFor}–${standing.gamesAgainst}`} />
+          <StatTile label={t.common.points} value={standing.points} detail={t.n.matches(standing.played)} />
+          <StatTile label={t.team.wonDrawnLost[0]} hint={t.team.wonDrawnLost[1]} value={`${standing.won}–${standing.drawn}–${standing.lost}`} />
+          <StatTile label={t.team.gamesWonLost[0]} hint={t.team.gamesWonLost[1]} value={`${standing.gamesFor}–${standing.gamesAgainst}`} />
         </div>
       )}
 
@@ -173,7 +186,7 @@ function Overview({
           {odds && nextForecast && (
             <>
               <p className="odds-headline">
-                <strong>{percent(odds.win)}</strong> {oddsSentence(odds)}
+                <strong>{percent(odds.win)}</strong> {t.odds.chanceToWin}
               </p>
               <OddsBar odds={odds} />
               <details className="why">
@@ -181,27 +194,24 @@ function Overview({
                 {shown?.stored ? (
                   next.prediction?.lineups && <p className="muted small">{t.prediction.borrowed[next.prediction.lineups]}</p>
                 ) : (
-                  <>
-                    <ul className="reasons">
-                      <li>
-                        <strong>{t.preview.reasonRatings}</strong> {ratingReason(plain, team.name, opponent)}
-                      </li>
-                      <li>
-                        <strong>{t.preview.reasonForm}</strong>{' '}
-                        {formReason(pool, scale, next, [{ teamId: team.id, lineup: nextLineup }, { teamId: opponentOf(next, team.id) }], nextForecast.forecast.rating, plain, nameOf, playerName)}
-                      </li>
-                      <li>
-                        <strong>{t.preview.reasonCommon}</strong> {commonReason(nextForecast.forecast.common, team.name)}
-                      </li>
-                    </ul>
-                    <p className="muted small">
-                      {nextForecast.planned
+                  <WhyChances
+                    pool={pool}
+                    scale={scale}
+                    match={next}
+                    sides={[{ teamId: team.id, lineup: nextLineup }, { teamId: opponentOf(next, team.id) }]}
+                    adjusted={nextForecast.forecast.rating}
+                    plain={plain}
+                    common={nextForecast.forecast.common}
+                    odds={odds}
+                    basis={
+                      nextForecast.planned
                         ? t.team.plannedLineup((nextForecast.forecast.rating?.team ?? []).map((id) => players.get(id)?.name ?? '?').join(', '))
-                        : t.team.seasonLineups}
-                    </p>
-                  </>
+                        : t.team.seasonLineups
+                    }
+                    teamName={nameOf}
+                    playerName={playerName}
+                  />
                 )}
-                <HowWorkedOut />
               </details>
             </>
           )}
@@ -227,7 +237,6 @@ function Overview({
       {anyPlayed && (
         <section className="card">
           <h2>{t.team.pointsRace}</h2>
-          <p className="muted">{t.team.pointsRaceNote}</p>
           <PointsRace series={race} highlightId={team.id} />
         </section>
       )}
@@ -240,10 +249,10 @@ function Matches({ pool, team, matches, forecasts }: { pool: PoolData; team: Tea
   const teamName = (id: string) => teams.get(id)?.name ?? t.common.unknownTeam;
   const upcoming = matches.filter((m) => !m.score);
   const played = matches.filter((m) => m.score).reverse();
-  const opponentLink = (m: TeamMatch) => (
+  const [shownUpcoming, showAllUpcoming] = useShowAll(upcoming, UPCOMING_SHOWN);
+  const opponent = (m: TeamMatch) => (
     <span className="result-vs">
-      {t.common.vs} <a href={href('team', pool.pool.id, opponentOf(m, team.id))}>{teamName(opponentOf(m, team.id))}</a>{' '}
-      <span className="tag">{isHome(m, team.id) ? t.common.home : t.common.away}</span>
+      {t.common.vs} {teamName(opponentOf(m, team.id))} <span className="tag">{isHome(m, team.id) ? t.common.home : t.common.away}</span>
     </span>
   );
 
@@ -255,30 +264,32 @@ function Matches({ pool, team, matches, forecasts }: { pool: PoolData; team: Tea
             <h2>{t.team.comingUp}</h2>
             <span className="muted">{t.team.left(upcoming.length)}</span>
           </div>
-          <p className="muted small">{t.team.comingUpNote}</p>
           <ul className="result-list">
-            {upcoming.map((m) => {
+            {shownUpcoming.map((m) => {
               const f = forecasts.get(m.id);
               const odds = f ? shownOdds(f.forecast, m).odds : null;
               return (
                 <li key={m.id} className="result-row">
-                  <div className="result-main">
-                    <span className="result-when">
-                      {matchDay(m.date)} · {matchTime(m.date)}
+                  <RowLink to={href('match', pool.pool.id, m.id)}>
+                    <span className="result-main">
+                      <span className="result-when">
+                        {matchDay(m.date)} · {matchTime(m.date)}
+                      </span>
+                      {opponent(m)}
+                      <span className="result-venue">{m.venue}</span>
                     </span>
-                    {opponentLink(m)}
-                    <span className="result-venue">{m.venue}</span>
-                  </div>
-                  {odds && (
-                    <a className="result-odds" href={href('match', pool.pool.id, m.id)} aria-label={t.team.previewLabel(odds.win)}>
-                      <span className="result-odds-text">{t.odds.winShort(odds.win)}</span>
-                      <ThinOdds odds={odds} />
-                    </a>
-                  )}
+                    {odds && (
+                      <span className="result-odds">
+                        <span className="result-odds-text">{t.odds.winShort(odds.win)}</span>
+                        <ThinOdds odds={odds} />
+                      </span>
+                    )}
+                  </RowLink>
                 </li>
               );
             })}
           </ul>
+          {showAllUpcoming}
         </section>
       )}
 
@@ -287,7 +298,6 @@ function Matches({ pool, team, matches, forecasts }: { pool: PoolData; team: Tea
           <h2>{t.common.results}</h2>
           <span className="muted">{t.common.played(played.length)}</span>
         </div>
-        <PredictionRecordNote matches={played} />
         {played.length === 0 ? (
           <p className="muted">{t.team.nonePlayed}</p>
         ) : (
@@ -297,22 +307,23 @@ function Matches({ pool, team, matches, forecasts }: { pool: PoolData; team: Tea
               const outcome = outcomeFor(m, team.id);
               return (
                 <li key={m.id} className="result-row">
-                  <div className="result-main">
-                    <span className="result-when">{matchDay(m.date)}</span>
-                    {opponentLink(m)}
-                    <PredictedLine match={m} teamId={team.id} />
-                  </div>
-                  <div className="result-side">
-                    <a className="result-score" href={href('match', pool.pool.id, m.id)} aria-label={t.team.scoreLabel(score?.join(t.team.to) ?? '')}>
-                      {score?.join('–')}
-                    </a>
-                    {outcome && <OutcomeBadge outcome={outcome} />}
-                  </div>
+                  <RowLink to={href('match', pool.pool.id, m.id)}>
+                    <span className="result-main">
+                      <span className="result-when">{matchDay(m.date)}</span>
+                      {opponent(m)}
+                      <PredictedLine match={m} teamId={team.id} />
+                    </span>
+                    <span className="result-side">
+                      <span className="result-score">{score?.join('–')}</span>
+                      {outcome && <OutcomeBadge outcome={outcome} />}
+                    </span>
+                  </RowLink>
                 </li>
               );
             })}
           </ul>
         )}
+        <PredictionRecordNote matches={played} />
       </section>
     </>
   );
@@ -325,10 +336,7 @@ function Players({ pool, team }: { pool: PoolData; team: TeamRef }) {
   const forecasts = !!status && lines.some((line) => players.get(line.playerId)?.forecast);
   return (
     <section className="card">
-      <div className="section-head">
-        <h2>{t.common.players}</h2>
-        <span className="muted small">{t.team.tapName}</span>
-      </div>
+      <h2>{t.common.players}</h2>
       {lines.length === 0 ? (
         <p className="muted">{t.team.noGames}</p>
       ) : (
@@ -387,7 +395,7 @@ function Players({ pool, team }: { pool: PoolData; team: TeamRef }) {
         </div>
       )}
       {forecasts && status && (
-        <p className="muted small">{t.ratings.forecastNote(listNote(status))}</p>
+        <p className="muted small">{t.ratings.forecastNote(shortDay(status.ratedThrough))}</p>
       )}
     </section>
   );

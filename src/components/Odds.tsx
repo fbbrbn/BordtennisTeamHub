@@ -14,18 +14,17 @@ export function oddsSummary(odds: Odds): string {
   return t.odds.summary(odds.win, odds.draw, odds.loss, drawsPossible(odds));
 }
 
-/** "45% chance to win, 22% to draw." after the bold share (no draw part when a draw is impossible). */
-export function oddsSentence(odds: Odds): string {
-  return t.odds.sentence(odds.draw, drawsPossible(odds));
-}
-
-/** Tall segmented bar: one whole (100%) split into win, draw and loss, shares printed where they fit. */
-export function OddsBar({ odds }: { odds: Odds }) {
+/**
+ * Tall segmented bar: one whole (100%) split into win, draw and loss, shares printed where they fit.
+ * `sides` names the two ends after the teams, for a bar that is not from "our" side.
+ */
+export function OddsBar({ odds, sides }: { odds: Odds; sides?: { win: string; loss: string } }) {
   const fits = (v: number) => v >= 0.12;
+  const named = parts().map((part) => ({ ...part, label: part.key !== 'draw' && sides ? sides[part.key] : part.label }));
   return (
     <figure className="odds">
-      <div className="odds-bar" role="img" aria-label={oddsSummary(odds)}>
-        {parts().map(({ key, label }) =>
+      <div className="odds-bar" role="img" aria-label={sides ? named.map(({ key, label }) => `${label} ${percent(odds[key])}`).join(', ') : oddsSummary(odds)}>
+        {named.map(({ key, label }) =>
           odds[key] >= 0.005 ? (
             <span key={key} className={`odds-part odds-${key}`} style={{ flexGrow: odds[key] }} title={`${label} ${percent(odds[key])}`}>
               {fits(odds[key]) && <span className="odds-label">{percent(odds[key])}</span>}
@@ -34,7 +33,7 @@ export function OddsBar({ odds }: { odds: Odds }) {
         )}
       </div>
       <figcaption className="legend">
-        {parts().filter(({ key }) => key !== 'draw' || drawsPossible(odds)).map(({ key, label }) => (
+        {named.filter(({ key }) => key !== 'draw' || drawsPossible(odds)).map(({ key, label }) => (
           <span key={key}>
             <i className={`swatch odds-swatch-${key}`} /> {label}
             {!fits(odds[key]) && ` ${percent(odds[key])}`}

@@ -26,13 +26,13 @@ export function teamInsights(pool: PoolData, teamId: string, scale: number): Ins
   const teamName = (id: string) => teams.get(id)?.name ?? t.common.unknownTeam;
   const playerName = (id: string) => players.get(id)?.name ?? t.common.unknownPlayer;
 
-  // Where the team stands, and how far it is from the teams around it.
+  // How far the team is from the teams around it. Its own place and points are on the page already.
   const me = pool.standings.find((s) => s.teamId === teamId);
   if (me && me.played > 0) {
     const level = pool.standings.filter((s) => s.teamId !== teamId && s.points === me.points);
     const above = pool.standings.filter((s) => s.points > me.points).sort((a, b) => a.points - b.points)[0];
     const below = pool.standings.filter((s) => s.points < me.points).sort((a, b) => b.points - a.points)[0];
-    const parts = [t.insights.place(me.position, pool.standings.length, me.points)];
+    const parts: string[] = [];
     if (level.length > 0) parts.push(t.insights.levelWith(level.map((s) => teamName(s.teamId))));
     if (above) parts.push(t.insights.behind(above.points - me.points, teamName(above.teamId), above.position));
     else parts.push(t.insights.top);
@@ -58,7 +58,7 @@ export function teamInsights(pool: PoolData, teamId: string, scale: number): Ins
     matches++;
   }
   if (matches > 0) {
-    insights.push(insight('form', `${t.insights.teamForm(matches, actual, expected)} ${verdict(actual - expected, 1, 'games')}`));
+    insights.push(insight('form', `${t.insights.teamForm(matches, actual, expected)} ${verdict(actual - expected, 1)}`));
   }
 
   // Close games and doubles, from the team's own players.
@@ -142,7 +142,7 @@ export function playerInsights(pool: PoolData, playerId: string, scale: number):
 
   if (singles.length > 0 && own !== null) {
     const expected = singles.reduce((sum, r) => sum + winChance(own, rating(r.opponents[0]), scale), 0);
-    insights.push(insight('form', `${t.insights.playerForm(wins(singles), singles.length, expected)} ${verdict(wins(singles) - expected, 0.75, 'wins')}`));
+    insights.push(insight('form', `${t.insights.playerForm(wins(singles), singles.length, expected)} ${verdict(wins(singles) - expected, 0.75)}`));
   }
 
   const fiveSet = singles.filter((r) => r.setsFor + r.setsAgainst === 5);
@@ -201,9 +201,9 @@ function wins(records: GameRecord[]): number {
   return records.filter((r) => r.won).length;
 }
 
-/** "That is 2.5 more games than expected: playing above the ratings." */
-function verdict(diff: number, threshold: number, unit: 'games' | 'wins'): string {
-  if (diff >= threshold) return unit === 'games' ? t.insights.moreGames(diff) : t.insights.moreWins(diff);
-  if (diff <= -threshold) return unit === 'games' ? t.insights.fewerGames(-diff) : t.insights.fewerWins(-diff);
+/** "That is 2.5 more than expected." */
+function verdict(diff: number, threshold: number): string {
+  if (diff >= threshold) return t.insights.more(diff);
+  if (diff <= -threshold) return t.insights.fewer(-diff);
   return t.insights.asExpected;
 }

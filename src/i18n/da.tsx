@@ -24,7 +24,6 @@ const pct = (rate: number | null) => percent(rate, 'da');
 const dec = (n: number) => decimal(n, 'da');
 const names = (items: readonly string[]) => list(items, 'da');
 const kampe = (n: number) => (Math.abs(n) === 1 ? 'kamp' : 'kampe');
-const sejre = (n: number) => (Math.abs(n) === 1 ? 'sejr' : 'sejre');
 const openPlaces = (n: number) => (n === 1 ? '1 ledig plads' : `${n} ledige pladser`);
 const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -33,8 +32,7 @@ export const da: Texts = {
 
   app: {
     back: 'Tilbage',
-    footer:
-      'Uofficielt værktøj uden tilknytning til Bordtennis Danmark (DBTU) eller bordtennisportalen.dk. Resultaterne hentes fra bordtennisportalen.dk flere gange om dagen og hver time på kampaftener. Opstillingsplaner og fulgte hold gemmes kun i din browser.',
+    footer: 'Uofficielt og uden tilknytning til Bordtennis Danmark. Resultater fra bordtennisportalen.dk. Planer og fulgte hold gemmes kun i din browser.',
   },
 
   nav: {
@@ -80,7 +78,9 @@ export const da: Texts = {
     points: 'Point',
     results: 'Resultater',
     insights: 'Værd at vide',
-    openOnPortal: 'Åbn på bordtennisportalen.dk',
+    onPortal: 'Se på bordtennisportalen.dk',
+    showAll: (n) => `Vis alle ${n}`,
+    showFewer: 'Vis færre',
     showAsTable: 'Vis som tabel',
     howWorkedOut: 'Hvordan regnes det ud?',
     pastSeason: 'Tidligere sæson',
@@ -113,13 +113,12 @@ export const da: Texts = {
     loss: 'Nederlag',
     summary: (win, draw, loss, drawPossible) =>
       drawPossible ? `Sejr ${pct(win)}, uafgjort ${pct(draw)}, nederlag ${pct(loss)}` : `Sejr ${pct(win)}, nederlag ${pct(loss)}`,
-    sentence: (draw, drawPossible) => (drawPossible ? `chance for sejr og ${pct(draw)} for uafgjort.` : 'chance for sejr.'),
     chanceToWin: 'chance for sejr',
     winShort: (win) => `${pct(win)} for sejr`,
   },
 
   prediction: {
-    line: (home, away, win) => `Forudsagt ${dec(home)}–${dec(away)} og ${pct(win)} for sejr`,
+    line: (home, away) => `Forudsagt ${dec(home)}–${dec(away)}`,
     record: (right, matches) => `Forudsagt før kampene: rigtigt i ${right} af ${matches}`,
     recordNote:
       'Hver spillet kamp beholder den forudsigelse der blev lavet ud fra det man vidste før kampdagen: dagens officielle ratingliste, de tidligere resultater og hver spillers form indtil da. »Rigtigt« betyder at det mest sandsynlige udfald blev resultatet. Et hold der ikke havde spillet i puljen endnu, låner sine opstillinger fra en tidligere pulje i sæsonen eller fra sidste sæson. Kampe uden forudsigelse er kampe hvor et hold ikke havde nogen opstillinger at låne.',
@@ -161,7 +160,7 @@ export const da: Texts = {
     wins: 'vinder',
     loses: 'taber',
     rulesNote: 'Aflæst fra ratede kampe på bordtennisportalen.dk. Det er et skøn og ikke den officielle beregning.',
-    forecastNote: (note) => `→ Prognose: ratingen når de singler der er spillet siden den officielle ${note}, er ratet.`,
+    forecastNote: (day) => `→ Prognose: ratingen når kampene efter ${day} er ratet.`,
     forecastTitleShort: 'Prognose',
     forecastDetail: (rating, change) => `Prognose ${rating} (${change})`,
   },
@@ -194,29 +193,16 @@ export const da: Texts = {
   },
 
   start: {
-    welcomeBack: 'Velkommen tilbage',
     findTeam: 'Find dit hold',
-    intro: 'Resultater, chancer og planlægning af opstillinger for alle hold i Holdturneringen i bordtennis.',
+    intro: 'Følg dit hold med ☆ og få næste kamp, jeres chancer og opstillingen samlet ét sted.',
     myTeams: 'Mine hold',
     continueWith: (team: ReactNode) => <>Fortsæt med {team}</>,
     followHint: 'Følg holdet for at få det øverst på siden sammen med næste kamp.',
-    howItWorks: 'Sådan virker det',
-    steps: [
-      <>
-        <strong>Find dit hold</strong> ud fra klub, hold eller spiller herunder.
-      </>,
-      <>
-        <strong>Følg det</strong> med ☆, så er det altid her med næste kamp og jeres chancer.
-      </>,
-      <>
-        <strong>Planlæg opstillingen</strong>: Markér hvem der kan spille, så fordeler planlæggeren kampene retfærdigt.
-      </>,
-    ],
-    findHeading: 'Find en klub, et hold eller en spiller',
+    findHeading: 'Find klub, hold eller spiller',
     loadingClubs: 'Henter klubber…',
     clubsUnavailable: 'Klubberne kan ikke hentes lige nu.',
-    notListed: 'Planlægger du for et hold der ikke er med?',
-    notListedNote: 'Holdplanlæggeren kan også bruges manuelt: Tilføj selv spillere og kampe.',
+    notListed: 'Mangler dit hold?',
+    notListedNote: 'Tilføj selv spillere og kampe i holdplanlæggeren.',
     unnamedTeam: 'Hold uden navn',
     planByHand: 'Planlæg manuelt',
     planAnother: 'Planlæg endnu et hold manuelt',
@@ -227,15 +213,17 @@ export const da: Texts = {
     teamPage: 'Holdside',
     searching: 'Søger…',
     nothingMatches: (query) => `Intet passer på »${query}«. Prøv med en del af et klub-, hold- eller spillernavn.`,
-    searchLabel: 'Klub, hold eller spiller',
-    searchPlaceholder: 'Søg, fx Vallensbæk',
+    searchLabel: 'Søg efter klub, hold eller spiller',
+    searchPlaceholder: 'Klub, hold eller spiller',
+    filters: 'Region og aldersgruppe',
+    place: (position) => `nr. ${position}`,
+    allTeams: (n) => `Alle ${n} hold`,
     region: 'Region',
     allRegions: 'Alle regioner',
     ageGroup: 'Aldersgruppe',
     allAgeGroups: 'Alle grupper',
     showMore: (left) => `Vis flere (${left} tilbage)`,
     showMorePlayers: (left) => `Vis flere spillere (${left} tilbage)`,
-    season: (name) => ` · sæsonen ${name}`,
     showFewerClubs: 'Vis færre klubber',
     showAllClubs: (n) => `Vis alle ${n} klubber`,
   },
@@ -243,30 +231,21 @@ export const da: Texts = {
   team: {
     tabs: { overview: 'Overblik', matches: 'Kampe', players: 'Spillere' },
     tabsLabel: 'Holdsider',
-    onPortal: 'Se holdet på bordtennisportalen.dk',
     position: 'Placering',
-    ofTeams: (n) => `af ${n} hold`,
-    afterMatches: (n) => `efter ${plural(n, 'kamp', 'kampe')}`,
-    wonDrawnLost: 'Vundet, uafgjort, tabt',
-    gamesWonLost: 'Kampscore',
+    ofTeams: (n) => `af ${n}`,
+    wonDrawnLost: ['V–U–T', 'Vundet, uafgjort, tabt'],
+    gamesWonLost: ['Kampscore', 'Vundne og tabte kampe'],
     nextMatch: 'Næste kamp',
     theOpponent: 'modstanderen',
     whyChances: 'Hvorfor disse chancer?',
-    plannedLineup: (players) => `Bygger på opstillingen fra holdplanlæggeren: ${players}.`,
-    seasonLineups:
-      'Bygger på de opstillinger begge hold har brugt i sæsonen. Markér i holdplanlæggeren hvem der kan spille, så bruges jeres rigtige opstilling.',
-    preview: 'Se kampen og prøv opstillinger',
+    plannedLineup: (players) => `Med opstillingen fra holdplanlæggeren: ${players}.`,
+    seasonLineups: 'Ud fra de opstillinger begge hold har brugt i sæsonen.',
+    preview: 'Se kampen',
     moreInsights: (n) => `Vis ${n} mere`,
     pointsRace: 'Point gennem sæsonen',
-    pointsRaceNote: 'Point efter hver kamp sammenlignet med resten af puljen.',
     comingUp: 'Kommende kampe',
     left: (n) => `${n} tilbage`,
-    comingUpNote: 'Chancen for sejr i hver kamp. Tryk på en kamp for at se den og prøve opstillinger.',
-    previewLabel: (win) => `Se kampen: ${pct(win)} chance for sejr`,
     nonePlayed: 'Ingen kampe spillet endnu.',
-    scoreLabel: (score) => `Holdkampens resultat: ${score}`,
-    to: ' mod ',
-    tapName: 'Tryk på et navn for at se spillerens kampe',
     noGames: 'Ingen kampe registreret endnu.',
     singlesFor: (name) => `Singler for ${name}`,
   },
@@ -292,8 +271,7 @@ export const da: Texts = {
   },
 
   club: {
-    eyebrow: (season) => `Klub${season ? ` · ${season}` : ''}`,
-    teamsInPools: (teams, pools) => `${plural(teams, 'hold', 'hold')} i ${plural(pools, 'pulje', 'puljer')}`,
+    eyebrow: (season, teams) => `Klub${season ? ` · ${season}` : ''} · ${plural(teams, 'hold', 'hold')}`,
     of: (teams, points) => ` af ${teams} · ${plural(points, 'p', 'p')}`,
     notStarted: 'Ikke startet',
   },
@@ -307,13 +285,10 @@ export const da: Texts = {
       lost: ['T', 'Tabte'],
       games: 'Score',
       points: 'Point',
-      projected: ['Prog.', 'Forventede point ved sæsonens afslutning'],
     },
-    projectedNote:
-      'Prog.: forventede point ved sæsonens afslutning med den forventede placering nedenunder. Tallet lægger chancerne for sejr og uafgjort sammen for alle resterende kampe og går ud fra at hvert hold stiller med opstillinger det har brugt i sæsonen.',
-    playedOf: (played, total) => `${played} af ${plural(total, 'kamp', 'kampe')} spillet`,
-    showFewer: 'Vis færre',
-    showAllResults: (n) => `Vis alle ${n} resultater`,
+    projected: 'Forventet slutstilling',
+    projectedNote: 'Chancerne for sejr og uafgjort lagt sammen for alle resterende kampe, med de opstillinger holdene har brugt i sæsonen.',
+    playedOf: (played, total) => `${played} af ${total} spillet`,
     nextMatches: 'Næste kampe',
     sortedBySingles: 'Sorteret efter vundne singler',
     wonColumn: 'Vundet',
@@ -328,97 +303,76 @@ export const da: Texts = {
     game: 'Kamp',
     wo: ' (w.o.)',
     wonSr: ' (vundet)',
-    predictionTitle: 'Forudsigelse og resultat',
-    predictionHeadline: (win, home, draw) => (
+    predictionTitle: 'Forudsagt før kampen',
+    expectedEnded: (expected, ended, likeliest) => (
       <>
-        Før kampen: {win} chance for sejr til {home}
-        {draw ? ` og ${draw} for uafgjort` : ''}.
+        Forventet resultat {expected}. Det blev {ended}
+        {likeliest ? ', det mest sandsynlige udfald' : ''}.
       </>
     ),
-    winFor: (team) => `sejr til ${team}`,
-    aDraw: 'uafgjort',
-    expectedEnded: (expected, ended) => (
-      <>
-        Forventet resultat {expected}. Resultatet blev {ended}.
-      </>
-    ),
-    likeliestHappened: (outcome) => `Det mest sandsynlige udfald var ${outcome}, og sådan gik det.`,
-    notLikeliest: (outcome) => `Det blev ikke det mest sandsynlige udfald: Forudsigelsen pegede på ${outcome}.`,
     howPredicted: 'Hvordan blev det forudsagt?',
-    howPredictedNote: (home) =>
-      `Ud fra det man vidste før kampdagen: den officielle ratingliste den dag, resultaterne af tidligere kampe (for de opstillinger begge hold havde brugt, og for fælles modstandere) og hver spillers form indtil da. Sejr, uafgjort og nederlag er set fra hjemmeholdet ${home}.`,
+    howPredictedNote:
+      'Ud fra det man vidste før kampdagen: den officielle ratingliste den dag, de tidligere resultater og hver spillers form indtil da.',
     ratingPoints: 'Ratingpoint',
-    ratingPointsNote: (note) =>
-      `Skøn: Kampen er ikke med i de officielle ratinger endnu (den officielle ${note}). »Før« er ratingen op til kampen efter eventuelle tidligere kampe som listen ikke har med.`,
+    ratingPointsNote: 'Et skøn, indtil kampen er med på den officielle ratingliste.',
+    beforeNote: (note) => `»Før« er ratingen op til kampen, efter eventuelle tidligere kampe som den officielle ${note} ikke har med.`,
     before: 'Før',
   },
 
   preview: {
     chances: 'Chancer',
     showFor: 'Vis chancer for',
-    headline: (team, win, sentence, expected) => (
-      <>
-        {team}: {win} {sentence} Forventet resultat {expected}.
-      </>
-    ),
+    winFor: (team) => `chance for sejr til ${team}`,
+    expected: (score) => `Forventet resultat ${score}`,
     notEnough: 'Der er endnu ikke nok resultater til at vurdere kampen.',
-    reasonRatings: 'Spillernes rating.',
-    reasonForm: 'Form og hjemmebane.',
-    reasonCommon: 'Fælles modstandere.',
     lineups: 'Opstillinger',
-    tryLineup: 'Prøv en opstilling: Chancerne ovenfor opdateres med det samme.',
-    tryLineupStored: 'Chancerne ovenfor ændrer sig ikke før begge hold har spillet i puljen.',
-    statusSeason: 'Bruger sæsonens opstillinger. Tryk på spillere for at vælge din egen.',
-    statusNoPlayers: 'Har ikke spillet i puljen endnu, så der er ingen spillere at vælge.',
-    statusPickMore: (n) => `Vælg ${n === 1 ? '1 spiller' : `${n} spillere`} mere. Indtil da bruges sæsonens opstillinger.`,
-    statusPlanned: 'Opstilling fra holdplanlæggeren.',
-    statusYours: 'Din opstilling.',
+    tryLineup: 'Tryk på spillere for at prøve en opstilling. Chancerne opdateres med det samme.',
+    tryLineupStored: 'Chancerne ændrer sig ikke før begge hold har spillet i puljen.',
+    statusNoPlayers: 'Har ikke spillet i puljen endnu.',
+    statusPickMore: (n) => `Vælg ${n} mere.`,
+    statusPlanned: 'Fra holdplanlæggeren.',
     backToSeason: 'Tilbage til sæsonens opstillinger',
     grid: 'Jeres spillere mod deres',
-    gridNote: (team, columns) =>
-      `Chancen for at hver spiller fra ${team} vinder en single, ud fra rating, form og hjemmebane. Kolonner: ${columns}.`,
-    columnsPicked: (team) => `den opstilling for ${team} du har valgt`,
+    gridNote: (team, columns) => `Chancen for at hver spiller fra ${team} vinder sin single. Kolonner: ${columns}.`,
+    columnsPicked: 'den valgte opstilling',
     columnsUsual: (team) => `de mest brugte spillere fra ${team}`,
     gridPlayer: (team) => `Spiller fra ${team}`,
     h2hSr: 'Indbyrdes:',
-    h2hNote: (from) => `Under en chance står de to spilleres indbyrdes singler siden ${from}, vundet–tabt.`,
+    h2hNote: (from) => `Små tal: de to spilleres indbyrdes singler siden ${from} (vundet–tabt).`,
     h2hAll: (pairs) => `${pairs} par spillere har mødt hinanden før`,
     h2hItem: (player, opponent, won, lost, last, lastWon) =>
       `${player} mod ${opponent}: ${won}–${lost}, ${won + lost === 1 ? '' : 'senest '}${lastWon ? 'en sejr' : 'et nederlag'} den ${last}`,
     heat: ['Klar underdog', 'Underdog', 'Lige', 'Favorit', 'Klar favorit'],
     commonTitle: 'Fælles modstandere',
-    commonNote: (team) => `Sådan klarede begge hold sig mod de samme modstandere. Forskel: kampe pr. holdkamp set fra ${team}.`,
+    commonNote: (team) => `Resultater mod de samme hold. Forskel set fra ${team}.`,
     difference: 'Forskel',
     eachOther: 'Indbyrdes',
     howWorkedOut:
-      'Hver kamp får en chance ud fra ratingforskellen, kalibreret efter puljens singler. Oven i det kommer det som ratingerne ikke fanger, afprøvet på alle kampe i de seneste tre sæsoner: hver spillers singler i denne sæson i alle puljer, målt mod det ratingen forventede (sidste sæson tæller en tredjedel så meget); ungdomsspillere, som forbedrer sig hurtigere end ratinglisten; spillere uden rating, som er svagere end den medianrating i puljen de står i stedet for; og hjemmebanen, undtagen i veteranpuljer. Fælles modstandere tæller en fjerdedel. Alt er skøn og ikke sikre tal.',
+      'Hver kamp får en chance ud fra ratingforskellen, kalibreret efter puljens resultater. Form er spillerens singler i sæsonen målt mod det ratingen forventede; sidste sæson tæller en tredjedel så meget. Ungdomsspillere og spillere uden rating justeres, og hjemmebanen tæller undtagen i veteranpuljer. Alt er skøn.',
   },
 
   reasons: {
+    chanceToWin: 'Chance for sejr',
+    ratings: 'Rating alene',
+    averages: (ours, theirs) => `Gennemsnitlig rating ${ours} mod ${theirs}.`,
     noRatings: 'Der er endnu ikke nok kampe til at sammenligne spillerne.',
-    aboutEven: 'omtrent lige stærke',
-    stronger: (team, points) => `${team} er ${points} point stærkere`,
-    weaker: (team, points) => `${team} er ${points} point svagere`,
-    lineupAverage: (team, average) => `${average} for ${team}`,
-    lineupsAverage: (team, average) => `${average} for ${team}`,
-    ratings: (ours, theirs, balance, win) =>
-      `Gennemsnitlig rating: ${ours} og ${theirs} – ${balance}. Ud fra ratingerne alene er chancen for sejr ${pct(win)}.`,
-    noCommon: 'Ingen fælles modstandere endnu, så den del er udeladt.',
-    commonOpponents: (n) => plural(n, 'fælles modstander', 'fælles modstandere'),
-    earlierMeeting: 'holdenes indbyrdes kamp',
-    asWell: 'omtrent lige så godt som dem',
-    better: (margin) => `${dec(margin)} ${kampe(margin)} bedre pr. holdkamp`,
-    worse: (margin) => `${dec(margin)} ${kampe(margin)} dårligere pr. holdkamp`,
-    common: (what, team, how, win) => `Ud fra ${what} klarede ${team} sig ${how}. Alene ud fra det er chancen for sejr ${pct(win)}.`,
-    atHome: (team, points) => `${team} spiller hjemme: omkring +${points} ratingpoint pr. kamp.`,
+    form: 'Med form og hjemmebane',
+    atHome: (team, points) => `Hjemmebane: +${points} ratingpoint til ${team}.`,
     noHomeEdge: 'Ingen hjemmebanefordel i veteranpuljer.',
+    forTeam: (team, players) => `${team}: ${players}`,
     youth: ' (ungdomsspiller)',
     unrated: ' (uden rating)',
-    forTeam: (players, team) => `${players} hos ${team}`,
-    formList: (lists) => `Form i forhold til rating: ${lists}.`,
     noForm: 'Ingen spiller ligger langt fra sin rating.',
-    hardlyChange: 'Samlet ændrer det næsten ikke chancerne.',
-    withThese: (after, before) => `Med dem er chancen for sejr ${pct(after)} i stedet for ${pct(before)}.`,
+    common: 'Fælles modstandere',
+    commonNote: (what, how) => `${capital(what)}: ${how}.`,
+    noCommon: 'Ingen endnu.',
+    commonOpponents: (n) => plural(n, 'fælles modstander', 'fælles modstandere'),
+    earlierMeeting: 'holdenes indbyrdes kamp',
+    asWell: 'omtrent lige gode',
+    better: (margin) => `${dec(margin)} ${kampe(margin)} bedre pr. holdkamp`,
+    worse: (margin) => `${dec(margin)} ${kampe(margin)} dårligere pr. holdkamp`,
+    total: 'Samlet',
+    weights: 'Rating med form tæller tre fjerdedele, fælles modstandere en fjerdedel.',
   },
 
   insights: {
@@ -433,21 +387,18 @@ export const da: Texts = {
       bestWin: 'Bedste sejr',
       upsetLoss: 'Overraskende nederlag',
     },
-    place: (position, teams, points) => `Nr. ${position} af ${teams} med ${plural(points, 'point', 'point')}.`,
     levelWith: (teams) => `Lige på point med ${names(teams)}.`,
     behind: (points, team, position) => `${plural(points, 'point', 'point')} efter ${team} (nr. ${position}).`,
     top: 'Fører puljen.',
     ahead: (points, team) => `${plural(points, 'point', 'point')} foran ${team}.`,
     teamForm: (matches, won, expected) =>
-      `I ${plural(matches, 'holdkamp', 'holdkampe')} vandt holdet ${plural(won, 'kamp', 'kampe')}; ratingerne forudsagde ${dec(expected)}.`,
-    moreGames: (diff) => `Det er ${dec(diff)} ${kampe(diff)} mere end ventet: Holdet præsterer over sin rating.`,
-    fewerGames: (diff) => `Det er ${dec(diff)} ${kampe(diff)} færre end ventet.`,
-    moreWins: (diff) => `Det er ${dec(diff)} ${sejre(diff)} mere end ventet: Spilleren præsterer over sin rating.`,
-    fewerWins: (diff) => `Det er ${dec(diff)} ${sejre(diff)} færre end ventet.`,
+      `${plural(won, 'vunden kamp', 'vundne kampe')} i ${plural(matches, 'holdkamp', 'holdkampe')}; ratingerne forudsagde ${dec(expected)}.`,
+    more: (diff) => `Det er ${dec(diff)} mere end ventet.`,
+    fewer: (diff) => `Det er ${dec(diff)} mindre end ventet.`,
     asExpected: 'Omtrent som ventet.',
-    fifthSets: (won, lost) => `Singler der gik i femte sæt: ${won} vundet og ${lost} tabt.`,
+    fifthSets: (won, lost) => `Femte sæt i singler: ${won} vundet, ${lost} tabt.`,
     doubles: (won, played, best, pair, pairWon, pairLost) =>
-      `Doubler vundet: ${won} af ${played}. ${best ? 'Bedste par' : 'Mest brugte par'}: ${names(pair)} (${pairWon}–${pairLost}).`,
+      `${won} af ${played} vundet. ${best ? 'Bedste par' : 'Mest brugte par'}: ${names(pair)} (${pairWon}–${pairLost}).`,
     standout: (name, won, singles, above) =>
       `${name} har vundet ${won} af ${plural(singles, 'single', 'singler')}, ${dec(above)} flere end ratingen forudsiger.`,
     outlook: (favourite, remaining, projected, rank) =>
@@ -456,17 +407,16 @@ export const da: Texts = {
           ? favourite === 1
             ? 'Favorit i den sidste kamp.'
             : 'Ikke favorit i den sidste kamp.'
-          : `Favorit i ${favourite} af de ${remaining} resterende kampe.`
-      } Forventet slutplacering: nr. ${rank} med omkring ${plural(projected, 'point', 'point')} (hvis hvert hold stiller med opstillinger det har brugt i sæsonen).`,
+          : `Favorit i ${favourite} af ${remaining} resterende kampe.`
+      } Forventet slutplacering: nr. ${rank} med omkring ${plural(projected, 'point', 'point')}.`,
     bestLineup: (size, players, favourite, remaining) =>
-      `Med sine ${plural(size, 'højest ratede spiller', 'højest ratede spillere')} (${names(players)}) ville holdet ${
-        remaining === 1 ? (favourite === 1 ? 'være favorit i den sidste kamp' : 'ikke være favorit i den sidste kamp') : `være favorit i ${favourite} af de ${remaining}`
+      `Med ${size === 1 ? 'den højest ratede spiller' : `de ${size} højest ratede spillere`} (${names(players)}): ${
+        remaining === 1 ? (favourite === 1 ? 'favorit i den sidste kamp' : 'ikke favorit i den sidste kamp') : `favorit i ${favourite} af ${remaining} kampe`
       }.`,
     playerForm: (won, singles, expected) => `Vandt ${won} af ${plural(singles, 'single', 'singler')}; ratingen forudsagde ${dec(expected)}.`,
     playerFifthSets: (won, played) => `Femte sæt: ${won} vundet ud af ${played}.`,
-    bestWin: (name, rating, sets, gap) =>
-      `${name} (${rating}), ${sets}.${gap > 0 ? ` En overraskelse: Modstanderen havde ${gap} ratingpoint mere.` : ''}`,
-    upsetLoss: (name, rating, sets, gap) => `${name} (${rating}), ${sets} mod en modstander med ${gap} ratingpoint mindre.`,
+    bestWin: (name, rating, sets, gap) => `${name} (${rating}), ${sets}.${gap > 0 ? ` Ratet ${gap} point højere.` : ''}`,
+    upsetLoss: (name, rating, sets, gap) => `${name} (${rating}), ${sets}. Ratet ${gap} point lavere.`,
     partner: (won, lost, name) => `${won}–${lost} med ${name}`,
   },
 

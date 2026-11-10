@@ -1045,65 +1045,126 @@ textarea {
   padding: 24px 0;
 }
 
+/* Four key numbers in one row, also on a phone: short labels, and values that shrink with the screen. */
 .tiles {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-@media (min-width: 720px) {
-  .tiles {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .tile {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 12px 14px;
+  padding: 10px 8px;
   display: grid;
+  align-content: start;
   gap: 2px;
   min-width: 0;
 }
 
-.tile-label {
-  font-size: 0.8rem;
+.tile-label,
+.tile-detail {
+  font-size: 0.72rem;
   color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tile-label abbr {
+  text-decoration: none;
 }
 
 .tile-value {
   font-family: var(--font-display);
-  font-size: 2.1rem;
+  font-size: min(1.6rem, 6.4vw);
   font-weight: 700;
   line-height: 1.05;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
-.tile-detail {
-  font-size: 0.8rem;
-  color: var(--text-2);
-  overflow-wrap: anywhere;
+@media (min-width: 720px) {
+  .tiles {
+    gap: 12px;
+  }
+  .tile {
+    padding: 12px 14px;
+  }
+  .tile-label,
+  .tile-detail {
+    font-size: 0.8rem;
+  }
+  .tile-value {
+    font-size: 2.1rem;
+  }
 }
 
+/*
+ * Lists of matches, teams and seasons. A row is one tap target (.row-link): the whole row leads to
+ * its page, and the chevron at its end says so.
+ */
 .result-list {
-  margin: 0;
+  margin: -6px 0;
   padding: 0;
   list-style: none;
 }
 
 .result-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 0;
   border-top: 1px solid var(--line);
 }
 
 .result-row:first-child {
   border-top: 0;
-  padding-top: 0;
+}
+
+.row-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 -8px;
+  padding: 10px 8px;
+  border-radius: 10px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+/* The row's main text takes the room; what follows it (a score, a place) sits by the chevron. */
+.row-link > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.row-link > :not(:first-child) {
+  flex: none;
+  white-space: nowrap;
+}
+
+.row-link::after {
+  content: '';
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin: 0 2px 0 -4px;
+  border-top: 2px solid var(--tick);
+  border-right: 2px solid var(--tick);
+  transform: rotate(45deg);
+}
+
+@media (hover: hover) {
+  .row-link:hover {
+    background: var(--surface-2);
+  }
+}
+
+.row-link:active {
+  background: var(--surface-2);
+}
+
+.show-all {
+  justify-self: start;
 }
 
 .result-main {
@@ -1127,6 +1188,15 @@ textarea {
 .result-vs {
   font-weight: 550;
   overflow-wrap: break-word;
+}
+
+/* A played match between two teams: the winner's name is the strong one. */
+.result-vs.is-decided {
+  font-weight: 400;
+}
+
+.result-vs .is-winner {
+  font-weight: 650;
 }
 
 .result-venue {
@@ -1258,24 +1328,37 @@ textarea {
   background: var(--series-1);
 }
 
-.match-title {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 14px;
+/* A match's heading as a scoreboard: one line per team, its games won at the end. */
+.scoreboard {
+  display: grid;
+  gap: 6px;
 }
 
-.match-title a {
+.score-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.score-row a {
   color: var(--text);
   text-decoration: none;
 }
 
-.match-title a:hover {
+.score-row a:hover {
   text-decoration: underline;
 }
 
-.match-score {
+.score-vs {
+  color: var(--text-2);
+}
+
+.score-num {
   font-variant-numeric: tabular-nums;
+}
+
+.score-row.is-behind .score-num {
   color: var(--text-2);
 }
 
@@ -1666,6 +1749,58 @@ textarea {
   font-variant-numeric: tabular-nums;
 }
 
+/* A match's expected score, on its own line under the headline chance. */
+.odds-expected {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--text-2);
+}
+
+/* How the chances come about: one line per step, the chance to win at its end, then the sum. */
+.steps {
+  display: grid;
+}
+
+.steps-head {
+  padding-bottom: 4px;
+  text-align: right;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.step {
+  display: grid;
+  gap: 2px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+
+.step-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-weight: 600;
+}
+
+.step-win {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.step-note {
+  font-size: 0.85rem;
+  color: var(--text-2);
+}
+
+.step-total {
+  border-top: 2px solid var(--axis);
+}
+
+.steps + p {
+  margin-bottom: 8px;
+}
+
 .reasons {
   margin: 0;
   padding-left: 18px;
@@ -1861,23 +1996,21 @@ textarea {
   gap: 12px;
 }
 
-.club-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
+/* The two filters fold away: most people only type a name. */
+.filters summary {
+  cursor: pointer;
+  color: var(--link);
+  font-weight: 600;
+  font-size: 0.9rem;
 }
 
-.club-item {
-  display: grid;
-  gap: 4px;
-  padding: 12px 0;
-  border-top: 1px solid var(--line);
+.filters[open] summary {
+  margin-bottom: 8px;
 }
 
-.club-item:first-child {
-  border-top: 0;
-  padding-top: 4px;
+.filters-on {
+  color: var(--text-2);
+  font-weight: 400;
 }
 
 .club-name {
@@ -1885,29 +2018,16 @@ textarea {
   font-size: 1.02rem;
 }
 
+/* A club's teams under its name in the search results: set in, with a rule down the side. */
 .club-teams {
-  margin: 0;
-  padding: 0;
+  margin: 0 0 8px 6px;
+  padding: 0 0 0 10px;
   list-style: none;
-  display: grid;
-  gap: 2px;
+  border-left: 2px solid var(--line);
 }
 
-.club-teams a {
-  font-weight: 550;
-}
-
-.history-link {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  color: var(--text);
-  text-decoration: none;
-}
-
-.history-link:hover {
-  border-color: var(--accent);
+.club-teams .row-link {
+  padding-block: 7px;
 }
 
 .results-head.after-clubs {

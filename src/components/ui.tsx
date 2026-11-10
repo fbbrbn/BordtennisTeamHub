@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { Loaded } from '../data/load';
 import type { PoolInfo } from '../data/model';
 import type { Outcome } from '../data/stats';
@@ -23,10 +23,48 @@ export function portalUrl(pool: PoolInfo, subPage: number, ids: { teamId?: strin
   return `https://www.bordtennisportalen.dk/DBTU/HoldTurnering/Stilling/#${hash.join(',')}`;
 }
 
-export function StatTile({ label, value, detail }: { label: string; value: ReactNode; detail?: ReactNode }) {
+/** A list row that is one tap target: the whole row leads to `to`, and a chevron at its end says so. */
+export function RowLink({ to, children }: { to: string; children: ReactNode }) {
+  return (
+    <a className="row-link" href={to}>
+      {children}
+    </a>
+  );
+}
+
+/**
+ * The first `limit` items of a long list, and the button that shows the rest (null when all fit).
+ * Long lists start short so the page stays short on a phone.
+ */
+export function useShowAll<T>(items: readonly T[], limit: number): [readonly T[], ReactNode] {
+  const [all, setAll] = useState(false);
+  if (items.length <= limit) return [items, null];
+  const button = (
+    <button type="button" className="button show-all" aria-expanded={all} onClick={() => setAll((v) => !v)}>
+      {all ? t.common.showFewer : t.common.showAll(items.length)}
+    </button>
+  );
+  return [all ? items : items.slice(0, limit), button];
+}
+
+/** The same page on bordtennisportalen.dk: a quiet link at the foot of a page. */
+export function PortalLink({ to }: { to: string }) {
+  return (
+    <p className="page-source muted small">
+      <a href={to} target="_blank" rel="noreferrer">
+        {t.common.onPortal}
+      </a>
+    </p>
+  );
+}
+
+/** One key number. `hint` spells out a short label ("W–D–L": won, drawn, lost) for hover and screen readers. */
+export function StatTile({ label, hint, value, detail }: { label: string; hint?: string; value: ReactNode; detail?: ReactNode }) {
   return (
     <div className="tile">
-      <div className="tile-label">{label}</div>
+      <div className="tile-label" title={hint}>
+        {hint ? <abbr title={hint}>{label}</abbr> : label}
+      </div>
       <div className="tile-value">{value}</div>
       {detail !== undefined && <div className="tile-detail">{detail}</div>}
     </div>

@@ -8,7 +8,7 @@ import { matchRatingPoints } from '../data/ratings';
 import { playersById, teamsById } from '../data/stats';
 import { t } from '../i18n';
 import { href } from '../lib/router';
-import { matchDayLong, matchTime, NotFound, PageState, percent, portalUrl, signed } from '../components/ui';
+import { matchDayLong, matchTime, NotFound, PageState, PortalLink, portalUrl, signed } from '../components/ui';
 import { oneDecimal } from '../lib/text';
 import { MatchPreview } from './MatchPreview';
 
@@ -44,20 +44,22 @@ function MatchView({ pool, match }: { pool: PoolData; match: TeamMatch }) {
         <p className="eyebrow">
           <a href={href('pool', pool.pool.id)}>{pool.pool.name}</a> · {t.match.eyebrow(match.id)} <PastSeasonTag pool={pool.pool} />
         </p>
-        <h1 className="match-title">
-          <a href={href('team', pool.pool.id, match.homeTeamId)}>{home?.name ?? t.common.home}</a>
-          <span className="match-score">{match.score ? match.score.join('–') : t.common.vs}</span>
-          <a href={href('team', pool.pool.id, match.awayTeamId)}>{away?.name ?? t.common.away}</a>
+        {/* A scoreboard: one line per team, its games won at the end once the match is played. */}
+        <h1 className="scoreboard">
+          {([[match.homeTeamId, home?.name ?? t.common.home, 0], [match.awayTeamId, away?.name ?? t.common.away, 1]] as const).map(([id, name, side]) => (
+            <span key={id} className={match.score && match.score[side] < match.score[1 - side] ? 'score-row is-behind' : 'score-row'}>
+              <span>
+                {!match.score && side === 1 && <span className="score-vs">{t.common.vs} </span>}
+                <a href={href('team', pool.pool.id, id)}>{name}</a>
+              </span>
+              {match.score && <span className="score-num">{match.score[side]}</span>}
+            </span>
+          ))}
         </h1>
         <p className="muted">
           {matchDayLong(match.date)} · {matchTime(match.date)} · {match.venue}
           {match.walkover && t.match.walkover}
         </p>
-        <div className="button-row">
-          <a className="button" href={portalUrl(pool.pool, 5, { matchId: match.id })} target="_blank" rel="noreferrer">
-            {t.common.openOnPortal}
-          </a>
-        </div>
       </header>
 
       {!match.score && <MatchPreview pool={pool} match={match} />}
@@ -109,7 +111,7 @@ function MatchView({ pool, match }: { pool: PoolData; match: TeamMatch }) {
       {pool.pool.ratings && ratingLines.length > 0 && (
         <section className="card">
           <h2>{t.match.ratingPoints}</h2>
-          <p className="muted">{t.match.ratingPointsNote(listNote(pool.pool.ratings))}</p>
+          <p className="muted small">{t.match.ratingPointsNote}</p>
           <div className="table-scroll">
             <table className="data-table">
               <thead>
@@ -137,9 +139,11 @@ function MatchView({ pool, match }: { pool: PoolData; match: TeamMatch }) {
               </tbody>
             </table>
           </div>
-          <RatingRules />
+          <RatingRules intro={t.match.beforeNote(listNote(pool.pool.ratings))} />
         </section>
       )}
+
+      <PortalLink to={portalUrl(pool.pool, 5, { matchId: match.id })} />
     </div>
   );
 }
@@ -150,25 +154,17 @@ function PredictionCard({ match, homeName, awayName }: { match: TeamMatch; homeN
   const outcome = homeOutcome(match.score, match.walkover);
   if (!odds || !match.prediction || !match.score) return null;
   const expected = `${oneDecimal(odds.expectedGames)}–${oneDecimal(odds.totalGames - odds.expectedGames)}`;
-  const favourite = likeliest(match.prediction);
-  const favouriteText = favourite === 'win' ? t.match.winFor(homeName) : favourite === 'loss' ? t.match.winFor(awayName) : t.match.aDraw;
   return (
     <section className="card">
       <h2>{t.match.predictionTitle}</h2>
-      <p className="odds-headline">
-        {t.match.predictionHeadline(<strong>{percent(odds.win)}</strong>, homeName, odds.drawPossible ? percent(odds.draw) : null)}
-      </p>
-      <OddsBar odds={odds} />
-      <p>
-        {t.match.expectedEnded(<strong>{expected}</strong>, <strong>{match.score.join('–')}</strong>)}{' '}
-        {outcome === null ? '' : outcome === favourite ? t.match.likeliestHappened(favouriteText) : t.match.notLikeliest(favouriteText)}
-      </p>
+      {/* The bar is from the home side: its ends are named after the teams, so nothing needs explaining. */}
+      <OddsBar odds={odds} sides={{ win: homeName, loss: awayName }} />
+      <p>{t.match.expectedEnded(<strong>{expected}</strong>, <strong>{match.score.join('–')}</strong>, outcome === likeliest(match.prediction))}</p>
       <details className="why">
         <summary>{t.match.howPredicted}</summary>
-        <p className="muted small">{t.match.howPredictedNote(homeName)}</p>
+        <p className="muted small">{t.match.howPredictedNote}</p>
         {match.prediction.lineups && <p className="muted small">{t.prediction.borrowed[match.prediction.lineups]}</p>}
       </details>
     </section>
   );
 }
-

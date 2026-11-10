@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FollowButton } from '../components/FollowButton';
 import { ThinOdds } from '../components/Odds';
-import { matchDay, matchTime } from '../components/ui';
+import { matchDay, matchTime, RowLink } from '../components/ui';
 import { clubSlug, fallbackClubName } from '../data/clubs';
 import { fitScale, forecastMatch, lineupSize, shownOdds } from '../data/forecast';
 import { loadIndex, loadPlayers, loadPool, useLoaded } from '../data/load';
@@ -11,13 +11,15 @@ import { useFollowing, type FollowedTeam } from '../lib/follow';
 import { readLastTeam } from '../lib/lastTeam';
 import { t } from '../i18n';
 import { href } from '../lib/router';
-import { ordinal, percent } from '../lib/text';
+import { percent } from '../lib/text';
 import { plannedLineup } from '../lineup/planned';
 import { listSavedPlanners, newId } from '../lineup/storage';
 
 const fold = (s: string) => s.toLocaleLowerCase('da').normalize('NFKD').replace(/[̀-ͯ]/g, '');
 const RESULTS_PAGE = 20;
 const BROWSE_PAGE = 12;
+/** A club that matches by name lists this many of its teams; the club page has them all. */
+const CLUB_TEAMS = 6;
 
 export interface PlayerMatch {
   player: PlayerEntry;
@@ -70,6 +72,9 @@ export function groupByClub(pools: PoolRef[]): ClubGroup[] {
   return [...clubs.values()].sort((a, b) => a.name.localeCompare(b.name, 'da'));
 }
 
+/** "Senior · Serie 4 Pulje 4" */
+const poolLabel = (pool: PoolRef) => (pool.ageGroupName ? `${pool.ageGroupName} · ${pool.name}` : pool.name);
+
 export function StartPage() {
   const index = useLoaded(loadIndex, 'index');
   const { following } = useFollowing();
@@ -81,13 +86,12 @@ export function StartPage() {
   return (
     <>
       <section className="hero">
-        <h1>{following.length > 0 ? t.start.welcomeBack : t.start.findTeam}</h1>
-        <p>{t.start.intro}</p>
+        <h1>{following.length > 0 ? t.start.myTeams : t.start.findTeam}</h1>
+        {following.length === 0 && <p>{t.start.intro}</p>}
       </section>
 
       {following.length > 0 && (
-        <section className="stack" aria-labelledby="my-teams">
-          <h2 id="my-teams">{t.start.myTeams}</h2>
+        <section className="stack">
           {following.map((team) => (
             <MyTeamCard key={`${team.poolId}-${team.teamId}`} team={team} />
           ))}
@@ -104,22 +108,10 @@ export function StartPage() {
         </section>
       )}
 
-      {following.length === 0 && !last && (
-        <section className="card how-it-works">
-          <h2>{t.start.howItWorks}</h2>
-          <ol className="steps">
-            {t.start.steps.map((step, i) => (
-              <li key={i}>{step}</li>
-            ))}
-          </ol>
-        </section>
-      )}
-
       {index.status === 'ready' ? (
-        <ClubSearch index={index.data} />
+        <ClubSearch index={index.data} heading={following.length > 0} />
       ) : (
         <section className="card">
-          <h2>{t.start.findHeading}</h2>
           <p className="muted">{index.status === 'loading' ? t.start.loadingClubs : t.start.clubsUnavailable}</p>
         </section>
       )}
@@ -212,7 +204,8 @@ function MyTeamSummary({ pool, team }: { pool: PoolData; team: FollowedTeam }) {
   );
 }
 
-function ClubSearch({ index }: { index: DataIndex }) {
+/** The search across clubs, teams and players. `heading` when the page starts with something else. */
+function ClubSearch({ index, heading }: { index: DataIndex; heading: boolean }) {
   const [query, setQuery] = useState('');
   const [region, setRegion] = useState('');
   const [ageGroup, setAgeGroup] = useState('');
@@ -266,9 +259,14 @@ function ClubSearch({ index }: { index: DataIndex }) {
           .filter(Boolean)
           .join(' · ');
 
+  const filters = [
+    (index.regions ?? []).find((r) => r.id === region)?.name,
+    (index.ageGroups ?? []).find((a) => a.id === ageGroup)?.name,
+  ].filter(Boolean);
+
   return (
-    <section className="card picker">
-      <h2>{t.start.findHeading}</h2>
+    <section className="card picker" aria-label={t.start.searchLabel}>
+      {heading && <h2>{t.start.findHeading}</h2>}
       <label className="field search-field">
         <span className="sr-only">{t.start.searchLabel}</span>
         <input
@@ -281,42 +279,49 @@ function ClubSearch({ index }: { index: DataIndex }) {
           }}
         />
       </label>
-      <div className="filter-row">
-        <label className="field">
-          <span>{t.start.region}</span>
-          <select
-            value={region}
-            onChange={(e) => {
-              setRegion(e.target.value);
-              reset();
-            }}
-          >
-            <option value="">{t.start.allRegions}</option>
-            {(index.regions ?? []).map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>{t.start.ageGroup}</span>
-          <select
-            value={ageGroup}
-            onChange={(e) => {
-              setAgeGroup(e.target.value);
-              reset();
-            }}
-          >
-            <option value="">{t.start.allAgeGroups}</option>
-            {(index.ageGroups ?? []).map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
+      {/* Most people only type a name, so the two filters stay folded until asked for. */}
+      <details className="filters">
+        <summary>
+          {t.start.filters}
+          {filters.length > 0 && <span className="filters-on"> · {filters.join(' · ')}</span>}
+        </summary>
+        <div className="filter-row">
+          <label className="field">
+            <span>{t.start.region}</span>
+            <select
+              value={region}
+              onChange={(e) => {
+                setRegion(e.target.value);
+                reset();
+              }}
+            >
+              <option value="">{t.start.allRegions}</option>
+              {(index.regions ?? []).map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>{t.start.ageGroup}</span>
+            <select
+              value={ageGroup}
+              onChange={(e) => {
+                setAgeGroup(e.target.value);
+                reset();
+              }}
+            >
+              <option value="">{t.start.allAgeGroups}</option>
+              {(index.ageGroups ?? []).map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </details>
 
       {searching ? (
         <>
@@ -324,24 +329,32 @@ function ClubSearch({ index }: { index: DataIndex }) {
             {status}
           </p>
           {results.length > 0 && (
-            <ul className="club-list">
+            <ul className="result-list">
               {results.slice(0, shown).map((club) => (
-                <li key={club.slug} className="club-item">
-                  <a className="club-name" href={href('club', club.slug)}>
-                    {club.name}
-                  </a>
+                <li key={club.slug} className="result-row">
+                  <RowLink to={href('club', club.slug)}>
+                    <span className="result-vs club-name">{club.name}</span>
+                    <span className="muted small">{t.n.teams(club.teams.length)}</span>
+                  </RowLink>
                   <ul className="club-teams">
-                    {club.teams.map(({ team, pool }) => (
+                    {club.teams.slice(0, CLUB_TEAMS).map(({ team, pool }) => (
                       <li key={`${pool.id}-${team.id}`}>
-                        <a href={href('team', pool.id, team.id)}>{team.name}</a>
-                        <span className="muted small">
-                          {' '}
-                          {pool.ageGroupName ? `${pool.ageGroupName} · ` : ''}
-                          {pool.name}
-                          {team.position ? ` · ${ordinal(team.position)}` : ''}
-                        </span>
+                        <RowLink to={href('team', pool.id, team.id)}>
+                          <span className="result-main">
+                            <span className="result-vs">{team.name}</span>
+                            <span className="result-venue">{poolLabel(pool)}</span>
+                          </span>
+                          {team.position ? <span className="muted small">{t.start.place(team.position)}</span> : null}
+                        </RowLink>
                       </li>
                     ))}
+                    {club.teams.length > CLUB_TEAMS && (
+                      <li>
+                        <RowLink to={href('club', club.slug)}>
+                          <span className="result-venue">{t.start.allTeams(club.teams.length)}</span>
+                        </RowLink>
+                      </li>
+                    )}
                   </ul>
                 </li>
               ))}
@@ -355,34 +368,23 @@ function ClubSearch({ index }: { index: DataIndex }) {
           {playerResults.length > 0 && (
             <>
               <h3 className={results.length > 0 ? 'results-head after-clubs' : 'results-head'}>{t.common.players}</h3>
-              <ul className="club-list">
-                {playerResults.slice(0, shownPlayers).map(({ player, teams }) => (
-                  <li key={player.id} className="club-item">
-                    <span>
-                      <a className="club-name" href={href('player', teams[0].pool.id, player.id)}>
-                        {player.name}
-                      </a>
-                      <span className="muted small"> {player.rating === null ? t.common.unrated : t.common.ratingOf(player.rating)}</span>
-                    </span>
-                    <ul className="club-teams">
-                      {teams.map(({ team, pool }) => {
-                        const club = team.club ?? fallbackClubName(team.name);
-                        return (
-                          <li key={`${pool.id}-${team.id}`}>
-                            <a href={href('club', clubSlug(club))}>{club}</a>
-                            {' · '}
-                            <a href={href('team', pool.id, team.id)}>{team.name}</a>
-                            <span className="muted small">
-                              {' '}
-                              {pool.ageGroupName ? `${pool.ageGroupName} · ` : ''}
-                              {pool.name}
-                            </span>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </li>
-                ))}
+              <ul className="result-list">
+                {playerResults.slice(0, shownPlayers).flatMap(({ player, teams }) =>
+                  // One row per team the player plays for: each leads to their games in that pool.
+                  teams.map(({ team, pool }) => (
+                    <li key={`${player.id}-${pool.id}-${team.id}`} className="result-row">
+                      <RowLink to={href('player', pool.id, player.id)}>
+                        <span className="result-main">
+                          <span className="result-vs">{player.name}</span>
+                          <span className="result-venue">
+                            {team.name} · {pool.name}
+                          </span>
+                        </span>
+                        <span className="muted small">{player.rating ?? t.common.unrated}</span>
+                      </RowLink>
+                    </li>
+                  )),
+                )}
               </ul>
               {playerResults.length > shownPlayers && (
                 <button type="button" className="button" onClick={() => setShownPlayers((n) => n + RESULTS_PAGE)}>
@@ -395,16 +397,16 @@ function ClubSearch({ index }: { index: DataIndex }) {
       ) : (
         <>
           <p className="muted small" role="status">
-            {t.n.clubs(allClubs.length)} · {t.n.pools(pools.length)}
-            {index.season ? t.start.season(index.season.name) : ''}
+            {t.n.clubs(allClubs.length)}
+            {index.season ? ` · ${index.season.name}` : ''}
           </p>
-          <ul className="browse-list">
+          <ul className="result-list">
             {browse.map((club) => (
-              <li key={club.slug}>
-                <a href={href('club', club.slug)}>
-                  <span className="browse-name">{club.name}</span>
+              <li key={club.slug} className="result-row">
+                <RowLink to={href('club', club.slug)}>
+                  <span className="result-vs">{club.name}</span>
                   <span className="muted small">{t.n.teams(club.teams.length)}</span>
-                </a>
+                </RowLink>
               </li>
             ))}
           </ul>

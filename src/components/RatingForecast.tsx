@@ -53,11 +53,12 @@ export function RatingForecastCard({ pool, player }: { pool: PoolData; player: P
   );
 }
 
-/** How rating points work, with the points table, behind a fold. */
-export function RatingRules() {
+/** How rating points work, with the points table, behind a fold. `intro` is said first. */
+export function RatingRules({ intro }: { intro?: string }) {
   return (
     <details className="why">
       <summary>{t.common.howWorkedOut}</summary>
+      {intro && <p className="muted small">{intro}</p>}
       <ul className="reasons">
         {t.ratings.rules.map((rule) => (
           <li key={rule}>{rule}</li>
