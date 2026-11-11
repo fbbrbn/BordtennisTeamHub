@@ -52,9 +52,16 @@ It is built for any team. Vallensbæk BTK 3 is the first test team.
   - Chances from either team's side.
   - A lineup picker for both teams that updates the chances immediately.
   - Every one of your players against their regular lineup, with how each pair has done against each other in
-    singles, this season and before.
+    singles, this season and before. Tapping a chance opens those two players' page (see Player vs player).
   - Why, step by step: the ratings alone, players' form against their rating and the home table, and results against
     common opponents.
+- **Player vs player.** The chance that one player beats another in a single, and why, step by step: the two ratings,
+  form this season and last, youth and unrated players, and the home table when their teams meet. Each step shows its
+  rating points and the chance once it is counted; below, their singles against each other.
+  - Open it from a chance in a match preview's matchup table, with "Compare with another player" on a player page,
+    or with "Compare two players" on the start page.
+  - Pick the opponent from the next opposing team, the rest of the pool, or a search across every player of the
+    season. Players from two pools are compared on a curve fitted on both pools' singles.
 - **Match page.** A scoreboard, then all games of a played team match, with players and sets.
   - The prediction made before the match, next to how it ended.
   - Until the official rating list includes the match, each player's estimated rating points.

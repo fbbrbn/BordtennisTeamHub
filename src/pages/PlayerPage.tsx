@@ -57,6 +57,13 @@ function PlayerView({ pool, player, tab }: { pool: PoolData; player: Player; tab
           <a href={href('pool', pool.pool.id)}>{pool.pool.name}</a> <PastSeasonTag pool={pool.pool} />
         </p>
         <h1>{player.name}</h1>
+        {!pool.pool.past && (
+          <div className="button-row">
+            <a className="button" href={href('vs', pool.pool.id, player.id)}>
+              {t.versus.compare}
+            </a>
+          </div>
+        )}
       </header>
 
       <nav className="tabs" aria-label={t.player.tabsLabel}>

@@ -83,11 +83,23 @@ The main logic is in pure functions with unit tests:
     as "unrated".
 - `src/pages/MatchPreview.tsx`: the upcoming-match page.
   - Chances from either side, a lineup picker and a matchup heat table. Under each chance, the two players' singles
-    against each other, this season and before; below the table, every pair of the two teams that has met.
+    against each other, this season and before; below the table, every pair of the two teams that has met. Each chance
+    links to the two players' page (`#/vs/...?match=<id>`).
   - `WhyChances`: the steps behind the chances, each with the chance to win at that step (ratings alone, with form and
     the home table, common opponents, together). It sits behind "Why these chances?"; the team page's next match shows
     the same.
   - It starts from the planner lineup when the captain has answers (`src/lineup/planned.ts`).
+- Player against player: `src/data/versus.ts` and `src/pages/VersusPage.tsx`.
+  - `versus(a, b, { matchId })` is one single's chance as steps: the rating gap on the curve, then each edge of
+    `form.ts` (form this season and last, youth, unrated), then the home table. Each step has both players' parts in
+    rating points and the chance once it is counted. In one pool it equals the heat table's cell exactly (a test
+    checks it, and a check over all pools found every cell the same).
+  - The home table counts only for a team match between the players' teams: `?match=` from the heat table, otherwise
+    the next match to come between them (`versusMatch`). Players of two pools have no match, and their curve is
+    fitted on the singles of both pools (`versusScale`); an unrated player counts as their own pool's median.
+  - Routes: `#/vs` (pick a player: your team's, or a search), `#/vs/<pool>/<player>` (pick the opponent: the next
+    opposing team, the rest of the pool, or a search of `data/players.json`) and `#/vs/<pool>/<player>/<pool>/<player>`.
+    The player page and the start page link to it; their singles against each other come from `loadHeadToHead`.
 - `src/pages/`: the start page, plus club, team, player, pool and match dashboards.
   - The start page shows followed teams first (`src/lib/follow.ts`, localStorage), then a search across every club,
     team and player; the region and age-group filters are folded away. Player names come from `data/players.json`,
@@ -96,7 +108,7 @@ The main logic is in pure functions with unit tests:
   - `src/components/Nav.tsx`: Home · My team · Lineup, a bottom bar on phones and top links on desktop. "My team" is
     the first followed team, otherwise the last team opened.
   - Keep pages short on phones: put explanations behind `<details>`, and show the most useful items first.
-  - Routes look like `#/team/<poolId>/<teamId>` and `#/club/<slug>`.
+  - Routes look like `#/team/<poolId>/<teamId>`, `#/club/<slug>` and `#/vs/<poolId>/<playerId>/<poolId>/<playerId>`.
   - `src/data/clubs.ts` maps team names to clubs and makes club slugs.
 - Look: red against blue, the table and the paddle. Colour tokens are at the top of `src/styles.css`, light and dark;
   chart colours are validated with the dataviz skill's script in both modes. Headings and big numbers use Barlow

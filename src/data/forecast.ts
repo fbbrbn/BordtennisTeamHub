@@ -236,6 +236,11 @@ export function oddsForFormat(format: MatchFormat, chances: number[], deciderCha
 
 /** Logistic scale that best explains the pool's singles results (max likelihood, weak prior around 300). */
 export function fitScale(pool: PoolData): number {
+  return fitScaleTo(scaleGames(pool));
+}
+
+/** The pool's singles between two rated players: the rating gap (home minus away) and whether home won. */
+export function scaleGames(pool: PoolData): { diff: number; won: boolean }[] {
   const rating = new Map(pool.players.map((p) => [p.id, p.rating]));
   const games: { diff: number; won: boolean }[] = [];
   for (const match of pool.matches) {
@@ -247,7 +252,7 @@ export function fitScale(pool: PoolData): number {
       games.push({ diff: a - b, won: g.winner === 'home' });
     }
   }
-  return fitScaleTo(games);
+  return games;
 }
 
 /** The logistic scale that best explains these singles (rating gap, and whether the first player won). */

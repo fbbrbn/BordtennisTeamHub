@@ -5,6 +5,7 @@ import { PlayerPage } from './pages/PlayerPage';
 import { PoolPage } from './pages/PoolPage';
 import { StartPage } from './pages/StartPage';
 import { TeamPage } from './pages/TeamPage';
+import { VersusPage } from './pages/VersusPage';
 import { Logo } from './components/Logo';
 import { Nav } from './components/Nav';
 import { LanguageSwitch } from './components/LanguageSwitch';
@@ -32,6 +33,21 @@ function Page({ route }: { route: Route }) {
     return <PlayerPage key={`${a}-${b}`} poolId={a} playerId={b} tab={route.query.get('tab')} />;
   }
   if (section === 'match' && ID_PATTERN.test(a) && ID_PATTERN.test(b)) return <MatchPage key={`${a}-${b}`} poolId={a} matchId={b} />;
+  if (section === 'vs') {
+    // #/vs, #/vs/<pool>/<player> or #/vs/<pool>/<player>/<pool>/<player>, and ?match=<id> from a match preview.
+    const [c = '', d = ''] = route.path.slice(3);
+    const pick = (poolId: string, playerId: string) => (ID_PATTERN.test(poolId) && ID_PATTERN.test(playerId) ? { poolId, playerId } : null);
+    const first = pick(a, b);
+    const match = route.query.get('match') ?? '';
+    return (
+      <VersusPage
+        key={route.path.join('/')}
+        first={first}
+        second={first ? pick(c, d) : null}
+        matchId={ID_PATTERN.test(match) ? match : null}
+      />
+    );
+  }
   return <StartPage />;
 }
 

@@ -117,6 +117,14 @@ export function StartPage() {
       )}
 
       <section className="card compact">
+        <h2>{t.versus.title}</h2>
+        <p className="muted small">{t.versus.startNote}</p>
+        <a className="button" href={href('vs')}>
+          {t.versus.startButton}
+        </a>
+      </section>
+
+      <section className="card compact">
         <h2>{t.start.notListed}</h2>
         <p className="muted small">{t.start.notListedNote}</p>
         {saved.length > 0 && (

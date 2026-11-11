@@ -4,7 +4,7 @@
  * numbers, names or links go in.
  */
 import type { ReactNode } from 'react';
-import { decimal, list, ordinal, percent, plural } from './format.ts';
+import { decimal, list, ordinal, percent, plural, signed } from './format.ts';
 
 export type Thing = 'team' | 'player' | 'pool' | 'club' | 'match';
 const THIS: Record<Thing, string> = { team: 'this team', player: 'this player', pool: 'this pool', club: 'this club', match: 'this match' };
@@ -317,11 +317,14 @@ export const en = {
     backToSeason: "Back to this season's lineups",
     grid: 'Your players against theirs',
     gridNote: (team: string, columns: string) => `Chance that each ${team} player wins their singles. Columns: ${columns}.`,
+    gridTap: 'Tap a chance to see why.',
+    /** A chance in the matchup table, for screen readers: it opens the two players' page. */
+    cellLabel: (player: string, opponent: string, chance: string, record: string | null) =>
+      `${player} v ${opponent}: ${chance}.${record ? ` Head-to-head ${record}.` : ''} See why.`,
     columnsPicked: 'the lineup you picked',
     columnsUsual: (team: string) => `${team}'s most-used players`,
     gridPlayer: (team: string) => `${team} player`,
     /** Head-to-head records (src/data/headtohead.ts), from our player's side. */
-    h2hSr: 'Head-to-head:',
     h2hNote: (from: string) => `Small numbers: the two players' singles against each other since ${from} (won–lost).`,
     h2hAll: (pairs: number) => `${pairs === 1 ? '1 pair of players has' : `${pairs} pairs of players have`} met before`,
     h2hItem: (player: string, opponent: string, won: number, lost: number, last: string, lastWon: boolean) =>
@@ -359,6 +362,58 @@ export const en = {
     worse: (margin: number) => `${dec(margin)} ${games(margin)} worse per match`,
     total: 'Together',
     weights: 'Ratings with form count three quarters, common opponents a quarter.',
+  },
+
+  versus: {
+    /** One singles game between two players: the chance, and why (pages/VersusPage.tsx). */
+    title: 'Player vs player',
+    compare: 'Compare with another player',
+    startNote: 'The chance that one player beats another in a single, and why.',
+    startButton: 'Compare two players',
+    pickFirst: 'Pick a player',
+    pickOpponent: 'Pick an opponent',
+    searchLabel: 'Search for a player',
+    searchPlaceholder: "Player's name",
+    nextOpponent: (team: string) => `${team} · next opponent`,
+    restOfPool: 'Others in the pool',
+    noPlayer: (query: string) => `No player matches “${query}”.`,
+    inMatch: (home: string, away: string, day: string) => `Team match: ${home} – ${away}, ${day}`,
+    why: 'Why?',
+    steps: {
+      rating: 'Rating',
+      form: 'Form this season',
+      last: 'Form last season',
+      youth: 'Youth player',
+      unrated: 'Unrated',
+      home: 'Home table',
+    },
+    /** One player in the rating step: "Ann 1250", or the pool median an unrated player counts as. */
+    rating: (name: string, rating: number, unrated: boolean) => (unrated ? `${name} unrated (pool median ${rating})` : `${name} ${rating}`),
+    /** A player's edge in rating points, and why: "Ann +32: 1.5 more wins than expected in 12 singles". */
+    form: (name: string, points: number, above: number, games: number) => {
+      const wins = dec(Math.abs(above));
+      const what = wins === '0' ? 'as expected' : `${wins} ${above > 0 ? 'more' : 'fewer'} ${wins === '1' ? 'win' : 'wins'} than expected`;
+      return `${name} ${signed(points)}: ${what} in ${plural(games, 'single', 'singles')}`;
+    },
+    youth: (name: string, points: number) => `${name} ${signed(points)}: has played in a youth pool this season or last`,
+    unrated: (name: string, points: number) => `${name} ${signed(points)}: unrated players are weaker than the pool's median on average`,
+    home: (name: string, points: number) => `${name} ${signed(points)}: plays at home`,
+    gap: (points: number, name: string) => (points === 0 ? 'Altogether they are level.' : `Altogether, it is like ${points} rating points for ${name}.`),
+    curve: (share: number) => `The curve is fitted on the pool's own singles: here a player rated 100 points higher wins ${pct(share)} of the time.`,
+    curveBoth: (share: number) =>
+      `The players are in different pools, so the curve is fitted on the singles of both: a player rated 100 points higher wins ${pct(share)} of the time.`,
+    how: "Form is a player's singles all season against what their rating expected; a few singles count less, and last season counts a third as much. Youth players tend to beat their rating, and unrated players tend to be weaker than the pool's median. The home table counts only in a team match between their teams, and not in veteran pools. Their singles against each other are not part of the chance: they did not make the predictions noticeably better.",
+    h2h: 'Head-to-head',
+    h2hRecord: (player: string, opponent: string, won: number, lost: number, from: string, last: string) => {
+      const since = from ? ` since ${from}` : '';
+      return won + lost === 1
+        ? `${player} ${won ? 'won' : 'lost'} their only single against ${opponent}${since}, on ${last}.`
+        : `${player} has won ${won} of ${won + lost} singles against ${opponent}${since}.`;
+    },
+    h2hLast: (day: string, winner: string) => `Most recently on ${day}, won by ${winner}.`,
+    h2hNone: (from: string) => `They have not met in a single${from ? ` since ${from}` : ''}.`,
+    h2hNotCounted: 'Not part of the chance.',
+    other: 'Pick another opponent',
   },
 
   insights: {

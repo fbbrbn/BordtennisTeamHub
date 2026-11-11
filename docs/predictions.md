@@ -37,6 +37,11 @@ opponents, and all together. Its matchup table also shows how each pair of playe
 against each other in singles, this season and before. That record is not part of the chances (see "Tried, and not in
 the model").
 
+Each chance in the matchup table opens the "Player vs player" page, which takes one single apart the same way: the
+two ratings on the pool's curve, each player's form this season and last, a youth or unrated player, and the home
+table, each as rating points with the chance once it is counted. The page also compares any two players on demand;
+for players of two pools, the curve is fitted on the singles of both pools and the home table does not count.
+
 Each pool's real match format is read from its results:
 - the number of players per side;
 - which positions meet in the singles;

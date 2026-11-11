@@ -299,7 +299,8 @@ export function MatchPreview({ pool, match }: { pool: PoolData; match: TeamMatch
             {t.preview.gridNote(
               teamName(teamId),
               chosen(opponentId) ? t.preview.columnsPicked : t.preview.columnsUsual(teamName(opponentId)),
-            )}
+            )}{' '}
+            {t.preview.gridTap}
           </p>
           <div className="table-scroll">
             <table className="heat-table">
@@ -324,16 +325,24 @@ export function MatchPreview({ pool, match }: { pool: PoolData; match: TeamMatch
                       <span className="muted small"> {shownRating(id) ?? t.common.unrated}</span>
                     </th>
                     {grid.singles[i].map((p, j) => {
-                      const met = gridMeetings.find((m) => m.ours === id && m.theirs === grid.opponent[j]);
+                      const theirs = grid.opponent[j];
+                      const met = gridMeetings.find((m) => m.ours === id && m.theirs === theirs);
+                      const record = met ? `${met.record[0]}–${met.record[1]}` : null;
                       return (
-                        <td key={grid.opponent[j]} className={`heat heat-${heat(p)}`}>
-                          {percent(p)}
-                          {met && (
-                            <span className="h2h" title={meetingText(met)}>
-                              <span className="sr-only">{t.preview.h2hSr} </span>
-                              {met.record[0]}–{met.record[1]}
-                            </span>
-                          )}
+                        <td key={theirs} className={`heat heat-${heat(p)}`}>
+                          {/* The whole cell opens the two players' page, with why the chance is what it is. */}
+                          <a
+                            className="heat-link"
+                            href={`${href('vs', pool.pool.id, id, pool.pool.id, theirs)}?match=${encodeURIComponent(match.id)}`}
+                            aria-label={t.preview.cellLabel(playerName(id), playerName(theirs), percent(p), record)}
+                          >
+                            {percent(p)}
+                            {met && (
+                              <span className="h2h" title={meetingText(met)}>
+                                {record}
+                              </span>
+                            )}
+                          </a>
                         </td>
                       );
                     })}

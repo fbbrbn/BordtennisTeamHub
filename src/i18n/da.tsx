@@ -14,7 +14,7 @@
  */
 import type { ReactNode } from 'react';
 import type { Texts, Thing } from './en.tsx';
-import { decimal, list, percent, plural } from './format.ts';
+import { decimal, list, percent, plural, signed } from './format.ts';
 
 /** "holdet", "spilleren" … and "dette hold", "denne spiller" … */
 const THE: Record<Thing, string> = { team: 'holdet', player: 'spilleren', pool: 'puljen', club: 'klubben', match: 'kampen' };
@@ -317,10 +317,11 @@ export const da: Texts = {
     backToSeason: 'Tilbage til sæsonens opstillinger',
     grid: 'Jeres spillere mod deres',
     gridNote: (team, columns) => `Chancen for at hver spiller fra ${team} vinder sin single. Kolonner: ${columns}.`,
+    gridTap: 'Tryk på en chance for at se hvorfor.',
+    cellLabel: (player, opponent, chance, record) => `${player} mod ${opponent}: ${chance}.${record ? ` Indbyrdes ${record}.` : ''} Se hvorfor.`,
     columnsPicked: 'den valgte opstilling',
     columnsUsual: (team) => `de mest brugte spillere fra ${team}`,
     gridPlayer: (team) => `Spiller fra ${team}`,
-    h2hSr: 'Indbyrdes:',
     h2hNote: (from) => `Små tal: de to spilleres indbyrdes singler siden ${from} (vundet–tabt).`,
     h2hAll: (pairs) => `${pairs} par spillere har mødt hinanden før`,
     h2hItem: (player, opponent, won, lost, last, lastWon) =>
@@ -356,6 +357,55 @@ export const da: Texts = {
     worse: (margin) => `${dec(margin)} ${kampe(margin)} dårligere pr. holdkamp`,
     total: 'Samlet',
     weights: 'Rating med form tæller tre fjerdedele, fælles modstandere en fjerdedel.',
+  },
+
+  versus: {
+    title: 'Spiller mod spiller',
+    compare: 'Sammenlign med en anden spiller',
+    startNote: 'Chancen for at en spiller slår en anden i single, og hvorfor.',
+    startButton: 'Sammenlign to spillere',
+    pickFirst: 'Vælg en spiller',
+    pickOpponent: 'Vælg modstander',
+    searchLabel: 'Søg efter en spiller',
+    searchPlaceholder: 'Spillerens navn',
+    nextOpponent: (team) => `${team} · næste modstander`,
+    restOfPool: 'Andre i puljen',
+    noPlayer: (query) => `Ingen spiller passer på »${query}«.`,
+    inMatch: (home, away, day) => `Holdkamp: ${home} – ${away}, ${day}`,
+    why: 'Hvorfor?',
+    steps: {
+      rating: 'Rating',
+      form: 'Form i år',
+      last: 'Form sidste sæson',
+      youth: 'Ungdomsspiller',
+      unrated: 'Uden rating',
+      home: 'Hjemmebane',
+    },
+    rating: (name, rating, unrated) => (unrated ? `${name} uden rating (puljens median ${rating})` : `${name} ${rating}`),
+    form: (name, points, above, games) => {
+      const wins = dec(Math.abs(above));
+      const what = wins === '0' ? 'som ventet' : `${wins} ${wins === '1' ? 'sejr' : 'sejre'} ${above > 0 ? 'mere' : 'mindre'} end ventet`;
+      return `${name} ${signed(points)}: ${what} i ${plural(games, 'single', 'singler')}`;
+    },
+    youth: (name, points) => `${name} ${signed(points)}: har spillet i en ungdomspulje i år eller sidste sæson`,
+    unrated: (name, points) => `${name} ${signed(points)}: spillere uden rating er i snit svagere end puljens median`,
+    home: (name, points) => `${name} ${signed(points)}: spiller hjemme`,
+    gap: (points, name) => (points === 0 ? 'Alt i alt står de lige.' : `Alt i alt svarer det til ${points} ratingpoint til ${name}.`),
+    curve: (share) => `Kurven er tilpasset puljens egne singler: Her vinder en spiller med 100 point mere i rating ${pct(share)} af gangene.`,
+    curveBoth: (share) =>
+      `Spillerne er i hver sin pulje, så kurven er tilpasset singlerne i dem begge: En spiller med 100 point mere i rating vinder ${pct(share)} af gangene.`,
+    how: 'Form er spillerens singler i hele sæsonen målt mod det ratingen forventede; få singler tæller mindre, og sidste sæson tæller en tredjedel så meget. Ungdomsspillere slår typisk deres rating, og spillere uden rating er typisk svagere end puljens median. Hjemmebanen tæller kun i en holdkamp mellem deres hold og ikke i veteranpuljer. Deres indbyrdes singler tæller ikke med i chancen: De gjorde ikke forudsigelserne mærkbart bedre.',
+    h2h: 'Indbyrdes',
+    h2hRecord: (player, opponent, won, lost, from, last) => {
+      const since = from ? ` siden ${from}` : '';
+      return won + lost === 1
+        ? `${player} ${won ? 'vandt' : 'tabte'} den eneste single mod ${opponent}${since}, den ${last}.`
+        : `${player} har vundet ${won} af ${won + lost} singler mod ${opponent}${since}.`;
+    },
+    h2hLast: (day, winner) => `Senest den ${day}, hvor ${winner} vandt.`,
+    h2hNone: (from) => `De har ikke mødt hinanden i single${from ? ` siden ${from}` : ''}.`,
+    h2hNotCounted: 'Tæller ikke med i chancen.',
+    other: 'Vælg en anden modstander',
   },
 
   insights: {
