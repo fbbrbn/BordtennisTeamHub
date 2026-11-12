@@ -137,6 +137,9 @@ export function describe(data: PoolData, target: PoolLink, ctx: Context): PoolDa
   const regionName = ctx.regionName.get(target.regionId);
   const ageGroupName = ctx.ageGroupName.get(target.ageGroupId);
   data.pool.name = tidyPoolName(data.pool.name);
+  // The league and the place on the portal's list come from the region overview, when it was read.
+  if (target.division) data.pool.division = target.division;
+  if (target.order !== undefined) data.pool.order = target.order;
   if (regionName) data.pool.regionName = regionName;
   if (ageGroupName) data.pool.ageGroupName = ageGroupName;
   data.teams = data.teams.map((t) => ({ id: t.id, name: t.name, club: clubOf(t.name, ctx.clubs).name }));

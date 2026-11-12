@@ -9,7 +9,8 @@ What the importer (`scraper/`) calls, and how the answers look. Everything below
 - The context key is `SR_CallbackContext` in the HTML of `/DBTU/HoldTurnering/Stilling/`. Fetch that page first and keep its cookies.
 - The URL hash has the same order: `#subPage,season,pool,ageGroup,region,team,match,club,player`.
 - `subPage` values:
-  - 1: region overview listing all pools
+  - 1: region overview listing all pools: under an `h2` with the union, age group and season ("ØST Senior
+    2026/2027"), each league ("række", an `h3` such as "Serie 4") lists its pools as links, in the portal's order
   - 2: pool standings
   - 3: a team's matches
   - 4: pool match list
@@ -19,7 +20,8 @@ What the importer (`scraper/`) calls, and how the answers look. Everything below
   - 8: one player's games in a pool
 - Ids:
   - Seasons: `4YYYY`, e.g. 42026 = 2026/2027, back to 42011.
-  - Regions: 4000 DT (national), 4001 Bornholm, 4002 MIDT, 4003 VEST, 4004 ØST, 4005 to 4010 DGI.
+  - Regions: 4000 DT (national), 4001 Bornholm, 4002 MIDT, 4003 VEST, 4004 ØST, 4005 to 4010 DGI. The portal's own
+    dropdown calls them "Union" (the code says region).
   - Age groups: e.g. 4006 Senior, 4004 Junior, 4008 to 4014 Veteran.
 - Team match format in senior series: 1 doubles plus 9 singles (A1/B1 ...). Results are games won ("3-7"). Points are 2 for a win and 1 for a draw.
 - Player ids come from links `.../DBTU/Spiller/VisSpiller/#<id>`.

@@ -5,6 +5,7 @@ import { matchDay, matchTime, RowLink } from '../components/ui';
 import { clubSlug, fallbackClubName } from '../data/clubs';
 import { fitScale, forecastMatch, lineupSize, shownOdds } from '../data/forecast';
 import { loadIndex, loadPlayers, loadPool, useLoaded } from '../data/load';
+import { fold } from '../data/search';
 import type { DataIndex, IndexTeam, PlayerEntry, PoolData, PoolRef } from '../data/model';
 import { isHome, opponentOf, teamMatches, teamsById } from '../data/stats';
 import { useFollowing, type FollowedTeam } from '../lib/follow';
@@ -13,9 +14,9 @@ import { t } from '../i18n';
 import { href } from '../lib/router';
 import { percent } from '../lib/text';
 import { plannedLineup } from '../lineup/planned';
+import { searchLink } from './SearchPage';
 import { listSavedPlanners, newId } from '../lineup/storage';
 
-const fold = (s: string) => s.toLocaleLowerCase('da').normalize('NFKD').replace(/[̀-ͯ]/g, '');
 const RESULTS_PAGE = 20;
 const BROWSE_PAGE = 12;
 /** A club that matches by name lists this many of its teams; the club page has them all. */
@@ -215,14 +216,12 @@ function MyTeamSummary({ pool, team }: { pool: PoolData; team: FollowedTeam }) {
 /** The search across clubs, teams and players. `heading` when the page starts with something else. */
 function ClubSearch({ index, heading }: { index: DataIndex; heading: boolean }) {
   const [query, setQuery] = useState('');
-  const [region, setRegion] = useState('');
-  const [ageGroup, setAgeGroup] = useState('');
   const [shown, setShown] = useState(RESULTS_PAGE);
   const [shownPlayers, setShownPlayers] = useState(RESULTS_PAGE);
   const [browseAll, setBrowseAll] = useState(false);
   const [players, setPlayers] = useState<PlayerEntry[] | null>(null);
 
-  const pools = index.pools.filter((p) => (!region || p.regionId === region) && (!ageGroup || p.ageGroupId === ageGroup));
+  const pools = index.pools;
   const allClubs = groupByClub(pools);
   const q = fold(query.trim());
   const searching = q.length > 0;
@@ -267,10 +266,6 @@ function ClubSearch({ index, heading }: { index: DataIndex; heading: boolean }) 
           .filter(Boolean)
           .join(' · ');
 
-  const filters = [
-    (index.regions ?? []).find((r) => r.id === region)?.name,
-    (index.ageGroups ?? []).find((a) => a.id === ageGroup)?.name,
-  ].filter(Boolean);
 
   return (
     <section className="card picker" aria-label={t.start.searchLabel}>
@@ -287,49 +282,10 @@ function ClubSearch({ index, heading }: { index: DataIndex; heading: boolean }) 
           }}
         />
       </label>
-      {/* Most people only type a name, so the two filters stay folded until asked for. */}
-      <details className="filters">
-        <summary>
-          {t.start.filters}
-          {filters.length > 0 && <span className="filters-on"> · {filters.join(' · ')}</span>}
-        </summary>
-        <div className="filter-row">
-          <label className="field">
-            <span>{t.start.region}</span>
-            <select
-              value={region}
-              onChange={(e) => {
-                setRegion(e.target.value);
-                reset();
-              }}
-            >
-              <option value="">{t.start.allRegions}</option>
-              {(index.regions ?? []).map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>{t.start.ageGroup}</span>
-            <select
-              value={ageGroup}
-              onChange={(e) => {
-                setAgeGroup(e.target.value);
-                reset();
-              }}
-            >
-              <option value="">{t.start.allAgeGroups}</option>
-              {(index.ageGroups ?? []).map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      </details>
+      {/* Union, age group and league live on the advanced search, which takes what was typed along. */}
+      <p className="advanced-link">
+        <a href={searchLink({ query: query.trim() })}>{t.search.title}</a>
+      </p>
 
       {searching ? (
         <>

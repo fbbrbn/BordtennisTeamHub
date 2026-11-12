@@ -8,6 +8,7 @@ import { href } from '../lib/router';
 import { PastSeasonTag } from '../components/PlayerHistory';
 import { PredictionRecordNote } from '../components/Prediction';
 import { matchDay, matchTime, PageState, percent, PortalLink, portalUrl, RowLink, useShowAll } from '../components/ui';
+import { searchLink } from './SearchPage';
 
 export function PoolPage({ poolId }: { poolId: string }) {
   const loaded = useLoaded(() => loadPool(poolId), poolId);
@@ -68,6 +69,15 @@ function PoolView({ pool }: { pool: PoolData }) {
       <header className="dash-head">
         <p className="eyebrow">
           {pool.pool.league} <PastSeasonTag pool={pool.pool} />
+          {/* The other pools of the same league, on the advanced search (this season only). */}
+          {pool.pool.division && !pool.pool.past && (
+            <>
+              {' · '}
+              <a href={searchLink({ union: pool.pool.regionId, age: pool.pool.ageGroupId, league: pool.pool.division })}>
+                {t.search.leaguePools(pool.pool.division)}
+              </a>
+            </>
+          )}
         </p>
         <h1>{pool.pool.name}</h1>
       </header>

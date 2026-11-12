@@ -3,6 +3,7 @@ import { ClubPage } from './pages/ClubPage';
 import { MatchPage } from './pages/MatchPage';
 import { PlayerPage } from './pages/PlayerPage';
 import { PoolPage } from './pages/PoolPage';
+import { SearchPage } from './pages/SearchPage';
 import { StartPage } from './pages/StartPage';
 import { TeamPage } from './pages/TeamPage';
 import { VersusPage } from './pages/VersusPage';
@@ -33,6 +34,7 @@ function Page({ route }: { route: Route }) {
     return <PlayerPage key={`${a}-${b}`} poolId={a} playerId={b} tab={route.query.get('tab')} />;
   }
   if (section === 'match' && ID_PATTERN.test(a) && ID_PATTERN.test(b)) return <MatchPage key={`${a}-${b}`} poolId={a} matchId={b} />;
+  if (section === 'search') return <SearchPage query={route.query} />;
   if (section === 'vs') {
     // #/vs, #/vs/<pool>/<player> or #/vs/<pool>/<player>/<pool>/<player>, and ?match=<id> from a match preview.
     const [c = '', d = ''] = route.path.slice(3);

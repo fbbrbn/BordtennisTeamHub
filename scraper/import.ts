@@ -113,7 +113,9 @@ async function main() {
     season = { id: seasonId, name: seasonName(seasonId) };
     const pick = (all: NamedId[], wanted?: 'all' | string[]) => (!wanted || wanted === 'all' ? all : all.filter((x) => wanted.includes(x.id)));
     const age = previousIndex?.discoveredAt ? (Date.now() - Date.parse(previousIndex.discoveredAt)) / 3_600_000 : Infinity;
-    if (age >= (d.everyHours ?? 20) || previousIndex?.season?.id !== seasonId) {
+    // An index from before the pools had their league ("række") is discovered again, once.
+    const noLeagues = (previousIndex?.pools.length ?? 0) > 0 && !previousIndex!.pools.some((p) => p.division);
+    if (age >= (d.everyHours ?? 20) || previousIndex?.season?.id !== seasonId || noLeagues) {
       const found = new Set<string>();
       for (const region of pick(lists.regions, d.regions)) {
         for (const ageGroup of pick(lists.ageGroups, d.ageGroups)) {
@@ -134,7 +136,15 @@ async function main() {
     } else {
       for (const p of previousIndex?.pools ?? []) {
         if (p.seasonId === seasonId && !targets.has(p.id)) {
-          targets.set(p.id, { seasonId: p.seasonId, groupId: p.id, ageGroupId: p.ageGroupId, regionId: p.regionId, label: p.name });
+          targets.set(p.id, {
+            seasonId: p.seasonId,
+            groupId: p.id,
+            ageGroupId: p.ageGroupId,
+            regionId: p.regionId,
+            label: p.name,
+            division: p.division,
+            order: p.order,
+          });
         }
       }
       console.log(`Reusing the pool list discovered ${Math.round(age)} hours ago (${targets.size} pools).`);
@@ -281,11 +291,13 @@ async function main() {
     }
   }
 
+  // Within a union and age group, as the portal lists them: the leagues from the top down.
   refs.sort(
     (a, b) =>
       b.seasonId.localeCompare(a.seasonId) ||
       a.regionId.localeCompare(b.regionId) ||
       a.ageGroupId.localeCompare(b.ageGroupId) ||
+      (a.order ?? Infinity) - (b.order ?? Infinity) ||
       a.name.localeCompare(b.name, 'da', { numeric: true }),
   );
   const clubs = new Map<string, ClubRef>();

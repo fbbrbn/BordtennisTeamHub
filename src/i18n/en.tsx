@@ -199,14 +199,9 @@ export const en = {
     nothingMatches: (query: string) => `Nothing matches “${query}”. Try part of a club, team or player name.`,
     searchLabel: 'Search for a club, team or player',
     searchPlaceholder: 'Club, team or player',
-    filters: 'Region and age group',
     /** A team's place in its pool, in a search result: "2nd". */
     place: (position: number) => ord(position),
     allTeams: (n: number) => `All ${n} teams`,
-    region: 'Region',
-    allRegions: 'All regions',
-    ageGroup: 'Age group',
-    allAgeGroups: 'All age groups',
     showMore: (left: number) => `Show more (${left} left)`,
     showMorePlayers: (left: number) => `Show more players (${left} left)`,
     showFewerClubs: 'Show fewer clubs',
@@ -362,6 +357,29 @@ export const en = {
     worse: (margin: number) => `${dec(margin)} ${games(margin)} worse per match`,
     total: 'Together',
     weights: 'Ratings with form count three quarters, common opponents a quarter.',
+  },
+
+  search: {
+    /** The advanced search (pages/SearchPage.tsx), with the portal's three levels: union, age group and league. */
+    title: 'Advanced search',
+    label: 'Search pools, teams and players',
+    placeholder: 'Club, team, player or pool',
+    union: 'Union',
+    ageGroup: 'Age group',
+    league: 'League',
+    /** Every union, age group or league: the label above the choice says which. */
+    all: 'All',
+    reset: 'Clear',
+    tabsLabel: 'Results',
+    tabs: { pools: 'Pools', teams: 'Teams', players: 'Players' },
+    /** A pool's level: the average rating of its rated players. */
+    average: (rating: number) => `avg ${rating}`,
+    averageNote: "Avg: the average rating of the pool's rated players.",
+    byRating: 'By rating',
+    none: 'Nothing matches the search.',
+    loadingPlayers: 'Loading players…',
+    /** On a pool page: the search for every pool of its league. */
+    leaguePools: (league: string) => `All pools in ${league}`,
   },
 
   versus: {

@@ -100,11 +100,11 @@ describe('portal parsers', () => {
     expect(JSON.stringify([...names])).not.toMatch(/kontakt|12345678/);
   });
 
-  it('lists the pools of a region with their division', () => {
-    expect(parseRegionPools(REGION).map((p) => [p.groupId, p.label])).toEqual([
-      ['901', 'Østserien Pulje 1'],
-      ['902', 'Serie 1 Pulje 1'],
-      ['903', 'Serie 1 Pulje 2'],
+  it('lists the pools of a region with their division, in the order of the page', () => {
+    expect(parseRegionPools(REGION).map((p) => [p.groupId, p.label, p.division, p.order])).toEqual([
+      ['901', 'Østserien Pulje 1', 'Østserien', 0],
+      ['902', 'Serie 1 Pulje 1', 'Serie 1', 1],
+      ['903', 'Serie 1 Pulje 2', 'Serie 1', 2],
     ]);
   });
 

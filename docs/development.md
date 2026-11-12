@@ -100,9 +100,20 @@ The main logic is in pure functions with unit tests:
   - Routes: `#/vs` (pick a player: your team's, or a search), `#/vs/<pool>/<player>` (pick the opponent: the next
     opposing team, the rest of the pool, or a search of `data/players.json`) and `#/vs/<pool>/<player>/<pool>/<player>`.
     The player page and the start page link to it; their singles against each other come from `loadHeadToHead`.
+- Advanced search: `src/data/search.ts` (pure, tested) and `src/pages/SearchPage.tsx`, at
+  `#/search?q=&union=&age=&league=&tab=pools|teams|players`.
+  - The portal's three levels narrow the pools: union (`regionId`, the portal's "Union"), age group and league
+    (`pool.division`, the portal's "række"). A narrower choice that no longer exists under a wider one is dropped.
+    Leagues are offered in the portal's order (`pool.order`); until the data has them, there is no league choice.
+  - Words then match a pool by its name or any of its teams, a team by its name, club or pool, and a player by their
+    name, team or club. Players come from `data/players.json`, by rating; a pool's average rating is that of its rated
+    players there.
+  - The page keeps its search in the address with `replaceHash` (no history entry per keystroke) and follows a new
+    search address while open. The start page links to it with the words typed; a pool page links to every pool of
+    its league.
 - `src/pages/`: the start page, plus club, team, player, pool and match dashboards.
   - The start page shows followed teams first (`src/lib/follow.ts`, localStorage), then a search across every club,
-    team and player; the region and age-group filters are folded away. Player names come from `data/players.json`,
+    team and player, and a link to the advanced search. Player names come from `data/players.json`,
     loaded on the first keystroke (`matchPlayers`). Without a query it shows a short club list.
   - Team pages have tabs via `?tab=overview|matches|players`; the router scrolls to the top only when the path changes.
   - `src/components/Nav.tsx`: Home · My team · Lineup, a bottom bar on phones and top links on desktop. "My team" is

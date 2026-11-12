@@ -31,6 +31,10 @@ export interface PoolLink {
   regionId: string;
   /** Division and pool, e.g. "Serie 4 Pulje 4". */
   label: string;
+  /** The league ("række") the region overview lists the pool under, e.g. "Serie 4". */
+  division?: string;
+  /** The pool's place on the region overview, where the leagues come from the top down. */
+  order?: number;
 }
 
 /** Reads the arguments of an `onclick="return ShowStanding('3', '42026', ...)"` link. */
@@ -210,7 +214,10 @@ export function parseClubList(script: string): Option[] {
   return clubs;
 }
 
-/** All pools linked from a region overview, with their division heading. */
+/**
+ * All pools linked from a region overview (one union and age group): under the union's heading (h2),
+ * each league ("række", h3) lists its pools, in the portal's order.
+ */
 export function parseRegionPools(html: string): PoolLink[] {
   const pools: PoolLink[] = [];
   let heading = '';
@@ -227,6 +234,8 @@ export function parseRegionPools(html: string): PoolLink[] {
       ageGroupId: args.ageGroupId,
       regionId: args.regionId,
       label: [heading, textOf(el)].filter(Boolean).join(' '),
+      division: heading,
+      order: pools.length,
     });
   }
   return pools;

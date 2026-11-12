@@ -111,6 +111,11 @@ export interface PoolInfo {
   league: string;
   /** e.g. "Serie 4 Pulje 4" */
   name: string;
+  /** The league ("række") the portal lists the pool under, e.g. "Serie 4" or "Herre 2. Division Grundspil". */
+  division?: string;
+  /** The pool's place in its union and age group on the portal: the leagues from the top down. */
+  order?: number;
+  /** The union (the portal's "Union", called region in the code), e.g. "ØST (Sjælland, Lolland F.)". */
   regionName?: string;
   ageGroupName?: string;
   /** Which games the players' official ratings include; forecasts start after it. */

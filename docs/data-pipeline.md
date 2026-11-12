@@ -66,7 +66,8 @@ GitHub's own schedule stays in the import workflows as a backup:
 
 `npm run import` (`scraper/import.ts`):
 
-1. **Pools.** Finds every pool of the season (about 150), at most every 20 hours; otherwise it reuses the last list.
+1. **Pools.** Finds every pool of the season (about 150) with its league ("række"), at most every 20 hours; otherwise
+   it reuses the last list. An index from before pools had their league is discovered again once.
 2. **Rating list.** Reads the date of the latest official rating list (2 requests).
 3. **Each pool.** Reads its match list (1 request).
    - Nothing changed: the pool's previous file is reused.
@@ -98,7 +99,7 @@ On the `data` branch, copied into the site as `data/`:
 
 | File | What is in it |
 | --- | --- |
-| `index.json` | The season, regions, age groups and clubs; every pool with its teams, places and points; the rating list in use; how the predictions did this season. |
+| `index.json` | The season, regions (unions), age groups and clubs; every pool with its league, its place on the portal's list, its teams, places and points; the rating list in use; how the predictions did this season. |
 | `pools/<poolId>.json` | One pool: its teams, standings, matches (results, games and the prediction made before each match) and players (official rating, rating forecast, and form against their rating). |
 | `players.json` | Every player with their official rating and the teams they played for, for the player search. |
 | `ratings/<seasonId>.json` | The season's official rating lists: every player's rating in each version in force on a match day. |
@@ -165,6 +166,9 @@ imports a small part of a past season into `history/` (also ignored by git).
 - In 2026/2027 there are 154 pools: 200 region and age-group combinations, most of them empty.
 - `npm run import` writes `public/data/index.json` and `public/data/pools/<poolId>.json` as compact JSON.
   - The index has the season, regions, age groups, clubs, pools, and each team's club and place.
+  - Each pool has its league (`division`, the `h3` above it on the region overview) and its place there (`order`), so
+    the index lists pools as the portal does: the leagues from the top down. A run that reuses the pool list keeps
+    both from the previous index.
   - A pool whose match list (subPage 4) is unchanged costs one request: its file is reused.
   - Played-match details are fetched again only when a result changes.
   - Files are rewritten only when their content changes.

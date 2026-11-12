@@ -22,11 +22,16 @@ It is built for any team. Vallensbæk BTK 3 is the first test team.
 - **Navigation.**
   - Three places, one tap away: Home, My team and Lineup. On phones they are in a bar at the bottom.
   - Inner pages have a Back button.
-- **Find any club, team or player.** The start page searches every pool of the season: all regions (DT, ØST, VEST,
-  MIDT, Bornholm and the DGI regions) and all age groups.
+- **Find any club, team or player.** The start page searches every pool of the season: all unions (Bordtennis
+  Danmark/DT, ØST, VEST, MIDT and Bornholm) and all age groups.
   - Results are grouped by club. Without a search, a short club list.
   - Type a player's name to see their team and pool.
-  - The region and age-group filters are folded away until you want them.
+- **Advanced search**, by the portal's three levels: union, age group and league ("række", such as Serie 4 or Herre
+  2. Division), plus words.
+  - Three tabs: the pools (with their players' average rating, to compare levels), the teams (with their place) and
+    the players (by rating, so the strongest of a league come first).
+  - Open it from the start page (it takes what you typed along) or from "All pools in Serie 4" on a pool page. The
+    address keeps the search, so Back and a shared link return to it.
 - **Team pages have three tabs:**
   - **Overview:** key numbers, the next match and insights.
   - **Matches:** the next matches with chances, then results.
