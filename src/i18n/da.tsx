@@ -245,6 +245,8 @@ export const da: Texts = {
     games: 'Kampe',
     noGames: 'Ingen kampe registreret i denne pulje.',
     doubleGame: 'Double',
+    walkover: 'Walkover',
+    wo: 'w.o.',
     doublesWith: (partners) => ` med ${partners}`,
   },
 
@@ -460,7 +462,10 @@ export const da: Texts = {
       `Med ${size === 1 ? 'den højest ratede spiller' : `de ${size} højest ratede spillere`} (${names(players)}): ${
         remaining === 1 ? (favourite === 1 ? 'favorit i den sidste kamp' : 'ikke favorit i den sidste kamp') : `favorit i ${favourite} af ${remaining} kampe`
       }.`,
-    playerForm: (won, singles, expected) => `Vandt ${won} af ${plural(singles, 'single', 'singler')}; ratingen forudsagde ${dec(expected)}.`,
+    playerForm: (won, singles, expected, walkovers) =>
+      `Vandt ${won} af ${plural(singles, 'single', 'singler')}${
+        walkovers > 0 ? ` (${walkovers === 1 ? 'walkover' : `${walkovers} walkovers`} ikke medregnet)` : ''
+      }; ratingen forudsagde ${dec(expected)}.`,
     playerFifthSets: (won, played) => `Femte sæt: ${won} vundet ud af ${played}.`,
     bestWin: (name, rating, sets, gap) => `${name} (${rating}), ${sets}.${gap > 0 ? ` Ratet ${gap} point højere.` : ''}`,
     upsetLoss: (name, rating, sets, gap) => `${name} (${rating}), ${sets}. Ratet ${gap} point lavere.`,

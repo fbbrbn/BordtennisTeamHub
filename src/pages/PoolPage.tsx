@@ -29,7 +29,7 @@ function PoolView({ pool }: { pool: PoolData }) {
   const projection = useMemo(() => [...projectTable(pool, fitScale(pool))].sort((a, b) => a.rank - b.rank), [pool]);
 
   const playerRows = pool.players
-    .map((p) => ({ player: p, line: summarize(playerGames(pool, p.id)) }))
+    .map((p) => ({ player: p, line: summarize(playerGames(pool, p.id, { walkovers: true })) }))
     .filter((r) => r.line.singles.won + r.line.singles.lost > 0)
     .sort(
       (a, b) =>

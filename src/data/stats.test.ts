@@ -66,6 +66,18 @@ describe('stats', () => {
     expect(summarize(games)).toEqual({ matches: 2, singles: { won: 1, lost: 1 }, doubles: { won: 1, lost: 0 }, sets: { won: 8, lost: 6 } });
   });
 
+  it('counts walkovers in the record, as the portal does, but not in the sets; golden sets never', () => {
+    const walkover = { ...single('a1', 'x', [3, 0]), label: 'A2/B2', away: [], walkover: true };
+    const golden = { ...single('a1', 'c1', [1, 0]), label: 'Golden Set (påfør ukendt spiller som makker)' };
+    const withExtras = { ...pool, matches: [{ ...pool.matches[0], games: [...pool.matches[0].games!, walkover, golden] }, ...pool.matches.slice(1)] };
+    // Played games only: neither the walkover nor the golden set.
+    expect(playerGames(withExtras, 'a1').map((g) => g.game.label)).toEqual(['1. HD', 'A1/B1', 'A1/B1']);
+    const all = playerGames(withExtras, 'a1', { walkovers: true });
+    expect(all.map((g) => g.game.label)).toEqual(['1. HD', 'A1/B1', 'A2/B2', 'A1/B1']);
+    expect(summarize(all)).toEqual({ matches: 2, singles: { won: 2, lost: 1 }, doubles: { won: 1, lost: 0 }, sets: { won: 8, lost: 6 } });
+    expect(teamPlayerLines(withExtras, 'A').find((l) => l.playerId === 'a1')?.singles).toEqual({ won: 2, lost: 1 });
+  });
+
   it("lists a team's players, most matches first", () => {
     const lines = teamPlayerLines(pool, 'A');
     expect(lines.map((l) => [l.playerId, l.matches, l.singles.won, l.singles.lost])).toEqual([

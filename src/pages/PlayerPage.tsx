@@ -23,8 +23,10 @@ export function PlayerPage({ poolId, playerId, tab }: { poolId: string; playerId
 function PlayerView({ pool, player, tab }: { pool: PoolData; player: Player; tab: 'season' | 'history' }) {
   const teams = teamsById(pool);
   const players = playersById(pool);
-  const records = playerGames(pool, player.id);
-  const summary = summarize(records);
+  // The record counts walkovers, as the portal does; everything about play (the chart) leaves them out.
+  const all = playerGames(pool, player.id, { walkovers: true });
+  const records = all.filter((r) => !r.game.walkover);
+  const summary = summarize(all);
   const team = player.teamId ? teams.get(player.teamId) : undefined;
   const nameOf = (id: string) => players.get(id)?.name ?? t.common.unknownPlayer;
   const singles = records.filter((r) => r.game.kind === 'single');
@@ -119,13 +121,13 @@ function PlayerView({ pool, player, tab }: { pool: PoolData; player: Player; tab
       <section className="card">
         <div className="section-head">
           <h2>{t.player.games}</h2>
-          <span className="muted">{t.common.played(records.length)}</span>
+          <span className="muted">{t.common.played(all.length)}</span>
         </div>
-        {records.length === 0 ? (
+        {all.length === 0 ? (
           <p className="muted">{t.player.noGames}</p>
         ) : (
           <ul className="result-list">
-            {[...records].reverse().map((r) => (
+            {[...all].reverse().map((r) => (
               <li key={`${r.match.id}-${r.game.label}`} className="result-row">
                 {/* The whole row leads to the team match, where every player has a link. */}
                 <RowLink to={href('match', pool.pool.id, r.match.id)}>
@@ -134,6 +136,7 @@ function PlayerView({ pool, player, tab }: { pool: PoolData; player: Player; tab
                       {shortDay(r.match.date)} · {teams.get(r.opponentTeamId)?.name}
                     </span>
                     <span className="result-vs">
+                      {r.opponents.length === 0 && t.player.walkover}
                       {r.opponents.map((id, i) => (
                         // The portal now and then lists a player twice in a game: the place in the list keeps keys apart.
                         <span key={`${id}-${i}`}>
@@ -150,9 +153,7 @@ function PlayerView({ pool, player, tab }: { pool: PoolData; player: Player; tab
                     )}
                   </span>
                   <span className="result-side">
-                    <span className="result-score">
-                      {r.setsFor}–{r.setsAgainst}
-                    </span>
+                    <span className="result-score">{r.game.walkover ? t.player.wo : `${r.setsFor}–${r.setsAgainst}`}</span>
                     <OutcomeBadge outcome={r.won ? 'single-won' : 'single-lost'} />
                   </span>
                 </RowLink>

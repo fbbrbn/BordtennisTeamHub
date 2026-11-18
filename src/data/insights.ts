@@ -142,7 +142,11 @@ export function playerInsights(pool: PoolData, playerId: string, scale: number):
 
   if (singles.length > 0 && own !== null) {
     const expected = singles.reduce((sum, r) => sum + winChance(own, rating(r.opponents[0]), scale), 0);
-    insights.push(insight('form', `${t.insights.playerForm(wins(singles), singles.length, expected)} ${verdict(wins(singles) - expected, 0.75)}`));
+    // Walkovers are in the player's record, but not in a comparison with the ratings: say so, so the numbers add up.
+    const walkovers = playerGames(pool, playerId, { walkovers: true }).filter((r) => r.game.walkover && r.game.kind === 'single').length;
+    insights.push(
+      insight('form', `${t.insights.playerForm(wins(singles), singles.length, expected, walkovers)} ${verdict(wins(singles) - expected, 0.75)}`),
+    );
   }
 
   const fiveSet = singles.filter((r) => r.setsFor + r.setsAgainst === 5);

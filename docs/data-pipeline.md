@@ -170,7 +170,9 @@ imports a small part of a past season into `history/` (also ignored by git).
     the index lists pools as the portal does: the leagues from the top down. A run that reuses the pool list keeps
     both from the previous index.
   - A pool whose match list (subPage 4) is unchanged costs one request: its file is reused.
-  - Played-match details are fetched again only when a result changes.
+  - Played-match details are fetched again only when a result changes. So a correction on the portal that changes only
+    who played (the same score) is not picked up: in November 2026 one match had both teams' players swapped after the
+    import.
   - Files are rewritten only when their content changes.
   - Requests are spaced 800 ms apart. After `maxMinutes` no new pools are started.
   - Pools no longer in scope are deleted, but only after a complete discovery.

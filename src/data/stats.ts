@@ -73,12 +73,21 @@ export function pointsRace(pool: PoolData): { teamId: string; points: number[] }
   });
 }
 
-/** Every game a player played (walkovers excluded), oldest first. */
-export function playerGames(pool: PoolData, playerId: string): GameRecord[] {
+/** A golden set settles a level team match: one player a side, but a team game, never a single. */
+export function isGoldenSet(game: Game): boolean {
+  return /golden/i.test(game.label);
+}
+
+/**
+ * Every game a player played, oldest first; golden sets never count. With `walkovers`, also the games
+ * won or lost by walkover: they count in a player's record, as on the portal (checked against its
+ * player stats), but were not played, so they stay out of everything about play: sets, ratings, form.
+ */
+export function playerGames(pool: PoolData, playerId: string, options: { walkovers?: boolean } = {}): GameRecord[] {
   const records: GameRecord[] = [];
   for (const match of pool.matches) {
     for (const game of match.games ?? []) {
-      if (game.walkover) continue;
+      if (isGoldenSet(game) || (game.walkover && !options.walkovers)) continue;
       const side = game.home.includes(playerId) ? 'home' : game.away.includes(playerId) ? 'away' : null;
       if (!side || game.winner === null) continue;
       const mine = side === 'home' ? game.home : game.away;
@@ -98,26 +107,30 @@ export function playerGames(pool: PoolData, playerId: string): GameRecord[] {
   return records;
 }
 
+/** A player's record: matches, singles and doubles won and lost (walkovers too, if given), and sets played. */
 export function summarize(records: GameRecord[]): Omit<PlayerLine, 'playerId'> {
   const line = { matches: new Set(records.map((r) => r.match.id)).size, singles: wl(), doubles: wl(), sets: wl() };
   for (const r of records) {
     const bucket = r.game.kind === 'single' ? line.singles : line.doubles;
     if (r.won) bucket.won++;
     else bucket.lost++;
+    // A walkover counts in the record, but its sets were never played.
+    if (r.game.walkover) continue;
     line.sets.won += r.setsFor;
     line.sets.lost += r.setsAgainst;
   }
   return line;
 }
 
-/** Everyone who played for a team in this pool, most matches first. */
+/** Everyone who played for a team in this pool, most matches first; records with walkovers, as on the portal. */
 export function teamPlayerLines(pool: PoolData, teamId: string): PlayerLine[] {
   const ids = new Set<string>();
   for (const match of teamMatches(pool, teamId)) {
     for (const game of match.games ?? []) for (const id of isHome(match, teamId) ? game.home : game.away) ids.add(id);
   }
   return [...ids]
-    .map((playerId) => ({ playerId, ...summarize(playerGames(pool, playerId).filter((r) => r.teamId === teamId)) }))
+    .map((playerId) => ({ playerId, ...summarize(playerGames(pool, playerId, { walkovers: true }).filter((r) => r.teamId === teamId)) }))
+    .filter((line) => line.matches > 0)
     .sort((a, b) => b.matches - a.matches || b.singles.won - a.singles.won || a.playerId.localeCompare(b.playerId));
 }
 

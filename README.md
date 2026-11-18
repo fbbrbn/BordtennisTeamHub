@@ -74,7 +74,7 @@ It is built for any team. Vallensbæk BTK 3 is the first test team.
   - **History:** every season the player played, this one included: totals, clubs, the rating over the seasons
     (with today's rating and the forecast) and every team, each linking to that season's pages.
   - **This season:** the rest of this list.
-  - Rating and singles, doubles and sets records.
+  - Rating and singles, doubles and sets records. Walkovers count in the records, as on the portal.
   - **Rating forecast:** the rating once the singles played since the official list are rated, game by game.
   - Insights: wins compared with the ratings, fifth sets, best win, upset losses and doubles partners.
   - Singles results placed by opponent rating.

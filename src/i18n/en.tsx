@@ -243,6 +243,9 @@ export const en = {
     noGames: 'No games recorded in this pool.',
     /** One doubles game, in a list of games. */
     doubleGame: 'Doubles',
+    /** A game won or lost by walkover: no opponent played, so there are no sets. */
+    walkover: 'Walkover',
+    wo: 'w.o.',
     doublesWith: (partners: string) => ` with ${partners}`,
   },
 
@@ -472,8 +475,11 @@ export const en = {
       `With the ${plural(size, 'highest-rated player', 'highest-rated players')} (${names(players)}): ${
         remaining === 1 ? (favourite === 1 ? 'favourite in the last match' : 'not favourite in the last match') : `favourite in ${favourite} of ${remaining} matches`
       }.`,
-    playerForm: (won: number, singles: number, expected: number) =>
-      `Won ${won} of ${plural(singles, 'single', 'singles')}; the rating predicted ${dec(expected)}.`,
+    /** Walkovers are not compared with the ratings: no game was played. */
+    playerForm: (won: number, singles: number, expected: number, walkovers: number) =>
+      `Won ${won} of ${plural(singles, 'single', 'singles')}${
+        walkovers > 0 ? ` (not counting ${walkovers === 1 ? 'a walkover' : `${walkovers} walkovers`})` : ''
+      }; the rating predicted ${dec(expected)}.`,
     playerFifthSets: (won: number, played: number) => `Fifth sets: won ${won} of ${played}.`,
     bestWin: (name: string, rating: number, sets: string, gap: number) => `${name} (${rating}), ${sets}.${gap > 0 ? ` Rated ${gap} higher.` : ''}`,
     upsetLoss: (name: string, rating: number, sets: string, gap: number) => `${name} (${rating}), ${sets}. Rated ${gap} lower.`,
