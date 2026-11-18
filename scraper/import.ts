@@ -13,6 +13,9 @@
  * - After `maxMinutes` no new pools are started; the next run continues from there.
  * - When a new official rating list is out, each pool's player ratings are read again (one
  *   request per pool), and the games the list does not include yet get a rating forecast.
+ * - Once a day (`checkEveryHours`), each pool's player stats are compared with the players' records
+ *   here (one request per pool). A pool that differs had a match card corrected without a new score,
+ *   so its played matches are read again.
  * - Files are rewritten only when their content changes.
  */
 import { readdir, readFile, unlink } from 'node:fs/promises';
@@ -44,6 +47,8 @@ interface ImportConfig {
   delayMs?: number;
   /** Stop starting new pools after this many minutes (the next run continues). */
   maxMinutes?: number;
+  /** Compare every pool's player records with the portal's player stats at most this often (hours; 0: never). */
+  checkEveryHours?: number;
   /** Every pool of a season, for all or some regions and age groups. */
   discover?: {
     season?: string;
@@ -161,6 +166,11 @@ async function main() {
   }
 
   const counts = { updated: 0, unchanged: 0, failed: 0, deferred: 0 };
+  // The daily check of every player's record against the portal's player stats (pool.ts), for this season's pools.
+  const checkEvery = config.checkEveryHours ?? 20;
+  const sinceCheck = previousIndex?.checkedAt ? (Date.now() - Date.parse(previousIndex.checkedAt)) / 3_600_000 : Infinity;
+  const checkDue = checkEvery > 0 && sinceCheck >= checkEvery;
+  const checks = { checked: 0, reread: 0, remaining: 0 };
   const ordered = [...targets.values()].sort(
     (a, b) => a.regionId.localeCompare(b.regionId) || a.ageGroupId.localeCompare(b.ageGroupId) || a.groupId.localeCompare(b.groupId),
   );
@@ -184,7 +194,20 @@ async function main() {
     try {
       const refreshRatings =
         !!ratingList && target.seasonId === ratingList.seasonId && previous?.pool.ratings?.listDate !== ratingList.listDate;
-      const result = await importPool(client, target, previous, ctx, refreshRatings);
+      const check = checkDue && target.seasonId === ratingSeason;
+      const result = await importPool(client, target, previous, ctx, refreshRatings, check);
+      if (result.check) {
+        checks.checked++;
+        if (result.check.reread) {
+          checks.reread++;
+          console.log(`Pool ${target.groupId}: player records differed from the portal's player stats; read ${result.check.matchesReread} played matches again.`);
+        }
+        const name = new Map(result.data.players.map((p) => [p.id, p.name]));
+        for (const d of result.check.remaining) {
+          checks.remaining++;
+          console.warn(`  still differs: ${name.get(d.playerId) ?? d.playerId}, portal ${d.portal.join('/')}, here ${d.here.join('/')}`);
+        }
+      }
       for (const [id, link] of result.links) links.set(id, link);
       for (const s of result.stats ?? []) if (s.rating !== null && target.seasonId === ratingSeason) freshRatings.set(s.id, s.rating);
       imported.push({ file, previous, data: result.data });
@@ -310,10 +333,19 @@ async function main() {
   }
   const used = (ids: string[], names: Map<string, string>) =>
     [...new Set(ids)].map((id) => ({ id, name: names.get(id) ?? id })).sort((a, b) => a.id.localeCompare(b.id));
+  if (checkDue) {
+    console.log(
+      `Checked ${checks.checked} pools against the portal's player stats: ${checks.reread} read again` +
+        `${checks.remaining > 0 ? `, ${checks.remaining} player records still differ` : ''}.`,
+    );
+  }
+  // A check that reached every pool counts; otherwise the next run checks again.
+  const checkedAt = checkDue && checks.checked > 0 && counts.deferred === 0 ? now : previousIndex?.checkedAt;
   const index: DataIndex = {
     version: 1,
     updatedAt: previousIndex?.updatedAt ?? now,
     discoveredAt,
+    ...(checkedAt ? { checkedAt } : {}),
     season,
     regions: used(refs.map((r) => r.regionId), ctx.regionName),
     ageGroups: used(refs.map((r) => r.ageGroupId), ctx.ageGroupName),

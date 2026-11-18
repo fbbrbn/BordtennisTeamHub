@@ -56,9 +56,10 @@ The main logic is in pure functions with unit tests:
 - `src/data/`: `model.ts` (shared JSON types), `load.ts` (fetch + cache) and `stats.ts` (pure, tested statistics).
   - A player's record (`summarize(playerGames(pool, id, { walkovers: true }))`) counts walkovers, as the portal's player
     stats do, but not their sets; golden sets are never singles. Everything about play (form against the ratings, the
-    rating chart, best wins) uses the games played only (`playerGames(pool, id)`). Checked against the portal's player
-    stats in 15 pools: the same singles record for every player, except matches entered after the last import and one
-    match card the portal corrected later (see data-pipeline.md).
+    rating chart, best wins) uses the games played only (`playerGames(pool, id)`). Over all 141 pools of November
+    2026, the same singles record as the portal's player stats for every player, apart from results entered after the
+    last import and match cards the portal corrected later, which the importer's daily check now catches
+    (`scraper/verify.ts`, see data-pipeline.md).
   - `loadPool` tries the current season (`data/pools/`), then past seasons (`history/pools/`, marked `pool.past`).
     `loadHistory` merges a player's seasons from `data/careers/` and `history/players/`, and `loadHeadToHead` a
     player's head-to-head records from `data/h2h/` and `history/h2h/`.

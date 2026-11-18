@@ -11,6 +11,8 @@ export interface DataIndex {
   updatedAt: string;
   /** When the list of pools was last discovered from the portal. */
   discoveredAt?: string;
+  /** When every pool's player records were last checked against the portal's player stats (daily, scraper/verify.ts). */
+  checkedAt?: string;
   season?: NamedId;
   regions?: NamedId[];
   ageGroups?: NamedId[];

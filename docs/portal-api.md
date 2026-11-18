@@ -16,7 +16,8 @@ What the importer (`scraper/`) calls, and how the answers look. Everything below
   - 4: pool match list
   - 5: match details with games
   - 6: club
-  - 7: pool player stats with ratings
+  - 7: pool player stats with ratings, and each player's singles won ("Sejre") and played ("Kampe"): walkovers
+    included, golden sets not. A player has a row per team, and some rows are shown twice
   - 8: one player's games in a pool
 - Ids:
   - Seasons: `4YYYY`, e.g. 42026 = 2026/2027, back to 42011.

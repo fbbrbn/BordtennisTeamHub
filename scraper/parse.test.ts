@@ -6,6 +6,7 @@ import {
   parseHeadings,
   parseMatchDetails,
   parseMatchList,
+  parsePlayerRecords,
   parsePlayerStats,
   parseRatingLinks,
   parseRatingListPage,
@@ -87,6 +88,20 @@ describe('portal parsers', () => {
       { id: '702', name: 'Bo Berg', teamId: '22', rating: null },
     ]);
     expect(JSON.stringify(players)).not.toMatch(/010190|ABCD/);
+  });
+
+  it("reads each player's singles record once per team, without the player number", () => {
+    expect(parsePlayerRecords(PLAYERS)).toEqual(
+      new Map([
+        ['701', { won: 3, games: 3 }],
+        ['702', { won: 0, games: 3 }],
+      ]),
+    );
+    // The portal shows some rows twice, and a row per team: the teams are added up, a repeat is not.
+    const rows = PLAYERS.split('\n');
+    const twice = [rows[0], rows[1], rows[2], rows[2], rows[2].replace(`${show('3', '42026', '900', '4006', '4004', '11', '', '', '')}`, `${show('3', '42026', '900', '4006', '4004', '33', '', '', '')}`).replace("<td class='score'>3</td><td class='score'>3</td>", "<td class='score'>1</td><td class='score'>2</td>"), ...rows.slice(3)].join('\n');
+    expect(parsePlayerRecords(twice).get('701')).toEqual({ won: 4, games: 5 });
+    expect(JSON.stringify([...parsePlayerRecords(PLAYERS)])).not.toMatch(/010190|ABCD/);
   });
 
   it('reads games, doubles, winners and walkovers, and ignores contact details', () => {

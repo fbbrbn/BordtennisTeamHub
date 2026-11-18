@@ -1,7 +1,8 @@
 {
-  "$comment": "What to import from bordtennisportalen.dk. 'discover' covers every pool of the current season in all regions and age groups. 'pools' and 'regions' add single pools or whole regions (ids from the portal's URL hash: #subPage,season,pool,ageGroup,region,...).",
+  "$comment": "What to import from bordtennisportalen.dk. 'discover' covers every pool of the current season in all regions and age groups. 'pools' and 'regions' add single pools or whole regions (ids from the portal's URL hash: #subPage,season,pool,ageGroup,region,...). 'checkEveryHours': how often every pool's player records are checked against the portal's player stats (0: never).",
   "delayMs": 800,
   "maxMinutes": 300,
+  "checkEveryHours": 20,
   "discover": { "season": "current", "regions": "all", "ageGroups": "all", "everyHours": 20 },
   "pools": [],
   "regions": []

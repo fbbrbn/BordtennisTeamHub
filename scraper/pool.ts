@@ -11,6 +11,7 @@ import {
   parseHeadings,
   parseMatchDetails,
   parseMatchList,
+  parsePlayerRecords,
   parsePlayerStats,
   parseRatingLinks,
   parseStandings,
@@ -20,6 +21,7 @@ import {
 } from './parse.ts';
 import type { PortalClient } from './portal.ts';
 import type { RatingLink } from './ratinglist.ts';
+import { recordDifferences, type RecordDifference } from './verify.ts';
 
 /** Names that need no requests: clubs, regions and age groups. */
 export interface Context {
@@ -28,9 +30,20 @@ export interface Context {
   ageGroupName: Map<string, string>;
 }
 
+/** What the daily check found in a pool: whether its matches were read again, and what still differs after that. */
+export interface PoolCheck {
+  reread: boolean;
+  /** Played matches read again because of a difference. */
+  matchesReread: number;
+  remaining: RecordDifference[];
+}
+
 /**
  * One pool's data. `refreshRatings` reads the players' official ratings again even when nothing
- * else changed. Returns the player stats and their rating links whenever they were read.
+ * else changed. Returns the player stats and their rating links whenever they were read for ratings.
+ * `check` (once a day, see import.ts) compares every player's singles record with the portal's player
+ * stats; when one differs, the portal corrected a match card without changing its score, so every
+ * played match is read again (`check` in the result says what happened).
  */
 export async function importPool(
   client: PortalClient,
@@ -38,45 +51,72 @@ export async function importPool(
   previous: PoolData | null,
   ctx: Context,
   refreshRatings: boolean,
-): Promise<{ data: PoolData; links: Map<string, RatingLink>; stats: Player[] | null }> {
+  check = false,
+): Promise<{ data: PoolData; links: Map<string, RatingLink>; stats: Player[] | null; check: PoolCheck | null }> {
   const query = { seasonId: target.seasonId, groupId: target.groupId, ageGroupId: target.ageGroupId, regionId: target.regionId };
   const { matches, teams: matchTeams } = parseMatchList(await client.standing({ subPage: 4, ...query }));
+  let statsPage: string | null = null;
+  const readStats = async () => (statsPage ??= await client.standing({ subPage: 7, ...query }));
+  // Every played match is read again, not only those with a new result: the check found a difference.
+  let reread = false;
 
   // Nothing new in the match list, and every played match has its games: reuse the previous file.
   if (previous && sameSchedule(previous.matches, matches) && previous.matches.every((m) => !m.score || m.games)) {
     const data = describe(structuredClone(previous), target, ctx);
-    if (!refreshRatings) return { data, links: new Map(), stats: null };
-    const statsHtml = await client.standing({ subPage: 7, ...query });
-    const stats = parsePlayerStats(statsHtml);
-    data.players = withRatings(data.players, stats);
-    return { data, links: parseRatingLinks(statsHtml), stats };
+    if (!refreshRatings && !check) return { data, links: new Map(), stats: null, check: null };
+    const html = await readStats();
+    if (!check || recordDifferences(data, parsePlayerRecords(html)).length === 0) {
+      if (!refreshRatings) return { data, links: new Map(), stats: null, check: { reread: false, matchesReread: 0, remaining: [] } };
+      const stats = parsePlayerStats(html);
+      data.players = withRatings(data.players, stats);
+      return { data, links: parseRatingLinks(html), stats, check: check ? { reread: false, matchesReread: 0, remaining: [] } : null };
+    }
+    reread = true;
   }
 
   const standingsHtml = await client.standing({ subPage: 2, ...query });
   const headings = parseHeadings(standingsHtml);
   const { standings, teams: standingTeams } = parseStandings(standingsHtml);
-  const statsHtml = await client.standing({ subPage: 7, ...query });
+  const statsHtml = await readStats();
   const stats = parsePlayerStats(statsHtml);
   if (matches.length === 0 && standings.length === 0) throw new Error('no matches or standings found');
 
   const names = new Map<string, string>((previous?.players ?? []).map((p) => [p.id, p.name]));
   const oldMatches = new Map((previous?.matches ?? []).map((m) => [m.id, m]));
-  for (const match of matches) {
-    if (!match.score) continue;
-    const old = oldMatches.get(match.id);
-    if (old?.games && sameResult(old, match)) {
-      match.games = old.games;
-      continue;
-    }
+  /** Played matches whose games were read from the portal in this run. */
+  const read = new Set<string>();
+  const readGames = async (match: TeamMatch) => {
+    read.add(match.id);
     try {
       const details = parseMatchDetails(await client.standing({ subPage: 5, ...query, matchId: match.id }));
       match.games = details.games.length > 0 ? details.games : null;
       for (const [id, name] of details.names) names.set(id, name);
     } catch (error) {
       console.warn(`  match ${match.id}: could not read games (${message(error)})`);
-      match.games = old?.games ?? null;
+      match.games = oldMatches.get(match.id)?.games ?? null;
+    }
+  };
+  for (const match of matches) {
+    if (!match.score) continue;
+    const old = oldMatches.get(match.id);
+    if (!reread && old?.games && sameResult(old, match)) {
+      match.games = old.games;
+      continue;
+    }
+    await readGames(match);
+  }
+  // The check, for a pool with new results too: a difference means the other played matches are read again.
+  let remaining: RecordDifference[] = [];
+  if (check) {
+    const portal = parsePlayerRecords(statsHtml);
+    remaining = recordDifferences({ matches }, portal);
+    if (remaining.length > 0 && !reread) {
+      reread = true;
+      for (const match of matches) if (match.score && !read.has(match.id)) await readGames(match);
+      remaining = recordDifferences({ matches }, portal);
     }
   }
+  const checked: PoolCheck | null = check ? { reread, matchesReread: reread ? read.size : 0, remaining } : null;
   matches.sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
 
   // Who played for which team, from the games themselves (latest match wins).
@@ -114,7 +154,7 @@ export async function importPool(
     target,
     ctx,
   );
-  return { data, links: parseRatingLinks(statsHtml), stats };
+  return { data, links: parseRatingLinks(statsHtml), stats, check: checked };
 }
 
 export function byName(a: Player, b: Player): number {

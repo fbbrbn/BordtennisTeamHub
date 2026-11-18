@@ -83,7 +83,7 @@ export function isGoldenSet(game: Game): boolean {
  * won or lost by walkover: they count in a player's record, as on the portal (checked against its
  * player stats), but were not played, so they stay out of everything about play: sets, ratings, form.
  */
-export function playerGames(pool: PoolData, playerId: string, options: { walkovers?: boolean } = {}): GameRecord[] {
+export function playerGames(pool: Pick<PoolData, 'matches'>, playerId: string, options: { walkovers?: boolean } = {}): GameRecord[] {
   const records: GameRecord[] = [];
   for (const match of pool.matches) {
     for (const game of match.games ?? []) {

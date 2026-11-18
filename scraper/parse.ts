@@ -147,6 +147,33 @@ export function parsePlayerStats(html: string): Player[] {
   return players;
 }
 
+/**
+ * Each player's singles record on the portal's player stats (subPage 7): won ("Sejre") and played ("Kampe"),
+ * walkovers included and golden sets not. The table has a row per player and team, and shows some rows
+ * twice: one row per player and team counts, and a player's teams are added up. Only the player link,
+ * the team link and the two numbers are read, never the player number beside the name.
+ */
+export function parsePlayerRecords(html: string): Map<string, { won: number; games: number }> {
+  const records = new Map<string, { won: number; games: number }>();
+  const seen = new Set<string>();
+  for (const row of parse(html).querySelectorAll('table.groupstandings tr')) {
+    const cells = row.querySelectorAll('td');
+    if (cells.length < 6) continue;
+    const id = playerIdOf(cells[1].querySelector('a'));
+    const won = toInt(textOf(cells[4]));
+    const games = toInt(textOf(cells[5]));
+    if (!id || won === null || games === null) continue;
+    const key = `${id}|${showArgs(cells[2].querySelector('a'))?.teamId ?? ''}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const record = records.get(id) ?? { won: 0, games: 0 };
+    record.won += won;
+    record.games += games;
+    records.set(id, record);
+  }
+  return records;
+}
+
 export function parseMatchDetails(html: string): { games: Game[]; names: Map<string, string> } {
   const games: Game[] = [];
   const names = new Map<string, string>();

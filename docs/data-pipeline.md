@@ -89,6 +89,13 @@ GitHub's own schedule stays in the import workflows as a backup:
 9. **Files.** Pool files are written only when their content changed, then the index, the player list and this
    season's player lines (`careers/`) and head-to-head records (`h2h/`).
 
+**Once a day** (in practice the morning run, `checkEveryHours` in the config), step 3 also reads each pool's player
+stats and compares every player's singles record with the one the site shows (`scraper/verify.ts`). The portal
+sometimes corrects a match card after the import (a player swapped, say) without changing the score, and a match is
+otherwise read again only when its score changes. A pool where a record differs gets all its played matches read again;
+anything that still differs afterwards is listed in the log. This costs one request per pool (about 140), plus the
+matches of the pools that differ: in November 2026, 3 of 29 pools of one age group, 38 matches.
+
 Then the workflow publishes the folder to the `data` branch as one new commit, replacing the previous one (so the
 repository does not grow with every update), and starts the site build. A quiet run costs about 150 requests and 2 minutes. Requests are spaced 800 ms apart, and a run stops
 starting new pools after 5 hours (the next run continues).
@@ -99,7 +106,7 @@ On the `data` branch, copied into the site as `data/`:
 
 | File | What is in it |
 | --- | --- |
-| `index.json` | The season, regions (unions), age groups and clubs; every pool with its league, its place on the portal's list, its teams, places and points; the rating list in use; how the predictions did this season. |
+| `index.json` | The season, regions (unions), age groups and clubs; every pool with its league, its place on the portal's list, its teams, places and points; the rating list in use; how the predictions did this season; when the pools were last discovered and last checked against the portal's player stats. |
 | `pools/<poolId>.json` | One pool: its teams, standings, matches (results, games and the prediction made before each match) and players (official rating, rating forecast, and form against their rating). |
 | `players.json` | Every player with their official rating and the teams they played for, for the player search. |
 | `ratings/<seasonId>.json` | The season's official rating lists: every player's rating in each version in force on a match day. |
@@ -170,9 +177,9 @@ imports a small part of a past season into `history/` (also ignored by git).
     the index lists pools as the portal does: the leagues from the top down. A run that reuses the pool list keeps
     both from the previous index.
   - A pool whose match list (subPage 4) is unchanged costs one request: its file is reused.
-  - Played-match details are fetched again only when a result changes. So a correction on the portal that changes only
-    who played (the same score) is not picked up: in November 2026 one match had both teams' players swapped after the
-    import.
+  - Played-match details are fetched again only when a result changes, and by the daily check: a pool where a player's
+    record differs from the portal's player stats gets every played match read again (`importPool(..., check)`). The
+    index keeps the time of the last complete check (`checkedAt`).
   - Files are rewritten only when their content changes.
   - Requests are spaced 800 ms apart. After `maxMinutes` no new pools are started.
   - Pools no longer in scope are deleted, but only after a complete discovery.
