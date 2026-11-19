@@ -174,6 +174,12 @@ export function parsePlayerRecords(html: string): Map<string, { won: number; gam
   return records;
 }
 
+/**
+ * A doubles game by its label ("1. HD", "2. DD", "Dbl.1"): a doubles card that lists only one player a side is
+ * still a double, as the portal's player stats count it. Other games are doubles when a side has two players.
+ */
+const DOUBLES_LABEL = /^\s*\d+\.\s*(HD|DD|MD)\b|^\s*Dbl\b/i;
+
 export function parseMatchDetails(html: string): { games: Game[]; names: Map<string, string> } {
   const games: Game[] = [];
   const names = new Map<string, string>();
@@ -197,7 +203,7 @@ export function parseMatchDetails(html: string): { games: Game[]; names: Map<str
     else if (sets[0] !== sets[1]) winner = sets[0] > sets[1] ? 'home' : 'away';
     games.push({
       label: textOf(labelCell),
-      kind: home.length > 1 || away.length > 1 ? 'double' : 'single',
+      kind: DOUBLES_LABEL.test(textOf(labelCell)) || home.length > 1 || away.length > 1 ? 'double' : 'single',
       home,
       away,
       sets,

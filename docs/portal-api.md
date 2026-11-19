@@ -14,7 +14,8 @@ What the importer (`scraper/`) calls, and how the answers look. Everything below
   - 2: pool standings
   - 3: a team's matches
   - 4: pool match list
-  - 5: match details with games
+  - 5: match details with games. A game is a double by its label ("1. HD", "2. DD", "Dbl.1") or when a side lists two
+    players: a doubles card sometimes lists only one player a side
   - 6: club
   - 7: pool player stats with ratings, and each player's singles won ("Sejre") and played ("Kampe"): walkovers
     included, golden sets not. A player has a row per team, and some rows are shown twice

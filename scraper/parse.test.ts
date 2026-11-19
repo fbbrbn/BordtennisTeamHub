@@ -90,6 +90,13 @@ describe('portal parsers', () => {
     expect(JSON.stringify(players)).not.toMatch(/010190|ABCD/);
   });
 
+  it('reads a doubles card with one player a side as a double, by its label', () => {
+    const halfDouble = DETAILS.replace(`<div>${player('703', 'Cai Carlsen')}</div></td><td class='player'><div class='teamhdr'>Beta</div><div>${player('702', 'Bo Berg')}</div><div>${player('704', 'Dan Dahl')}</div>`, `</td><td class='player'><div class='teamhdr'>Beta</div><div>${player('702', 'Bo Berg')}</div>`);
+    const [doubles, single] = parseMatchDetails(halfDouble).games;
+    expect([doubles.label, doubles.kind, doubles.home, doubles.away]).toEqual(['1. HD', 'double', ['701'], ['702']]);
+    expect(single.kind).toBe('single');
+  });
+
   it("reads each player's singles record once per team, without the player number", () => {
     expect(parsePlayerRecords(PLAYERS)).toEqual(
       new Map([
