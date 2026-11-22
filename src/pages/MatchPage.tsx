@@ -57,7 +57,12 @@ function MatchView({ pool, match }: { pool: PoolData; match: TeamMatch }) {
           ))}
         </h1>
         <p className="muted">
-          {matchDayLong(match.date)} · {matchTime(match.date)} · {match.venue}
+          {/* A no-break space before each dot: a line never starts with one. */}
+          {matchDayLong(match.date)}
+          {' · '}
+          {matchTime(match.date)}
+          {' · '}
+          {match.venue}
           {match.walkover && t.match.walkover}
         </p>
       </header>
