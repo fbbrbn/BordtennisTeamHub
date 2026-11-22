@@ -217,7 +217,7 @@ export function MatchPreview({ pool, match }: { pool: PoolData; match: TeamMatch
       <section className="card">
         <div className="section-head">
           <h2>{t.preview.chances}</h2>
-          <div className="segmented" role="group" aria-label={t.preview.showFor}>
+          <div className="segmented sides" role="group" aria-label={t.preview.showFor}>
             {[match.homeTeamId, match.awayTeamId].map((id) => (
               <button key={id} type="button" aria-pressed={perspective === id} onClick={() => setPerspective(id)}>
                 {teamName(id)}

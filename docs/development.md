@@ -127,9 +127,27 @@ The main logic is in pure functions with unit tests:
   - Keep pages short on phones: put explanations behind `<details>`, and show the most useful items first.
   - Routes look like `#/team/<poolId>/<teamId>`, `#/club/<slug>` and `#/vs/<poolId>/<playerId>/<poolId>/<playerId>`.
   - `src/data/clubs.ts` maps team names to clubs and makes club slugs.
-- Look: red against blue, the table and the paddle. Colour tokens are at the top of `src/styles.css`, light and dark;
-  chart colours are validated with the dataviz skill's script in both modes. Headings and big numbers use Barlow
-  Condensed (`@fontsource/barlow-condensed`, bundled, OFL); body text the system font.
+- Look: one quiet system, after the design-taste skill (`design-taste-frontend` from
+  [Leonxlnx/taste-skill](https://github.com/Leonxlnx/taste-skill)). The tokens are at the top of `src/styles.css`,
+  light and dark:
+  - its palette: white cards on a light grey page by day, a step lighter than a blue-black page by night; a near-black
+    ink, hairlines at 11% of it, and one blue accent;
+  - Funnel Display for headings and big numbers, Funnel Sans for text (`@fontsource-variable/funnel-display` and
+    `@fontsource-variable/funnel-sans`, bundled, OFL; both have tabular figures);
+  - weights 400 and 500 only, labels 13px in sentence case (never tracked capitals), nothing under 13px except chart
+    ticks (12px);
+  - soft radii: 8 for controls, 12 for panels and tiles, 20 for cards (16 on a phone);
+  - one button shape, 44px tall: one filled primary in a view, the rest outlined; tabs and choices are outlined, the
+    chosen one an ink pill; links are ink on a faint underline;
+  - short hover steps for a fine pointer only (150ms in, 120ms out, 90ms for a press; a button 1px up, a linked card
+    2px), none with reduced motion; the focus ring shows at once;
+  - a sticky header on the page's ground with a hairline, its logo in line with the content.
+
+  Colour only marks the main action, focus, the current place and the data. The data keeps red against blue: your side
+  and a win blue, the other side and a loss red, a draw grey; chart colours are validated with the dataviz skill's
+  script in both modes. The skill is for marketing pages, so its page rules (one section per screen, photographs, a
+  hero entrance) are left out. In a cloud session the environment's setup script installs it; locally,
+  `/plugin marketplace add Leonxlnx/taste-skill` and `/plugin install taste-skill@taste-skill`.
 - The logo (`src/components/Logo.tsx`, `public/icon.svg`) is a red paddle and a white ball on a navy tile, so it reads
   on light and dark pages. `public/manifest.webmanifest` makes the site installable; the PNG icons, the maskable icon and
   the Apple touch icon are rendered from the SVGs by `node scripts/make-icons.cjs` (needs Playwright).
@@ -165,6 +183,8 @@ The main logic is in pure functions with unit tests:
   - Explanations go behind `<details>` ("Why these chances?", "How is this worked out?"), never in front of the answer.
   - Tile labels are one word; a hint that is the same on every row is said once, or not at all.
   - The link to the same page on the portal is at the foot of the page (`PortalLink`).
+- Styles use the tokens at the top of `src/styles.css`: the type sizes (`--t-label` 13px for labels, `--t-small` 14px
+  for meta, `--t-body` 16px), the radii and the motion times. Two weights (400 and 500), one card, one button shape.
 - Charts follow the dataviz skill's rules:
   - Validate colors with its script.
   - Thin marks and a legend.

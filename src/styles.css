@@ -1,24 +1,30 @@
 /*
- * Red against blue: the table (court blue) and the paddle's rubber (red), on cool navy neutrals.
- * Blue is your side and a win, red the other side and a loss, grey a draw. Chart colours are
- * validated with the dataviz skill's script in both modes (adjacent CVD ΔE ≥ 25, contrast ≥ 3:1).
+ * One quiet system with one blue accent, after the design-taste skill (design-taste-frontend): its dealt
+ * palette (white and link blue by day, blue-black and cornflower by night), the Funnel pairing, soft radii
+ * (8, 12 and 20), weights 400 and 500 only, nothing under 13px, 44px buttons and short hover steps.
+ * White cards on a light grey page (at night a step lighter than the page), a near-black ink, hairlines
+ * at 11% of the ink. Colour only where it means something: the one main action, focus, the current place
+ * and the data. The data keeps red against blue: blue is your side and a win, red the other side and a
+ * loss, grey a draw. Chart colours are validated with the dataviz skill's script in both modes.
  */
 :root {
   color-scheme: light;
-  --page: #f3f5f9;
+  /* Grounds, ink and lines */
+  --page: #f4f4f4;
   --surface: #ffffff;
-  --surface-2: #eaeef5;
-  --text: #0b1324;
-  --text-2: #4b5567;
-  --line: #e2e6ee;
-  --border: rgba(11, 19, 36, 0.12);
-  --accent: #1f5bd9;
-  --accent-strong: #1748b8;
-  --accent-soft: #e3ebfd;
+  --surface-2: #f1f1f1;
+  --text: #111111;
+  --text-2: #6b6b6b;
+  --line: #e6e6e6;
+  --border: rgba(17, 17, 17, 0.11);
+  --border-strong: rgba(17, 17, 17, 0.24);
+  /* The one accent: the main action, focus and the current place. Links are ink, underlined. */
+  --accent: #1a4be0;
+  --accent-strong: #183fc0;
   --on-accent: #ffffff;
-  --link: #1748b8;
-  --brand-navy: #102a63;
-  --brand-red: #e0352f;
+  --link: #111111;
+  --link-line: rgba(17, 17, 17, 0.32);
+  /* States */
   --good: #0ca30c;
   --good-ink: #006300;
   --good-soft: #e3f4e3;
@@ -28,89 +34,114 @@
   --critical: #d03b3b;
   --critical-ink: #a02b2b;
   --critical-soft: #fbe6e6;
-  --won-ink: #1748b8;
-  --won-soft: #e3ebfd;
-  --lost-ink: #b4231e;
-  --lost-soft: #fde5e4;
-  --bar-played: #1f5bd9;
-  --bar-planned: #9db8f2;
-  --series-1: #1f5bd9;
-  --deemph: #c2c8d3;
-  --grid: #e2e6ee;
-  --axis: #c2c8d3;
-  --tick: #7d8696;
-  --meter-track: #d6e2fb;
-  --odds-win: #1f5bd9;
-  --odds-draw: #a7aebb;
+  /* Data: blue your side and a win, red the other side and a loss, grey a draw */
+  --won: #1a4be0;
+  --lost: #d9302a;
+  --drawn: #a6a6a6;
+  --bar-played: #1a4be0;
+  --bar-planned: #9fb5f4;
+  --series-1: #1a4be0;
+  --deemph: #c4c4c4;
+  --grid: #e6e6e6;
+  --axis: #c4c4c4;
+  --tick: #6b6b6b;
+  --meter-track: #e6e6e6;
+  --odds-win: #1a4be0;
+  --odds-draw: #a6a6a6;
   --odds-loss: #d9302a;
   --odds-win-ink: #ffffff;
-  --odds-draw-ink: #0b1324;
+  --odds-draw-ink: #111111;
   --odds-loss-ink: #ffffff;
-  --heat-4: #1f5bd9;
-  --heat-3: #9db8f2;
-  --heat-2: #e6e9ef;
+  --heat-4: #1a4be0;
+  --heat-3: #9fb5f4;
+  --heat-2: #e6e6e6;
   --heat-1: #f4a7a3;
   --heat-0: #c62a24;
   --heat-4-ink: #ffffff;
-  --heat-3-ink: #0b1324;
-  --heat-1-ink: #0b1324;
+  --heat-3-ink: #111111;
+  --heat-1-ink: #111111;
   --heat-0-ink: #ffffff;
-  --radius: 12px;
-  --shadow: 0 1px 2px rgba(11, 19, 36, 0.06);
-  --font-display: 'Barlow Condensed', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
-  line-height: 1.45;
+  /* Radius: soft. Cards 20 (16 on a phone), panels and tiles 12, controls 8. */
+  --r-lg: 20px;
+  --r-md: 12px;
+  --r-sm: 8px;
+  --card-pad: 24px;
+  /* Type: the Funnel pairing. One size per kind of text. */
+  --font-display: 'Funnel Display Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-text: 'Funnel Sans Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  --t-label: 0.8125rem;
+  --t-small: 0.875rem;
+  --t-body: 1rem;
+  --t-card: 1.125rem;
+  --t-h2: 1.375rem;
+  --t-h1: clamp(1.875rem, 1.2vw + 1.5rem, 2.5rem);
+  --t-stat: clamp(1.75rem, 0.95vw + 1.5rem, 2.25rem);
+  --tracking-display: -0.025em;
+  /* Motion: hover in 150ms, out 120ms, a press 90ms, one ease-out. */
+  --m-in: 150ms;
+  --m-out: 120ms;
+  --m-press: 90ms;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  font-family: var(--font-text);
+  line-height: 1.5;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --page: #080c15;
-    --surface: #111826;
-    --surface-2: #1a2233;
-    --text: #eef2f8;
-    --text-2: #a3aec2;
-    --line: #222b3d;
-    --border: rgba(255, 255, 255, 0.12);
-    --accent: #2f68e8;
-    --accent-strong: #8db0ff;
-    --accent-soft: #16234a;
-    --link: #8db0ff;
-    --brand-red: #f2554e;
+    --page: #0a0d14;
+    --surface: #131824;
+    --surface-2: #1d2230;
+    --text: #e9edf3;
+    --text-2: #8891a1;
+    --line: #262c39;
+    --border: rgba(233, 237, 243, 0.11);
+    --border-strong: rgba(233, 237, 243, 0.24);
+    --accent: #5ab9fc;
+    --accent-strong: #6ec0fb;
+    --on-accent: #0a0d14;
+    --link: #e9edf3;
+    --link-line: rgba(233, 237, 243, 0.36);
     --good-ink: #5fd35f;
     --good-soft: #142a14;
     --warning-ink: #fbc24d;
     --warning-soft: #2e2510;
     --critical-ink: #f08a8a;
     --critical-soft: #331616;
-    --won-ink: #8db0ff;
-    --won-soft: #16234a;
-    --lost-ink: #ff8f8a;
-    --lost-soft: #3a1717;
-    --bar-played: #4a82f5;
-    --bar-planned: #24427f;
-    --series-1: #4a82f5;
-    --deemph: #3a4357;
-    --grid: #222b3d;
-    --axis: #343e52;
-    --tick: #8691a6;
-    --meter-track: #1a2d57;
-    --odds-win: #4a82f5;
-    --odds-draw: #5f6778;
+    --won: #3194e4;
+    --lost: #f2554e;
+    --drawn: #646b78;
+    --bar-played: #3194e4;
+    --bar-planned: #1e5f99;
+    --series-1: #3194e4;
+    --deemph: #3a404c;
+    --grid: #262c39;
+    --axis: #3a404c;
+    --tick: #8891a1;
+    --meter-track: #2a303c;
+    --odds-win: #3194e4;
+    --odds-draw: #646b78;
     --odds-loss: #f2554e;
-    --odds-win-ink: #07101f;
+    --odds-win-ink: #0a0d14;
     --odds-draw-ink: #ffffff;
-    --odds-loss-ink: #07101f;
-    --heat-4: #4a82f5;
-    --heat-3: #1c3a7a;
-    --heat-2: #2a3242;
-    --heat-1: #7a2b28;
+    --odds-loss-ink: #0a0d14;
+    --heat-4: #3194e4;
+    --heat-3: #1e5f99;
+    --heat-2: #2a303c;
+    --heat-1: #932f2a;
     --heat-0: #f2554e;
-    --heat-4-ink: #07101f;
-    --heat-3-ink: #eef2f8;
-    --heat-1-ink: #eef2f8;
-    --heat-0-ink: #07101f;
-    --shadow: none;
+    --heat-4-ink: #0a0d14;
+    --heat-3-ink: #e9edf3;
+    --heat-1-ink: #e9edf3;
+    --heat-0-ink: #0a0d14;
+  }
+}
+
+@media (max-width: 639px) {
+  :root {
+    --r-lg: 16px;
+    --card-pad: 20px;
   }
 }
 
@@ -118,49 +149,72 @@
   box-sizing: border-box;
 }
 
+/* A focused control never hides under the sticky header. */
+html {
+  scroll-padding-top: 72px;
+}
+
 body {
   margin: 0;
   background: var(--page);
   color: var(--text);
+  font-size: var(--t-body);
   -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 h1,
 h2,
 h3 {
-  line-height: 1.2;
   margin: 0;
   text-wrap: balance;
+  overflow-wrap: break-word;
 }
 
-/* Headings and big numbers in a condensed sports face; body text stays the system font. */
+/* Headings and big numbers in Funnel Display at its regular weight, tracked tight; text in Funnel Sans. */
 h1,
 h2 {
   font-family: var(--font-display);
-  font-weight: 700;
-  letter-spacing: 0.01em;
+  font-weight: 400;
+  letter-spacing: var(--tracking-display);
 }
 
 h1 {
-  font-size: 2rem;
-  line-height: 1.05;
+  font-size: var(--t-h1);
+  line-height: 1.08;
 }
 
 h2 {
-  font-size: 1.3rem;
-  font-weight: 600;
+  font-size: var(--t-h2);
+  line-height: 1.2;
 }
 
 h3 {
-  font-size: 1rem;
+  font-size: var(--t-body);
+  font-weight: 500;
+  line-height: 1.3;
 }
 
 p {
   margin: 0;
+  text-wrap: pretty;
 }
 
+/* One link look: ink on a faint hairline, the line turning to ink on hover. */
 a {
   color: var(--link);
+  text-decoration: underline;
+  text-decoration-color: var(--link-line);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  transition: text-decoration-color var(--m-out) var(--ease);
+}
+
+a:hover {
+  text-decoration-color: currentColor;
+  transition-duration: var(--m-in);
 }
 
 button,
@@ -171,6 +225,7 @@ textarea {
   color: inherit;
 }
 
+/* Focus shows at once: 2px in the accent, never animated. */
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -189,6 +244,27 @@ textarea {
   color: var(--text-2);
 }
 
+/* Motion only adds: without it every state still shows, at once. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0s !important;
+  }
+  .button:hover,
+  .button:active,
+  a.card:hover {
+    transform: none !important;
+  }
+}
+
+/* Two weights only: 400 and 500. */
+strong,
+b,
+th {
+  font-weight: 500;
+}
+
 /* ---------- Shell ---------- */
 
 .app {
@@ -197,23 +273,19 @@ textarea {
   flex-direction: column;
 }
 
+/* The header: opaque, on the page's ground, a hairline under it, the same at every scroll depth. */
 .topbar {
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--line);
-  background: var(--surface);
-}
-
-.topbar::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 3px;
-  background: linear-gradient(90deg, var(--accent) 50%, var(--brand-red) 50%);
+  min-height: 56px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--page);
 }
 
 .brand {
@@ -221,20 +293,20 @@ textarea {
   align-items: center;
   gap: 10px;
   font-family: var(--font-display);
-  font-size: 1.35rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 1.25rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
   color: var(--text);
   text-decoration: none;
+  white-space: nowrap;
 }
 
 /* The logo carries its own navy tile, so it reads on light and dark pages alike. */
 .brand-mark {
   display: block;
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -248,36 +320,54 @@ textarea {
   width: 100%;
   max-width: 880px;
   margin: 0 auto;
-  padding: 20px 16px 48px;
+  padding: 24px 16px 56px;
 }
 
 .footer {
   display: grid;
   justify-items: center;
-  gap: 10px;
-  padding: 16px;
-  font-size: 0.8rem;
+  gap: 12px;
+  padding: 24px 16px;
+  font-size: var(--t-label);
   color: var(--text-2);
   text-align: center;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--border);
 }
 
 .footer p {
   margin: 0;
+  max-width: 62ch;
+}
+
+/* On a wide screen the header's logo and words line up with the content column below. */
+@media (min-width: 720px) {
+  .topbar {
+    min-height: 64px;
+    padding: 0 max(24px, calc((100% - 880px) / 2 + 24px));
+  }
+  .content {
+    padding: 32px 24px 64px;
+  }
 }
 
 /* ---------- Building blocks ---------- */
 
+/* One card: a step off the page, a hairline, no shadow at rest. */
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 16px;
+  border-radius: var(--r-lg);
+  padding: var(--card-pad);
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 12px;
+  gap: 16px;
   min-width: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .card {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
 }
 
 .stack {
@@ -293,23 +383,33 @@ textarea {
   flex-wrap: wrap;
 }
 
+/*
+ * One button shape, 44px tall with a 16px label. The secondary sits on its ground with a clear edge; the
+ * primary is the one filled accent in a view. On hover (a fine pointer only) the fill steps toward the
+ * ink and the box 1px up; a press sinks it 1px below rest.
+ */
 .button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 40px;
-  padding: 8px 14px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 20px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-strong);
   background: var(--surface);
   color: var(--text);
-  font-weight: 550;
+  font-size: var(--t-body);
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: center;
   text-decoration: none;
   cursor: pointer;
-}
-
-.button:hover {
-  background: var(--surface-2);
+  transition:
+    background-color var(--m-out) var(--ease),
+    border-color var(--m-out) var(--ease),
+    color var(--m-out) var(--ease),
+    transform var(--m-out) var(--ease);
 }
 
 .button.primary {
@@ -318,46 +418,84 @@ textarea {
   color: var(--on-accent);
 }
 
-.button.primary:hover {
-  background: var(--accent-strong);
-  border-color: var(--accent-strong);
-}
-
 .button.quiet {
   border-color: transparent;
   background: transparent;
   color: var(--text-2);
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .button:hover {
+    background: var(--surface-2);
+    border-color: color-mix(in srgb, var(--text) 40%, transparent);
+    transform: translateY(-1px);
+    transition-duration: var(--m-in);
+  }
+  .button.primary:hover {
+    background: var(--accent-strong);
+    border-color: var(--accent-strong);
+  }
+  .button.quiet:hover {
+    border-color: transparent;
+    color: var(--text);
+  }
+}
+
+.button:active {
+  transform: translateY(1px) scale(0.985);
+  transition-duration: var(--m-press);
+}
+
 .button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
 }
 
 .button-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
+}
+
+/* On a phone, buttons in a row share it. */
+@media (max-width: 639px) {
+  .button-row > .button {
+    flex: 1 1 auto;
+  }
 }
 
 .link-button {
   border: 0;
   background: none;
-  padding: 4px 2px;
+  padding: 4px 0;
   color: var(--link);
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: var(--link-line);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
   cursor: pointer;
-  font-weight: 550;
+  transition: text-decoration-color var(--m-out) var(--ease);
 }
 
+.link-button:hover {
+  text-decoration-color: currentColor;
+  transition-duration: var(--m-in);
+}
+
+/* A small pill for a fact (home or away, a past season). */
 .tag {
   display: inline-block;
-  padding: 1px 8px;
+  padding: 0 8px;
   border-radius: 999px;
-  border: 1px solid var(--border);
-  font-size: 0.75rem;
-  font-weight: 600;
+  border: 1px solid var(--border-strong);
+  font-size: var(--t-label);
+  font-weight: 500;
+  line-height: 1.5;
   color: var(--text-2);
-  vertical-align: 2px;
+  vertical-align: 1px;
+  white-space: nowrap;
 }
 
 .tag-home {
@@ -366,7 +504,7 @@ textarea {
 
 .field {
   display: grid;
-  gap: 4px;
+  gap: 6px;
   min-width: 0;
   border: 0;
   padding: 0;
@@ -375,8 +513,8 @@ textarea {
 
 .field > span,
 .field > legend {
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: var(--t-label);
+  font-weight: 500;
   color: var(--text-2);
   padding: 0;
 }
@@ -390,13 +528,22 @@ textarea {
 input:not([type='checkbox']):not([type='radio']),
 select,
 textarea {
-  min-height: 40px;
+  min-height: 44px;
   min-width: 0;
   width: 100%;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--page);
+  padding: 8px 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  font-size: var(--t-body);
+  transition: border-color var(--m-out) var(--ease);
+}
+
+input:not([type='checkbox']):not([type='radio']):hover,
+select:hover,
+textarea:hover {
+  border-color: color-mix(in srgb, var(--text) 40%, transparent);
+  transition-duration: var(--m-in);
 }
 
 .field.inline select {
@@ -407,6 +554,7 @@ textarea {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  min-height: 32px;
   cursor: pointer;
 }
 
@@ -418,9 +566,9 @@ textarea {
 }
 
 .empty {
-  padding: 20px 16px;
-  border: 1px dashed var(--border);
-  border-radius: var(--radius);
+  padding: 24px 16px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--r-md);
   text-align: center;
   color: var(--text-2);
 }
@@ -428,24 +576,31 @@ textarea {
 .banner {
   display: grid;
   gap: 12px;
-  padding: 14px 16px;
-  border-radius: var(--radius);
-  background: var(--accent-soft);
-  border: 1px solid var(--border);
+  padding: 16px 20px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
 }
 
 .toast {
   position: fixed;
   left: 50%;
-  bottom: 20px;
+  bottom: calc(80px + env(safe-area-inset-bottom));
+  z-index: 20;
   transform: translateX(-50%);
   max-width: calc(100vw - 32px);
   padding: 10px 16px;
   border-radius: 999px;
   background: var(--text);
   color: var(--page);
-  font-weight: 550;
+  font-weight: 500;
   pointer-events: none;
+}
+
+@media (min-width: 720px) {
+  .toast {
+    bottom: 24px;
+  }
 }
 
 .toast:empty {
@@ -456,13 +611,14 @@ textarea {
 
 .hero {
   display: grid;
-  gap: 8px;
-  margin: 8px 0 20px;
+  gap: 12px;
+  margin: 8px 0 24px;
 }
 
 .hero p {
   color: var(--text-2);
-  max-width: 60ch;
+  font-size: 1.0625rem;
+  max-width: 52ch;
 }
 
 .saved-list {
@@ -474,7 +630,7 @@ textarea {
 }
 
 .saved-list a {
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /* ---------- Planner ---------- */
@@ -490,8 +646,8 @@ textarea {
 }
 
 .team-field input {
-  font-size: 1.1rem;
-  font-weight: 600;
+  font-size: var(--t-card);
+  font-weight: 500;
 }
 
 .settings {
@@ -508,8 +664,8 @@ textarea {
 
 .explain summary {
   cursor: pointer;
-  color: var(--link);
-  font-weight: 550;
+  color: var(--text);
+  font-weight: 500;
 }
 
 .explain p {
@@ -534,13 +690,13 @@ textarea {
 }
 
 .balance thead th {
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: var(--t-label);
+  font-weight: 500;
   color: var(--text-2);
 }
 
 .balance tbody th {
-  font-weight: 550;
+  font-weight: 500;
   overflow-wrap: break-word;
 }
 
@@ -550,7 +706,7 @@ textarea {
 }
 
 .balance .total {
-  font-weight: 650;
+  font-weight: 500;
 }
 
 .balance tr.inactive {
@@ -606,7 +762,7 @@ textarea {
   display: flex;
   flex-wrap: wrap;
   gap: 6px 16px;
-  font-size: 0.8rem;
+  font-size: var(--t-label);
   color: var(--text-2);
 }
 
@@ -686,22 +842,21 @@ textarea {
 }
 
 .match-when {
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: var(--t-small);
   color: var(--text-2);
 }
 
 .match-vs {
-  font-size: 1rem;
-  font-weight: 650;
+  font-size: 1.0625rem;
+  font-weight: 500;
   overflow-wrap: anywhere;
 }
 
 /* The lineup so far, under a folded match. */
 .match-status {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--accent-strong);
+  font-size: var(--t-small);
+  font-weight: 500;
+  color: var(--text);
 }
 
 .match-status.is-waiting,
@@ -713,14 +868,15 @@ textarea {
 .match-alert {
   display: inline-grid;
   place-items: center;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   margin-left: 6px;
   border-radius: 50%;
   background: var(--warning);
-  color: #0b1324;
-  font-size: 0.7rem;
-  font-weight: 800;
+  color: #111111;
+  font-size: var(--t-label);
+  font-weight: 500;
+  line-height: 1;
   vertical-align: 1px;
 }
 
@@ -729,17 +885,15 @@ textarea {
   flex-wrap: wrap;
   align-items: baseline;
   gap: 4px 10px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: var(--accent-soft);
-  font-weight: 600;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  font-weight: 500;
 }
 
 .match-lineup .label {
-  font-size: 0.75rem;
-  font-weight: 650;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: var(--t-label);
+  font-weight: 500;
   color: var(--text-2);
 }
 
@@ -755,9 +909,9 @@ textarea {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  font-size: 0.9rem;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  font-size: var(--t-small);
 }
 
 .notice-warn {
@@ -778,14 +932,15 @@ textarea {
   height: 18px;
   margin-top: 1px;
   border-radius: 50%;
-  font-size: 0.75rem;
-  font-weight: 800;
+  font-size: var(--t-label);
+  font-weight: 500;
+  line-height: 1;
   background: currentColor;
 }
 
 .notice-warn .notice-icon {
   background: var(--warning);
-  color: #0b1324;
+  color: #111111;
 }
 
 .notice-info .notice-icon {
@@ -814,27 +969,29 @@ textarea {
 
 .player-name {
   grid-area: name;
-  font-weight: 600;
+  font-weight: 500;
   overflow-wrap: anywhere;
 }
 
 .status {
   grid-area: status;
   justify-self: end;
-  padding: 2px 10px;
+  padding: 1px 10px;
+  border: 1px solid transparent;
   border-radius: 999px;
-  font-size: 0.8rem;
-  font-weight: 650;
+  font-size: var(--t-label);
+  font-weight: 500;
   white-space: nowrap;
 }
 
+/* Who plays: an ink pill, as a chosen tab or chip. */
 .status-plays {
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--text);
+  color: var(--surface);
 }
 
 .status-reserve {
-  border: 1px solid var(--border);
+  border-color: var(--border-strong);
   color: var(--text);
 }
 
@@ -847,24 +1004,32 @@ textarea {
 .answers {
   grid-area: answers;
   display: inline-flex;
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
   overflow: hidden;
   justify-self: start;
 }
 
 .answer {
-  min-height: 36px;
-  min-width: 52px;
-  padding: 4px 10px;
+  min-height: 40px;
+  min-width: 56px;
+  padding: 4px 12px;
   white-space: nowrap;
   border: 0;
-  border-right: 1px solid var(--border);
+  border-right: 1px solid var(--border-strong);
   background: var(--surface);
   color: var(--text-2);
-  font-weight: 600;
-  font-size: 0.85rem;
+  font-weight: 500;
+  font-size: var(--t-small);
   cursor: pointer;
+  transition: background-color var(--m-out) var(--ease), color var(--m-out) var(--ease);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .answer:hover {
+    color: var(--text);
+    transition-duration: var(--m-in);
+  }
 }
 
 .answer:last-child {
@@ -893,8 +1058,8 @@ textarea {
   grid-area: pick;
   width: auto !important;
   justify-self: end;
-  min-height: 36px !important;
-  padding: 4px 8px !important;
+  min-height: 40px !important;
+  padding: 4px 10px !important;
 }
 
 @media (min-width: 640px) {
@@ -944,7 +1109,7 @@ textarea {
 .radio-row {
   display: flex;
   gap: 16px;
-  min-height: 40px;
+  min-height: 44px;
   align-items: center;
 }
 
@@ -974,14 +1139,13 @@ textarea {
 }
 
 .played-when {
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: var(--t-small);
   color: var(--text-2);
 }
 
 .played-vs {
   grid-column: 1;
-  font-weight: 600;
+  font-weight: 500;
   overflow-wrap: anywhere;
 }
 
@@ -1009,7 +1173,7 @@ textarea {
 }
 
 .played-edit legend {
-  font-weight: 600;
+  font-weight: 500;
   margin-bottom: 6px;
 }
 
@@ -1058,16 +1222,25 @@ textarea {
 }
 
 .manual-copy textarea {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  font-size: var(--t-label);
 }
 
 .small {
-  font-size: 0.8rem;
+  font-size: var(--t-small);
+}
+
+/* The explanations behind a fold are read, not scanned: a step larger than a note. */
+.why p.small,
+.more p.small,
+.why .reasons.small,
+.explain p {
+  font-size: 0.9375rem;
+  line-height: 1.6;
 }
 
 .strong {
-  font-weight: 650;
+  font-weight: 500;
 }
 
 /* ---------- Dashboards ---------- */
@@ -1084,8 +1257,7 @@ textarea {
 }
 
 .eyebrow {
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: var(--t-small);
   color: var(--text-2);
 }
 
@@ -1096,31 +1268,38 @@ textarea {
   padding: 24px 0;
 }
 
-/* Four key numbers in one row, also on a phone: short labels, and values that shrink with the screen. */
+/* Four key numbers in one strip, also on a phone: one box, the numbers parted by hairlines. */
 .tiles {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
 }
 
 .tile {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 10px 8px;
   display: grid;
   align-content: start;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
+  padding: 14px 10px;
+}
+
+.tile + .tile {
+  border-left: 1px solid var(--line);
 }
 
 .tile-label,
 .tile-detail {
-  font-size: 0.72rem;
+  font-size: var(--t-label);
   color: var(--text-2);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.tile-label {
+  font-weight: 500;
 }
 
 .tile-label abbr {
@@ -1129,26 +1308,26 @@ textarea {
 
 .tile-value {
   font-family: var(--font-display);
-  font-size: min(1.6rem, 6.4vw);
-  font-weight: 700;
-  line-height: 1.05;
+  font-size: min(1.5rem, 6vw);
+  font-weight: 400;
+  letter-spacing: var(--tracking-display);
+  line-height: 1.1;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
-@media (min-width: 720px) {
+@media (prefers-color-scheme: dark) {
   .tiles {
-    gap: 12px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
+}
+
+@media (min-width: 720px) {
   .tile {
-    padding: 12px 14px;
-  }
-  .tile-label,
-  .tile-detail {
-    font-size: 0.8rem;
+    padding: 18px 20px;
   }
   .tile-value {
-    font-size: 2.1rem;
+    font-size: var(--t-stat);
   }
 }
 
@@ -1175,11 +1354,12 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin: 0 -8px;
-  padding: 10px 8px;
-  border-radius: 10px;
+  margin: 0 -10px;
+  padding: 12px 10px;
+  border-radius: var(--r-md);
   color: var(--text);
   text-decoration: none;
+  transition: background-color var(--m-out) var(--ease);
 }
 
 /* The row's main text takes the room; what follows it (a score, a place) sits by the chevron. */
@@ -1204,14 +1384,19 @@ textarea {
   transform: rotate(45deg);
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .row-link:hover {
     background: var(--surface-2);
+    transition-duration: var(--m-in);
+  }
+  .row-link:hover::after {
+    border-color: var(--text);
   }
 }
 
 .row-link:active {
   background: var(--surface-2);
+  transition-duration: var(--m-press);
 }
 
 .show-all {
@@ -1226,75 +1411,86 @@ textarea {
 
 .result-predicted,
 .result-note {
-  font-size: 0.8rem;
+  font-size: var(--t-label);
   color: var(--text-2);
 }
 
 .result-when {
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: var(--t-label);
+  font-weight: 500;
   color: var(--text-2);
 }
 
 .result-vs {
-  font-weight: 550;
+  font-weight: 500;
   overflow-wrap: break-word;
 }
 
-/* A played match between two teams: the winner's name is the strong one. */
+/* A played match between two teams: the winner's name in ink at 500, the other one quieter. */
 .result-vs.is-decided {
   font-weight: 400;
+  color: var(--text-2);
 }
 
 .result-vs .is-winner {
-  font-weight: 650;
+  font-weight: 500;
+  color: var(--text);
 }
 
 .result-venue {
-  font-size: 0.85rem;
+  font-size: var(--t-small);
   color: var(--text-2);
 }
 
 .result-side {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex: none;
   text-align: right;
-  font-size: 0.9rem;
+  font-size: var(--t-small);
 }
 
 .result-score {
   font-family: var(--font-display);
-  font-size: 1.35rem;
-  font-weight: 700;
+  font-size: 1.375rem;
+  font-weight: 400;
+  letter-spacing: var(--tracking-display);
   font-variant-numeric: tabular-nums;
   color: var(--text);
 }
 
+/* An outcome: a quiet pill with a dot in the data colour, so the words carry it and the colour marks it. */
 .badge {
-  display: inline-block;
-  min-width: 3.4rem;
-  padding: 2px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 5.25rem;
+  padding: 0 10px 0 8px;
+  border: 1px solid var(--border-strong);
   border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 650;
-  text-align: center;
+  font-size: var(--t-label);
+  font-weight: 500;
+  line-height: 1.6;
+  color: var(--text);
+  text-align: left;
 }
 
-.badge-won {
-  background: var(--won-soft);
-  color: var(--won-ink);
+.badge::before {
+  content: '';
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--drawn);
 }
 
-.badge-lost {
-  background: var(--lost-soft);
-  color: var(--lost-ink);
+.badge-won::before {
+  background: var(--won);
 }
 
-.badge-drawn {
-  background: var(--surface-2);
-  color: var(--text-2);
+.badge-lost::before {
+  background: var(--lost);
 }
 
 /* Positioned, so text for screen readers inside a wide table scrolls with it and never widens the page. */
@@ -1309,26 +1505,27 @@ textarea {
   width: 100%;
   border-collapse: collapse;
   font-variant-numeric: tabular-nums;
-  font-size: 0.92rem;
+  font-size: 0.9375rem;
 }
 
 .data-table th,
 .data-table td {
-  padding: 8px 6px;
+  padding: 10px 6px;
   text-align: left;
   border-bottom: 1px solid var(--line);
   vertical-align: top;
 }
 
 .data-table thead th {
-  font-size: 0.75rem;
-  font-weight: 600;
+  padding-top: 0;
+  font-size: var(--t-label);
+  font-weight: 500;
   color: var(--text-2);
   white-space: nowrap;
 }
 
 .data-table tbody th {
-  font-weight: 550;
+  font-weight: 400;
 }
 
 .data-table .num {
@@ -1349,11 +1546,12 @@ textarea {
 
 .data-table tr.is-highlight th,
 .data-table tr.is-highlight td {
-  background: var(--accent-soft);
+  background: var(--surface-2);
+  font-weight: 500;
 }
 
 .games-table td.winner {
-  font-weight: 650;
+  font-weight: 500;
 }
 
 .wl {
@@ -1416,14 +1614,16 @@ textarea {
 }
 
 .linked-note {
-  padding: 10px 14px;
-  border-radius: 10px;
-  background: var(--accent-soft);
-  font-size: 0.9rem;
+  padding: 12px 16px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: var(--t-small);
 }
 
 .linked-note.is-failed {
   background: var(--warning-soft);
+  border-color: transparent;
   color: var(--warning-ink);
 }
 
@@ -1476,14 +1676,14 @@ textarea {
 .chart .row-label,
 .chart .reference-label {
   fill: var(--tick);
-  font-size: 11px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 
 .chart .row-label {
   fill: var(--text-2);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .chart .line {
@@ -1520,8 +1720,8 @@ textarea {
 
 .chart .end-label {
   fill: var(--text);
-  font-size: 12px;
-  font-weight: 650;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .chart .crosshair,
@@ -1549,13 +1749,13 @@ textarea {
   position: absolute;
   z-index: 2;
   min-width: 180px;
-  max-width: 230px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
+  max-width: 240px;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-strong);
   background: var(--surface);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  font-size: 0.8rem;
+  box-shadow: 0 8px 24px rgba(17, 17, 17, 0.1);
+  font-size: var(--t-label);
   pointer-events: none;
 }
 
@@ -1580,7 +1780,7 @@ textarea {
 
 .tooltip-row.is-highlight span:last-child {
   color: var(--text);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .tooltip-row strong {
@@ -1621,9 +1821,9 @@ textarea {
 
 .table-view summary {
   cursor: pointer;
-  color: var(--link);
-  font-weight: 550;
-  font-size: 0.9rem;
+  color: var(--text);
+  font-weight: 500;
+  font-size: var(--t-small);
 }
 
 .table-view .table-scroll {
@@ -1633,17 +1833,20 @@ textarea {
 /* ---------- Forecasts and insights ---------- */
 
 .odds-headline {
-  font-size: 1.05rem;
+  font-size: var(--t-body);
 }
 
 .odds-headline strong,
 .forecast-headline strong {
   font-family: var(--font-display);
-  font-size: 1.7rem;
+  font-size: 2rem;
+  font-weight: 400;
+  letter-spacing: var(--tracking-display);
+  line-height: 1.1;
 }
 
 .forecast-headline {
-  font-size: 1.05rem;
+  font-size: var(--t-body);
 }
 
 .rating-table {
@@ -1653,7 +1856,7 @@ textarea {
 .rating-table caption {
   caption-side: top;
   text-align: left;
-  font-weight: 600;
+  font-weight: 500;
   padding-bottom: 4px;
 }
 
@@ -1662,13 +1865,13 @@ textarea {
 }
 
 .next-when {
-  font-weight: 550;
+  font-weight: 500;
 }
 
 /* The venue on its own line, so a long hall name never breaks beside the opponent. */
 .next-venue {
   display: block;
-  font-size: 0.85rem;
+  font-size: var(--t-small);
   font-weight: 400;
   color: var(--text-2);
 }
@@ -1695,8 +1898,8 @@ textarea {
 
 .odds-label {
   padding: 0 8px;
-  font-size: 0.8rem;
-  font-weight: 700;
+  font-size: var(--t-label);
+  font-weight: 500;
   white-space: nowrap;
 }
 
@@ -1748,15 +1951,15 @@ textarea {
 }
 
 .result-odds-text {
-  font-size: 0.85rem;
-  font-weight: 650;
+  font-size: var(--t-small);
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
 /* A match's expected score, on its own line under the headline chance. */
 .odds-expected {
   display: block;
-  font-size: 0.9rem;
+  font-size: var(--t-small);
   color: var(--text-2);
 }
 
@@ -1768,8 +1971,8 @@ textarea {
 .steps-head {
   padding-bottom: 4px;
   text-align: right;
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: var(--t-label);
+  font-weight: 500;
   color: var(--text-2);
 }
 
@@ -1782,14 +1985,14 @@ textarea {
 }
 
 .steps-head-split > :first-child {
-  font-size: 0.85rem;
+  font-size: var(--t-small);
   color: var(--text);
 }
 
 .step {
   display: grid;
   gap: 2px;
-  padding: 8px 0;
+  padding: 10px 0;
   border-top: 1px solid var(--line);
 }
 
@@ -1797,7 +2000,7 @@ textarea {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .step-win {
@@ -1806,7 +2009,7 @@ textarea {
 }
 
 .step-note {
-  font-size: 0.85rem;
+  font-size: var(--t-small);
   color: var(--text-2);
 }
 
@@ -1840,8 +2043,8 @@ textarea {
 .insights li {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 2px;
-  padding: 10px 0;
+  gap: 4px;
+  padding: 12px 0;
   border-top: 1px solid var(--line);
 }
 
@@ -1858,40 +2061,73 @@ textarea {
 }
 
 .insight-topic {
-  font-size: 0.8rem;
-  font-weight: 650;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: var(--t-label);
+  font-weight: 500;
   color: var(--text-2);
   padding-top: 2px;
 }
 
+/*
+ * Choices of one kind, side by side: each a quiet outlined button, the chosen one an ink pill with its
+ * label in the ground's colour (the team page's tabs, the match page's side, the language).
+ */
 .segmented {
   display: inline-flex;
   flex-wrap: wrap;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  overflow: hidden;
+  gap: 8px;
 }
 
-.segmented button {
-  border: 0;
-  border-right: 1px solid var(--border);
-  background: var(--surface);
+.segmented button,
+.tabs a,
+.tabs button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 6px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  background: transparent;
   color: var(--text-2);
-  padding: 6px 10px;
-  font-size: 0.85rem;
-  font-weight: 600;
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.25;
+  text-align: center;
+  text-decoration: none;
   cursor: pointer;
+  transition:
+    background-color var(--m-out) var(--ease),
+    border-color var(--m-out) var(--ease),
+    color var(--m-out) var(--ease);
 }
 
-.segmented button:last-child {
-  border-right: 0;
+@media (hover: hover) and (pointer: fine) {
+  .segmented button:hover,
+  .tabs a:hover,
+  .tabs button:hover {
+    color: var(--text);
+    border-color: color-mix(in srgb, var(--text) 40%, transparent);
+    transition-duration: var(--m-in);
+  }
 }
 
-.segmented button[aria-pressed='true'] {
-  background: var(--accent-soft);
-  color: var(--text);
+.segmented button[aria-pressed='true'],
+.tabs a[aria-current='page'],
+.tabs button[aria-pressed='true'] {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--surface);
+}
+
+/* The match page's two sides: on a phone one row of two equal buttons, a long team name wrapping inside its own. */
+@media (max-width: 639px) {
+  .segmented.sides {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    flex-basis: 100%;
+  }
 }
 
 .lineup-picker {
@@ -1900,7 +2136,7 @@ textarea {
 }
 
 .lineup-picker h3 {
-  font-size: 0.95rem;
+  font-size: 0.9375rem;
 }
 
 .chips {
@@ -1913,25 +2149,37 @@ textarea {
   display: inline-flex;
   align-items: baseline;
   gap: 6px;
-  min-height: 36px;
-  padding: 6px 12px;
+  min-height: 40px;
+  padding: 8px 14px;
   border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--page);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
   color: var(--text);
-  font-weight: 550;
+  font-size: 0.9375rem;
+  line-height: 1.5;
   cursor: pointer;
+  transition:
+    background-color var(--m-out) var(--ease),
+    border-color var(--m-out) var(--ease),
+    color var(--m-out) var(--ease);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .chip:hover {
+    border-color: color-mix(in srgb, var(--text) 40%, transparent);
+    transition-duration: var(--m-in);
+  }
 }
 
 .chip[aria-pressed='true'] {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--on-accent);
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--surface);
 }
 
 .chip-meta {
-  font-size: 0.8rem;
-  opacity: 0.8;
+  font-size: var(--t-label);
+  opacity: 0.75;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1944,8 +2192,8 @@ textarea {
 .heat-table th {
   padding: 6px 8px;
   text-align: left;
-  font-weight: 550;
-  font-size: 0.85rem;
+  font-weight: 400;
+  font-size: var(--t-small);
   vertical-align: bottom;
 }
 
@@ -1954,7 +2202,7 @@ textarea {
   padding: 0;
   border-radius: 4px;
   text-align: center;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 /* Each chance is a link to the two players' page: the whole cell is the tap target. */
@@ -2010,8 +2258,8 @@ textarea {
 .heat-table .h2h {
   display: block;
   margin-top: 2px;
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-size: var(--t-label);
+  font-weight: 400;
 }
 
 .heat-table tr.is-picked th {
@@ -2027,8 +2275,8 @@ textarea {
 
 /* The start page's way to the advanced search, under its search field. */
 .advanced-link {
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: 0.9375rem;
+  font-weight: 500;
 }
 
 /* ---------- Advanced search ---------- */
@@ -2055,15 +2303,15 @@ textarea {
 }
 
 .tab-count {
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--text-2);
+  font-size: var(--t-label);
+  font-weight: 400;
+  opacity: 0.75;
   font-variant-numeric: tabular-nums;
 }
 
 .club-name {
-  font-weight: 650;
-  font-size: 1.02rem;
+  font-weight: 500;
+  font-size: 1.0625rem;
 }
 
 /* A club's teams under its name in the search results: set in, with a rule down the side. */
@@ -2096,43 +2344,81 @@ textarea {
 .back-button {
   display: inline-grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
-  margin-left: -8px;
+  width: 40px;
+  height: 40px;
+  margin-left: -10px;
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--r-sm);
   background: transparent;
   color: var(--text);
   cursor: pointer;
+  transition: background-color var(--m-out) var(--ease);
 }
 
-.back-button:hover {
+@media (hover: hover) and (pointer: fine) {
+  .back-button:hover {
+    background: var(--surface-2);
+    transition-duration: var(--m-in);
+  }
+}
+
+.back-button:active {
   background: var(--surface-2);
 }
 
+/* On a wide screen: plain words that darken and draw a line under them; the current one has a 2px bar. */
 .nav-top {
   display: none;
-  gap: 4px;
+  gap: 28px;
 }
 
 .nav-top .nav-link {
-  padding: 6px 12px;
-  border-radius: 999px;
+  position: relative;
+  padding: 8px 0;
   color: var(--text-2);
-  font-weight: 600;
+  font-size: 0.9375rem;
+  font-weight: 500;
   text-decoration: none;
+  white-space: nowrap;
+  transition: color var(--m-out) var(--ease);
+}
+
+.nav-top .nav-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 4px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform var(--m-out) var(--ease);
 }
 
 .nav-top .nav-link:hover {
-  background: var(--surface-2);
   color: var(--text);
+  transition-duration: var(--m-in);
+}
+
+.nav-top .nav-link:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+  transition-duration: var(--m-in);
 }
 
 .nav-top .nav-link[aria-current='page'] {
-  background: var(--accent-soft);
   color: var(--text);
 }
 
+.nav-top .nav-link[aria-current='page']::after {
+  height: 2px;
+  bottom: 3px;
+  background: var(--accent);
+  transform: none;
+}
+
+/* On a phone: the three places at the foot, on the ground with a hairline; the current one in the accent. */
 .nav-bottom {
   position: fixed;
   left: 0;
@@ -2141,29 +2427,30 @@ textarea {
   z-index: 10;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
-  border-top: 1px solid var(--line);
-  background: var(--surface);
+  padding: 4px 8px calc(4px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+  background: var(--page);
 }
 
 .nav-bottom .nav-link {
   display: grid;
   justify-items: center;
+  align-content: center;
   gap: 2px;
-  padding: 4px 0;
-  border-radius: 10px;
+  min-height: 56px;
+  border-radius: var(--r-sm);
   color: var(--text-2);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: var(--t-label);
+  font-weight: 500;
   text-decoration: none;
 }
 
 .nav-bottom .nav-link[aria-current='page'] {
-  color: var(--accent-strong);
+  color: var(--accent);
 }
 
 .app {
-  padding-bottom: calc(68px + env(safe-area-inset-bottom));
+  padding-bottom: calc(64px + env(safe-area-inset-bottom));
 }
 
 @media (min-width: 720px) {
@@ -2180,35 +2467,16 @@ textarea {
 
 /* ---------- Team page ---------- */
 
+/* Links on the team and player pages; buttons on the advanced search, where the tab is part of the search. */
 .tabs {
   display: flex;
-  gap: 4px;
-  padding: 4px;
-  border-radius: 12px;
-  background: var(--surface-2);
+  gap: 8px;
 }
 
-/* Links on the team and player pages; buttons on the advanced search, where the tab is part of the search. */
 .tabs a,
 .tabs button {
   flex: 1;
-  padding: 8px 6px;
-  border: 0;
-  border-radius: 9px;
-  background: none;
-  color: var(--text-2);
-  font: inherit;
-  font-weight: 650;
-  text-align: center;
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.tabs a[aria-current='page'],
-.tabs button[aria-pressed='true'] {
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: 0 1px 2px rgba(11, 11, 11, 0.08);
+  padding-inline: 8px;
 }
 
 .follow {
@@ -2216,17 +2484,19 @@ textarea {
 }
 
 .follow.is-on {
-  border-color: var(--accent);
-  color: var(--accent-strong);
-  background: var(--accent-soft);
+  border-color: var(--text);
 }
 
 .why summary,
 .more summary {
   cursor: pointer;
-  color: var(--link);
-  font-weight: 600;
-  font-size: 0.9rem;
+  color: var(--text);
+  font-weight: 500;
+  font-size: 0.9375rem;
+}
+
+summary::marker {
+  color: var(--text-2);
 }
 
 .why[open] summary,
@@ -2245,9 +2515,23 @@ textarea {
 /* ---------- Start page ---------- */
 
 .my-team {
-  gap: 10px;
+  gap: 12px;
   color: var(--text);
   text-decoration: none;
+}
+
+/* A card that is a link lifts 2px on hover, its edge a step darker. */
+a.card {
+  transition:
+    transform 180ms var(--ease),
+    border-color 180ms var(--ease);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  a.card:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-strong);
+  }
 }
 
 .my-team-head {
@@ -2256,24 +2540,32 @@ textarea {
 }
 
 .my-team-name {
-  font-size: 1.15rem;
-  font-weight: 700;
+  font-size: var(--t-card);
+  font-weight: 500;
   color: var(--text);
   text-decoration: none;
 }
 
 .my-team-next {
   display: grid;
-  gap: 4px;
-  padding: 10px 12px;
-  border-radius: 10px;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
   background: var(--surface-2);
   color: var(--text);
   text-decoration: none;
+  transition: background-color var(--m-out) var(--ease);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .my-team-next:hover {
+    background: color-mix(in srgb, var(--surface-2) 88%, var(--text));
+    transition-duration: var(--m-in);
+  }
 }
 
 .my-team-vs {
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .my-team-odds {
@@ -2284,16 +2576,19 @@ textarea {
 }
 
 .my-team-odds strong {
-  font-size: 1.1rem;
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 400;
+  letter-spacing: var(--tracking-display);
 }
 
 .suggestion p a {
-  font-weight: 650;
+  font-weight: 500;
 }
 
 .search-field input {
   min-height: 48px;
-  font-size: 1.05rem;
+  font-size: 1.0625rem;
 }
 
 .card.compact {
@@ -2301,7 +2596,10 @@ textarea {
 }
 
 .card.compact h2 {
-  font-size: 1rem;
+  font-family: var(--font-text);
+  font-size: var(--t-body);
+  font-weight: 500;
+  letter-spacing: 0;
 }
 
 /* ---------- Planner ---------- */

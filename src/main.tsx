@@ -2,8 +2,8 @@ import { StrictMode, useSyncExternalStore } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import { getLang, subscribeLang } from './i18n';
-import '@fontsource/barlow-condensed/600.css';
-import '@fontsource/barlow-condensed/700.css';
+import '@fontsource-variable/funnel-display/wght.css';
+import '@fontsource-variable/funnel-sans/wght.css';
 import './styles.css';
 
 /** Renders the app afresh when the language changes, so no text stays in the old one. */

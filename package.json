@@ -16,7 +16,8 @@
     "backtest": "node scraper/backtest.ts"
   },
   "dependencies": {
-    "@fontsource/barlow-condensed": "^5.3.0",
+    "@fontsource-variable/funnel-display": "^5.3.0",
+    "@fontsource-variable/funnel-sans": "^5.3.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },
